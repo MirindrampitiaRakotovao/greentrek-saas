@@ -36,7 +36,9 @@ export function LoginForm({ agenceSlug }: { agenceSlug?: string }) {
   });
 
   return (
-    <form onSubmit={onSubmit} noValidate className="space-y-4">
+    // method="post" : si le formulaire part avant le chargement de JavaScript, les
+    // identifiants ne doivent jamais apparaître dans l'URL (historique, journaux).
+    <form method="post" onSubmit={onSubmit} noValidate className="space-y-4">
       <FormAlert message={serverError} />
       <TextField
         label="Adresse e-mail"

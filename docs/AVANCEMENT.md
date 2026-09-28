@@ -8,7 +8,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 |---|---|---|---|
 | E0 Initialisation | Fait | 2026-09-28 | Typecheck, lint, test et build verts ; base MySQL créée ; `/api/health` renvoie 200 « connectée » (vérifié chez l'étudiant) |
 | E1 Schéma Prisma | Fait | 2026-09-28 | 19 tables et 18 CHECK migrés, seed OK, ERD rédigé ; typecheck, lint et build verts ; `npm test` 23/23 (3 unitaires, 20 d'intégration) chez l'étudiant |
-| E2 Auth et multi-tenant | En cours | 2026-09-28 | **E2a** : confirmé par l'étudiant (124 tests). **E2b** (Auth.js, pages, onboarding) : typecheck, lint, 167 tests, build et 14 scénarios de bout en bout verts ; en attente de vérification de l'interface par l'étudiant |
+| E2 Auth et multi-tenant | Fait | 2026-09-28 | Typecheck, lint, 167 tests, build et 14 scénarios de bout en bout verts ; parcours vérifiés dans le navigateur par l'étudiant (connexion admin, inscription d'agence, connexion client, super admin) |
 | E3 Fondations back-office | À faire | | |
 | E4 Circuits et étapes | À faire | | |
 | E5 Éditeur de graphe | À faire | | |
@@ -96,6 +96,11 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - **Tests** : 43 tests supplémentaires (validations Zod et slug en unitaire ; authentification, relecture RG 19, unicité de l'e-mail et onboarding en intégration). **Tests de bout en bout** (serveur de production, connexions HTTP réelles par Auth.js avec les comptes du seed) : redirections du proxy, accès par rôle, client refusé sur une autre agence et sur `/connexion`, isolation entre Green Trek et Démo Alpha, suspension d'une agence pendant une session ouverte, puis réactivation.
 - **Reporté** : inscription des clients (E9, avec le compte client) ; limitation des tentatives de connexion (P2, §12).
 - **Correctif après test par l'étudiant** : en développement, le client Prisma mis en cache sur `globalThis` (pour le rechargement à chaud) survivait à un `prisma generate` ; un serveur `npm run dev` lancé avant E1 gardait un client sans tables (`Cannot read properties of undefined (reading 'findFirst')`). Le cache n'est désormais réutilisé que s'il provient de la classe PrismaClient actuelle (`instanceof`).
+- **Correctifs de sécurité après test dans le navigateur** :
+  - *Identifiants dans l'URL* : ouvert depuis l'adresse réseau du poste, le formulaire était parti avant le chargement de JavaScript (ressources de développement bloquées pour cette origine), donc en GET par défaut (`/connexion?email=…&password=…`). Les formulaires sont désormais en `method="post"` : même sans JavaScript, les identifiants ne passent jamais dans l'URL.
+  - *Mots de passe dans le journal de développement* : Next.js 16 affiche par défaut les arguments des actions serveur ; désactivé par `logging.serverFunctions: false` (§12).
+  - *Test sur téléphone* : origines de développement supplémentaires via `ALLOWED_DEV_ORIGINS` (`.env`), lues par `next.config.ts`.
+  - *Avertissement d'hydratation* : provoqué par des extensions du navigateur qui ajoutent des attributs à `<html>` ; `suppressHydrationWarning` sur cette seule balise.
 
 ## Captures d'écran à prendre
 

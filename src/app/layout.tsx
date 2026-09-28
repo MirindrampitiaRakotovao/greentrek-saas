@@ -25,7 +25,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="fr" className={`${poppins.variable} ${kaushan.variable} h-full antialiased`}>
+    // suppressHydrationWarning : certaines extensions du navigateur ajoutent des attributs
+    // à <html> avant React (avertissement sans conséquence). Ne s'applique qu'à cette balise.
+    <html
+      lang="fr"
+      className={`${poppins.variable} ${kaushan.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
       <body className="flex min-h-full flex-col font-sans">{children}</body>
     </html>
   );
