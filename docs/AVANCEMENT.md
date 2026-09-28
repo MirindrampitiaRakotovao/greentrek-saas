@@ -8,7 +8,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 |---|---|---|---|
 | E0 Initialisation | Fait | 2026-09-28 | Typecheck, lint, test et build verts ; base MySQL créée ; `/api/health` renvoie 200 « connectée » (vérifié chez l'étudiant) |
 | E1 Schéma Prisma | Fait | 2026-09-28 | 19 tables et 18 CHECK migrés, seed OK, ERD rédigé ; typecheck, lint et build verts ; `npm test` 23/23 (3 unitaires, 20 d'intégration) chez l'étudiant |
-| E2 Auth et multi-tenant | À faire | | |
+| E2 Auth et multi-tenant | En cours | 2026-09-28 | **E2a** (helper tenant, permissions, tests d'isolation) : typecheck, lint, 124 tests et build verts, en attente de confirmation. **E2b** (Auth.js, pages, onboarding) : à faire |
 | E3 Fondations back-office | À faire | | |
 | E4 Circuits et étapes | À faire | | |
 | E5 Éditeur de graphe | À faire | | |
@@ -58,10 +58,28 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - **Mots de passe hachés avec `bcryptjs`** (coût 10) : implémentation en JavaScript pur, sans compilation native.
 - **Seed minimal** : 3 plans fictifs, 3 agences (Green Trek Mada réelle, Démo Alpha et Démo Beta fictives), 13 utilisateurs fictifs, 3 abonnements simulés, 4 partenaires réels de Green Trek (détails en `TODO(données terrain)`). Le graphe est reporté en E4/E5.
 
+### E2a — Isolation des données (2026-09-28)
+
+- **Helper tenant `getTenantDb(agenceId)`** (`src/lib/tenant.ts`) : extension Prisma (`$extends`, `query.$allModels.$allOperations`) qui intercepte **toutes** les opérations avant leur envoi à MySQL. Le code métier ne peut donc pas « oublier » le filtre.
+  - Lectures, modifications, suppressions, agrégats : la condition d'agence est ajoutée au `where` par un `AND`. Un filtre `agenceId` fourni par l'appelant ne peut pas la remplacer.
+  - Créations : `agenceId` est imposé ; une autre valeur est refusée (`TenantViolationError`). Déplacer une donnée vers une autre agence est refusé.
+  - Tables de liaison (`CircuitEtape`, `CircuitPartenaire`, `Participant`, `Paiement`) : filtrage par le parent (`circuit: { agenceId }`, `reservation: { agenceId }`).
+  - **Références** : chaque clé étrangère écrite doit viser une ligne de la même agence (ex. un tronçon ne peut pas relier une étape d'une autre agence, RG 6 et RG 20).
+  - Écritures imbriquées (`create`, `connect`… dans `data`) interdites : elles contourneraient le contrôle des références.
+  - Table `Agence` : une agence ne voit et ne modifie qu'elle-même ; création et suppression réservées au super admin. Table `Plan` : lecture seule.
+  - Requêtes SQL brutes (`$queryRaw`…) retirées du type `TenantDb`.
+- **Configuration explicite** (`src/lib/tenant-config.ts`) : portée et clés étrangères de chaque table, lisibles dans le mémoire. Un test unitaire vérifie qu'elle reste alignée sur le schéma (toute nouvelle table ou clé étrangère non déclarée fait échouer le test).
+- **Règle ESLint** `no-restricted-imports` : importer le client brut `@/lib/db` est une erreur dans `src/`, sauf dans le helper, `admin-db.ts` (super admin et authentification) et la route de santé. La règle « jamais de requête sans filtre `agenceId` » est ainsi vérifiée par l'outillage, pas seulement par convention.
+- **Convention de typage** : le code applicatif passe `agenceId` explicitement à la création (typage Prisma strict, pas de conversion forcée) ; le helper vérifie qu'il s'agit bien de l'agence courante.
+- **Matrice RBAC** (`src/lib/permissions.ts`) : traduction du §3 en données, avec `can(role, action, ressource)` et `assertCan`. Interprétations, faute de précision dans le §3 : guides et partenaires en CLMS pour ADMIN_AGENCE et en lecture pour STAFF (le §7.3 les rattache à la gestion de l'agence) ; abonnement en lecture pour ADMIN_AGENCE ; action « annuler » ajoutée pour les réservations, action « moderer » pour les avis.
+- **Tests d'isolation** (`tests/integration/isolation.test.ts`, 35 tests) : deux agences complètes ; le client de A tente de lire, lister, compter, agréger, modifier, supprimer, créer et référencer des données de B (par identifiant direct, par liste et par relation, y compris dans une transaction). **Contre-épreuve** : avec le filtre d'agence désactivé, 19 de ces tests échouent. Les tests détectent donc bien une fuite ; les 16 autres portent sur les contrôles de création et de référence, qui sont indépendants.
+- **Limite connue (à citer dans le mémoire)** : l'isolation repose sur la discipline « passer par le helper », imposée par ESLint et la revue de code. Une isolation au niveau de la base (Row-Level Security) n'existe pas dans MySQL ; elle serait possible avec PostgreSQL.
+
 ## Captures d'écran à prendre
 
 - E0 : page d'accueil provisoire (palette) et réponse JSON de `/api/health` avec `"database": "connectée"`.
 - E1 : ERD exporté depuis mermaid.live ou MySQL Workbench ; résultat de `npm test` (tests d'intégration des contraintes).
+- E2a : sortie de `npm test` montrant les tests d'isolation (liste détaillée : `npx vitest run tests/integration/isolation.test.ts`).
 
 ## Comptes de démonstration
 

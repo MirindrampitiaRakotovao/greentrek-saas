@@ -28,6 +28,8 @@ Next.js (App Router) + TypeScript strict · MySQL + Prisma · Auth.js (credentia
 - Modèles et champs métier en français sans accents (`Circuit`, `Etape`, `Troncon`, `nombrePersonnes`…), comme dans le mémoire. Identifiants techniques (fonctions, composants, hooks) en anglais.
 - TypeScript strict, pas de `any`. Validation Zod à chaque frontière (formulaires, route handlers, server actions).
 - Multi-tenant : toute requête sur une table liée à une agence passe par le helper tenant (cahier des charges §4). Jamais de requête Prisma sans filtre `agenceId` sur ces tables. Tests d'isolation obligatoires.
+  - Implémentation : `getTenantDb(agenceId)` dans `src/lib/tenant.ts`, configuration dans `src/lib/tenant-config.ts` (à mettre à jour pour toute nouvelle table ou clé étrangère). Importer `@/lib/db` dans `src/` est une erreur ESLint ; super admin et authentification passent par `getAdminDb()`.
+  - À la création, passer `agenceId` explicitement (le helper vérifie qu'il correspond). Pas d'écriture imbriquée (`connect`, `create` dans `data`) : utiliser les clés étrangères.
 - Pas de secrets dans le code : `.env` (ignoré par git) + `.env.example`.
 - Algorithmes dans `src/lib/graph/` : fonctions pures (sans UI ni base de données), testées unitairement.
 - Palette et typographie : cahier des charges §8, tokens CSS dans `src/styles/tokens.css`.
