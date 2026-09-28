@@ -45,7 +45,15 @@ function createDefaultClient(): PrismaClient {
  */
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-export const db: PrismaClient = globalForPrisma.prisma ?? createDefaultClient();
+// Après un `prisma generate` (nouveau schéma), la classe PrismaClient change : une instance
+// mise en cache par l'ancienne version ne connaît pas les nouvelles tables. On ne la
+// réutilise donc que si elle provient de la classe actuelle.
+const cached = globalForPrisma.prisma;
+if (cached && !(cached instanceof PrismaClient)) {
+  void cached.$disconnect();
+}
+
+export const db: PrismaClient = cached instanceof PrismaClient ? cached : createDefaultClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = db;

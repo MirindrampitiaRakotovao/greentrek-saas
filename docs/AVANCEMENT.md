@@ -95,6 +95,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - **Pages provisoires** `/dashboard`, `/admin`, `/a/[slug]/mon-compte` : affichent l'utilisateur, son rôle et son agence (le vrai back-office arrive en E3). Page d'aiguillage `/espace` : envoie chaque rôle vers son espace après la connexion.
 - **Tests** : 43 tests supplémentaires (validations Zod et slug en unitaire ; authentification, relecture RG 19, unicité de l'e-mail et onboarding en intégration). **Tests de bout en bout** (serveur de production, connexions HTTP réelles par Auth.js avec les comptes du seed) : redirections du proxy, accès par rôle, client refusé sur une autre agence et sur `/connexion`, isolation entre Green Trek et Démo Alpha, suspension d'une agence pendant une session ouverte, puis réactivation.
 - **Reporté** : inscription des clients (E9, avec le compte client) ; limitation des tentatives de connexion (P2, §12).
+- **Correctif après test par l'étudiant** : en développement, le client Prisma mis en cache sur `globalThis` (pour le rechargement à chaud) survivait à un `prisma generate` ; un serveur `npm run dev` lancé avant E1 gardait un client sans tables (`Cannot read properties of undefined (reading 'findFirst')`). Le cache n'est désormais réutilisé que s'il provient de la classe PrismaClient actuelle (`instanceof`).
 
 ## Captures d'écran à prendre
 
