@@ -54,7 +54,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - **Écarts avec le §5.2** : `Circuit.difficulte` en enum à 3 niveaux, `ItineraireCalcule` avec étapes nullables et champ `difficulteCumulee` ajouté (§6.3), `creePar` devient `creeParId`. Détail et justifications dans `docs/ERD.md`.
 - **Projet en ESM** (`"type": "module"`) : le client Prisma 7 généré est un module ES ; les scripts `tsx` (seed) l'exigent.
 - **Prisma 7 ne régénère plus le client après `migrate dev`** : le script `db:migrate` enchaîne les deux commandes.
-- **Base de test séparée `greentrek_test`**, remise à zéro par `prisma migrate reset` au début des tests d'intégration. Garde-fou : le code refuse toute base dont le nom ne finit pas par `_test`. Tests exécutés en série (base partagée).
+- **Base de test séparée `greentrek_test`** : au démarrage des tests d'intégration, `prisma migrate deploy` applique les migrations manquantes. Cette commande est non destructive, contrairement à `migrate reset` que Prisma 7 bloque quand il est lancé par un agent IA. Les tables sont vidées (TRUNCATE) avant chaque test. Garde-fou : le code refuse toute base dont le nom ne finit pas par `_test`. Tests exécutés en série (base partagée).
 - **Mots de passe hachés avec `bcryptjs`** (coût 10) : implémentation en JavaScript pur, sans compilation native.
 - **Seed minimal** : 3 plans fictifs, 3 agences (Green Trek Mada réelle, Démo Alpha et Démo Beta fictives), 13 utilisateurs fictifs, 3 abonnements simulés, 4 partenaires réels de Green Trek (détails en `TODO(données terrain)`). Le graphe est reporté en E4/E5.
 
