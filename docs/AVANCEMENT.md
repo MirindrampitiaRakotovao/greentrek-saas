@@ -6,7 +6,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 
 | Étape | Statut | Date | Remarques |
 |---|---|---|---|
-| E0 Initialisation | En cours | 2026-09-28 | Code prêt ; typecheck, lint, test et build verts. Reste : création de la base MySQL et vérification de `/api/health` par l'étudiant |
+| E0 Initialisation | Fait | 2026-09-28 | Typecheck, lint, test et build verts ; base MySQL créée ; `/api/health` renvoie 200 « connectée » (vérifié chez l'étudiant) |
 | E1 Schéma Prisma | À faire | | |
 | E2 Auth et multi-tenant | À faire | | |
 | E3 Fondations back-office | À faire | | |
