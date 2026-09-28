@@ -1,0 +1,41 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+/*
+ * Exposition des tokens à Tailwind v4 : chaque `--color-gt-*` génère les utilitaires
+ * `bg-gt-*`, `text-gt-*`, `border-gt-*`… Les valeurs restent définies une seule fois,
+ * dans tokens.css.
+ */
+@theme inline {
+  --color-gt-teal-400: var(--gt-teal-400);
+  --color-gt-teal-500: var(--gt-teal-500);
+  --color-gt-teal-600: var(--gt-teal-600);
+  --color-gt-teal-700: var(--gt-teal-700);
+  --color-gt-teal-800: var(--gt-teal-800);
+  --color-gt-teal-900: var(--gt-teal-900);
+  --color-gt-teal-card: var(--gt-teal-card);
+  --color-gt-sand-200: var(--gt-sand-200);
+  --color-gt-sand-300: var(--gt-sand-300);
+  --color-gt-cream: var(--gt-cream);
+  --color-gt-mist: var(--gt-mist);
+  --color-gt-sky: var(--gt-sky);
+  --color-gt-white: var(--gt-white);
+
+  --font-sans: var(--font-poppins);
+  --font-script: var(--font-kaushan);
+}
+
+body {
+  background: var(--gt-white);
+  color: var(--gt-teal-900);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

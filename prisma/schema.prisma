@@ -1,0 +1,12 @@
+// Schéma Prisma de Green Trek SaaS.
+// E0 : uniquement la source de données et le générateur.
+// Les 19 modèles métier sont ajoutés à l'étape E1.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}

@@ -1,0 +1,22 @@
+/*
+ * Tokens de design Green Trek (cahier des charges §8.2).
+ * Couleurs échantillonnées sur la maquette d'inspiration, à ajuster à l'œil.
+ *
+ * Accessibilité : texte blanc sur teal-500 ≈ 4,4:1 (insuffisant pour le petit texte).
+ * Pour les boutons et textes blancs, utiliser teal-700 ou plus foncé (≈ 6,5:1).
+ */
+:root {
+  --gt-teal-500: #0d8495;
+  --gt-teal-400: #068c9e;
+  --gt-teal-600: #1c7482;
+  --gt-teal-700: #0f6775;
+  --gt-teal-800: #025e69;
+  --gt-teal-900: #0f414d;
+  --gt-teal-card: #10585b;
+  --gt-sand-300: #fad594;
+  --gt-sand-200: #efd7a3;
+  --gt-cream: #efe8dd;
+  --gt-mist: #d1d9da;
+  --gt-sky: #96beca;
+  --gt-white: #ffffff;
+}
