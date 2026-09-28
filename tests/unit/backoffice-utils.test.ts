@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatMoney } from "@/lib/format";
 import { navigationFor } from "@/lib/navigation";
 import { pageArgs, pageCount, parsePage } from "@/lib/pagination";
 
@@ -11,6 +11,18 @@ describe("navigationFor : menu selon le rôle", () => {
   it("ADMIN_AGENCE et STAFF voient l'équipe", () => {
     expect(hrefs("ADMIN_AGENCE")).toContain("/dashboard/equipe");
     expect(hrefs("STAFF")).toContain("/dashboard/equipe");
+  });
+
+  it("seul ADMIN_AGENCE voit les paramètres ; STAFF voit guides et partenaires", () => {
+    expect(hrefs("ADMIN_AGENCE")).toContain("/dashboard/parametres");
+    expect(hrefs("STAFF")).not.toContain("/dashboard/parametres");
+    expect(hrefs("STAFF")).toEqual(
+      expect.arrayContaining(["/dashboard/guides", "/dashboard/partenaires"]),
+    );
+  });
+
+  it("GUIDE ne voit ni l'équipe, ni les guides, ni les partenaires", () => {
+    expect(hrefs("GUIDE")).toEqual(["/dashboard", "/dashboard/profil"]);
   });
 
   it("GUIDE ne voit pas l'équipe, mais voit son profil", () => {
@@ -46,5 +58,22 @@ describe("formatDateTime", () => {
 
   it("affiche un texte de repli pour une date absente", () => {
     expect(formatDateTime(null, "Jamais")).toBe("Jamais");
+  });
+});
+
+describe("formatMoney", () => {
+  // Intl sépare les milliers par une espace fine insécable (U+202F) : on normalise pour comparer.
+  const plain = (text: string) => text.replace(/\s/g, " ");
+
+  it("affiche l'Ariary avec « Ar »", () => {
+    expect(plain(formatMoney(25000, "MGA"))).toBe("25 000 Ar");
+  });
+
+  it("affiche l'euro avec son symbole", () => {
+    expect(plain(formatMoney(25000, "EUR"))).toBe("25 000 €");
+  });
+
+  it("affiche un texte de repli pour un montant absent", () => {
+    expect(formatMoney(null, "MGA")).toBe("—");
   });
 });

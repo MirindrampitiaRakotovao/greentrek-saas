@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { passwordSchema } from "@/lib/validators/auth";
+import { optionalPhone } from "@/lib/validators/common";
 
 /** Rôles qu'un administrateur d'agence peut attribuer (jamais CLIENT ni SUPER_ADMIN). */
 export const TEAM_ROLES = ["ADMIN_AGENCE", "STAFF", "GUIDE"] as const;
@@ -13,14 +14,6 @@ export const TEAM_ROLE_LABELS: Record<TeamRole, string> = {
 };
 
 const nom = z.string().trim().min(1, { error: "Champ requis." }).max(100);
-
-/** Téléphone facultatif : chaîne vide ramenée à `null`. */
-export const optionalPhone = z
-  .string()
-  .trim()
-  .max(30, { error: "30 caractères au maximum." })
-  .regex(/^[+0-9 ().-]*$/, { error: "Chiffres, espaces et + ( ) . - uniquement." })
-  .transform((value) => (value === "" ? null : value));
 
 const role = z.enum(TEAM_ROLES, { error: "Rôle invalide." });
 

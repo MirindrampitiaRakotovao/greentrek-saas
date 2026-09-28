@@ -9,7 +9,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E0 Initialisation | Fait | 2026-09-28 | Typecheck, lint, test et build verts ; base MySQL créée ; `/api/health` renvoie 200 « connectée » (vérifié chez l'étudiant) |
 | E1 Schéma Prisma | Fait | 2026-09-28 | 19 tables et 18 CHECK migrés, seed OK, ERD rédigé ; typecheck, lint et build verts ; `npm test` 23/23 (3 unitaires, 20 d'intégration) chez l'étudiant |
 | E2 Auth et multi-tenant | Fait | 2026-09-28 | Typecheck, lint, 167 tests, build et 14 scénarios de bout en bout verts ; parcours vérifiés dans le navigateur par l'étudiant (connexion admin, inscription d'agence, connexion client, super admin) |
-| E3 Fondations back-office | En cours | 2026-09-28 | **E3a** (layout, équipe, profil) : typecheck, lint, 200 tests, build et contrôles d'accès par rôle verts ; en attente de vérification par l'étudiant. **E3b** (paramètres, partenaires, guides) : à faire |
+| E3 Fondations back-office | En cours | 2026-09-28 | **E3a** (layout, équipe, profil) : validé par l'étudiant. **E3b** (paramètres, partenaires, guides) : typecheck, lint, 235 tests, build et contrôles d'accès par rôle et par agence verts ; en attente de vérification par l'étudiant |
 | E4 Circuits et étapes | À faire | | |
 | E5 Éditeur de graphe | À faire | | |
 | E6 Algorithmes | À faire | | |
@@ -121,12 +121,23 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - **Dates** affichées en français dans le fuseau de Madagascar (`Indian/Antananarivo`), identiques côté serveur et navigateur.
 - **Tests** : 33 tests supplémentaires (règles de l'équipe et du profil en intégration ; menu selon le rôle, pagination, format des dates en unitaire). Contrôle de bout en bout sur le serveur de production : accès aux pages selon le rôle (admin, staff, guide) et 404 pour un membre d'une autre agence.
 
+### E3b — Paramètres, partenaires et guides (2026-09-28)
+
+- **Défaut corrigé (présent depuis E3a)** : chaque formulaire est validé deux fois, dans le navigateur puis sur le serveur, et le serveur reçoit les valeurs **déjà transformées** (« "" » devenu `null`). Le schéma du téléphone n'acceptait qu'une chaîne : un téléphone vide dans « Mon profil » ou « Modifier un membre » aurait été refusé par le serveur (défaut reproduit, puis corrigé). Les briques de validation partagées (`src/lib/validators/common.ts`) acceptent désormais la saisie brute ET sa forme transformée (validation idempotente), et un test de non-régression vérifie cette propriété pour **tous** les schémas de formulaire.
+- **Paramètres de l'agence** (`/dashboard/parametres`, ADMIN_AGENCE seulement) : nom, présentation, coordonnées, devise (MGA, EUR, USD), adresse du logo (URL `http(s)` uniquement : une adresse `javascript:` est refusée). Le slug est affiché mais non modifiable (il fait partie des adresses publiques). La couleur principale (thème par agence) reste en P2.
+- **Partenaires** (`/dashboard/partenaires`) : ADMIN_AGENCE crée, modifie, supprime ; STAFF consulte. Coordonnées GPS facultatives, les deux ou aucune, bornées (saisie de relevés réels uniquement, pas de valeurs inventées ; sélection sur carte en E4). Suppression refusée si le partenaire est inclus dans un circuit (message invitant à le désactiver).
+- **Guides** (`/dashboard/guides`) : fiches avec langues (liste fermée : français, malagasy, anglais, allemand, italien, espagnol, chinois), expérience, présentation, statut. Lien facultatif vers un compte : uniquement un compte GUIDE de l'agence, sans autre fiche. Suppression refusée si la fiche encadre un départ ou est reliée à un compte.
+- **Montants** : l'Ariary s'affiche « 25 000 Ar » (usage local, §8.4), alors que le formatage standard `Intl` afficherait « 25 000 MGA » ; les autres devises utilisent `Intl`.
+- **Menu** : Guides et Partenaires visibles par ADMIN_AGENCE et STAFF, Paramètres par ADMIN_AGENCE seulement, rien de tout cela pour GUIDE (dérivé de la matrice des permissions, testé).
+- **Tests** : 35 tests supplémentaires (idempotence et transformations des schémas, format des montants, menu selon le rôle en unitaire ; règles des paramètres, partenaires et guides, isolation comprise, en intégration). Contrôle de bout en bout sur le serveur de production : accès aux pages selon le rôle ; partenaire et guide de Green Trek en 404 pour l'administrateur de Démo Alpha.
+
 ## Captures d'écran à prendre
 
 - E0 : page d'accueil provisoire (palette) et réponse JSON de `/api/health` avec `"database": "connectée"`.
 - E1 : ERD exporté depuis mermaid.live ou MySQL Workbench ; résultat de `npm test` (tests d'intégration des contraintes).
 - E2a : sortie de `npm test` montrant les tests d'isolation (liste détaillée : `npx vitest run tests/integration/isolation.test.ts`).
 - E3a : back-office sur ordinateur et sur mobile (menu ouvert) ; liste de l'équipe ; refus « dernier administrateur » ; page Mon profil.
+- E3b : paramètres de l'agence ; liste des partenaires (les 4 partenaires réels de Green Trek) ; fiche d'un guide avec ses langues ; refus de suppression d'un partenaire utilisé (après E4).
 - E2b : page `/connexion` ; formulaire `/inscription-agence` avec erreurs de validation ; `/dashboard` après inscription d'une nouvelle agence ; `/admin` (super admin) ; message d'erreur après une connexion refusée.
 
 ## Comptes de démonstration

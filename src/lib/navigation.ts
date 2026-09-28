@@ -1,7 +1,7 @@
 import type { Role } from "@/generated/prisma/client";
 import { type Action, can, type Resource } from "@/lib/permissions";
 
-export type NavIcon = "home" | "users" | "user";
+export type NavIcon = "home" | "users" | "user" | "compass" | "handshake" | "settings";
 
 export type NavItem = { href: string; label: string; icon: NavIcon };
 
@@ -22,6 +22,24 @@ const NAVIGATION: readonly NavEntry[] = [
     label: "Équipe",
     icon: "users",
     permission: ["lire", "utilisateur"],
+  },
+  {
+    href: "/dashboard/guides",
+    label: "Guides",
+    icon: "compass",
+    permission: ["lire", "guide"],
+  },
+  {
+    href: "/dashboard/partenaires",
+    label: "Partenaires",
+    icon: "handshake",
+    permission: ["lire", "partenaire"],
+  },
+  {
+    href: "/dashboard/parametres",
+    label: "Paramètres",
+    icon: "settings",
+    permission: ["modifier", "agence"],
   },
   { href: "/dashboard/profil", label: "Mon profil", icon: "user" },
 ];
