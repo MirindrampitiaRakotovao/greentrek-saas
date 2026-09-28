@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 // couleur du cahier des charges (§8.2) sont bien présents dans tokens.css.
 describe("tokens de design", () => {
   const tokens = readFileSync(
-    path.resolve(import.meta.dirname, "../src/styles/tokens.css"),
+    path.resolve(import.meta.dirname, "../../src/styles/tokens.css"),
     "utf8",
   );
 

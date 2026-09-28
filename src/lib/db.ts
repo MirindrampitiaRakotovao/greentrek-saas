@@ -3,22 +3,12 @@ import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { PrismaClient } from "@/generated/prisma/client";
 
 /**
- * Client Prisma unique de l'application.
+ * Crée un client Prisma pour l'URL MySQL donnée.
  *
  * Prisma 7 passe par un « driver adapter » : ici le pilote `mariadb`, compatible MySQL.
- * En développement, le rechargement à chaud de Next.js réévalue les modules : on garde
- * l'instance sur `globalThis` pour ne pas ouvrir un nouveau pool de connexions à chaque
- * modification de fichier.
- *
- * Attention : ce client est « brut ». À partir de l'étape E2, les tables liées à une
- * agence ne doivent être lues ou écrites qu'au travers du helper tenant (`src/lib/tenant.ts`).
+ * Exportée pour que les tests d'intégration visent explicitement la base de test.
  */
-function createPrismaClient(): PrismaClient {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    throw new Error("DATABASE_URL n'est pas défini : copiez .env.example en .env.");
-  }
-
+export function createPrismaClient(databaseUrl: string): PrismaClient {
   const url = new URL(databaseUrl);
   const adapter = new PrismaMariaDb({
     host: url.hostname,
@@ -35,9 +25,27 @@ function createPrismaClient(): PrismaClient {
   return new PrismaClient({ adapter });
 }
 
+function createDefaultClient(): PrismaClient {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL n'est pas défini : copiez .env.example en .env.");
+  }
+  return createPrismaClient(databaseUrl);
+}
+
+/**
+ * Client Prisma unique de l'application.
+ *
+ * En développement, le rechargement à chaud de Next.js réévalue les modules : on garde
+ * l'instance sur `globalThis` pour ne pas ouvrir un nouveau pool de connexions à chaque
+ * modification de fichier.
+ *
+ * Attention : ce client est « brut ». À partir de l'étape E2, les tables liées à une
+ * agence ne doivent être lues ou écrites qu'au travers du helper tenant (`src/lib/tenant.ts`).
+ */
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-export const db: PrismaClient = globalForPrisma.prisma ?? createPrismaClient();
+export const db: PrismaClient = globalForPrisma.prisma ?? createDefaultClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = db;

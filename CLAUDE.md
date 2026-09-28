@@ -43,5 +43,6 @@ Documentation Next.js de la version installée : voir @AGENTS.md.
 - `npm run build` / `npm start` : build et serveur de production
 - `npm run typecheck` : `next typegen` + `tsc --noEmit`
 - `npm run lint` : ESLint · `npm run format` / `npm run format:check` : Prettier (hors `docs/` et `*.md`)
-- `npm test` : Vitest (une passe) · `npm run test:watch`
-- `npm run db:migrate` : `prisma migrate dev` · `npm run db:generate` : `prisma generate` · `npm run db:seed` · `npm run db:studio`
+- `npm test` : Vitest, projets `unit` et `integration` (ce dernier remet à zéro la base `greentrek_test`) · `npx vitest run --project unit` · `npm run test:watch`
+- `npm run db:migrate` : `prisma migrate dev` puis `prisma generate` (Prisma 7 ne régénère plus le client automatiquement) · `npm run db:seed` (vide puis remplit la base de dev) · `npm run db:studio`
+- Contraintes CHECK : Prisma ne les gère pas. Pour une nouvelle contrainte, `prisma migrate dev --create-only`, puis ajouter le SQL à la main dans la migration

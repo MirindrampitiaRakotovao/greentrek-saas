@@ -1,6 +1,15 @@
-// Schéma Prisma de Green Trek SaaS.
-// E0 : uniquement la source de données et le générateur.
-// Les 19 modèles métier sont ajoutés à l'étape E1.
+// Schéma Prisma de Green Trek SaaS (cahier des charges §5, 19 tables).
+//
+// Conventions :
+// - Modèles et champs en français sans accents, comme dans le mémoire.
+// - Identifiants `cuid()` : non devinables dans les URL (défense en profondeur).
+// - Montants en `Int` (Ariary, pas de centimes en usage).
+// - Distances et coordonnées en `Float` (double précision).
+// - Multi-tenant : toute table métier porte `agenceId` (indexé). Les tables de liaison
+//   (CircuitEtape, CircuitPartenaire, Participant, Paiement) héritent de l'agence de leur parent.
+// - Contraintes CHECK : ajoutées à la main dans la migration SQL (Prisma ne sait pas les
+//   déclarer). Les relations sur les colonnes concernées utilisent `onUpdate: Restrict`,
+//   car MySQL interdit une action référentielle en cascade sur une colonne soumise à un CHECK.
 
 generator client {
   provider = "prisma-client"
@@ -9,4 +18,538 @@ generator client {
 
 datasource db {
   provider = "mysql"
+}
+
+// ─── Énumérations ──────────────────────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN_AGENCE
+  STAFF
+  GUIDE
+  CLIENT
+}
+
+enum StatutAgence {
+  ACTIVE
+  SUSPENDUE
+}
+
+enum DifficulteCircuit {
+  FACILE
+  MOYENNE
+  DIFFICILE
+}
+
+enum StatutCircuit {
+  BROUILLON
+  PUBLIE
+  ARCHIVE
+}
+
+enum TypeEtape {
+  VILLAGE
+  POINT_INTERET
+  HEBERGEMENT
+  RESTAURATION
+  EMBARCADERE
+  AUTRE
+}
+
+enum StatutSession {
+  OUVERTE
+  COMPLETE
+  ANNULEE
+  TERMINEE
+}
+
+enum StatutReservation {
+  EN_ATTENTE
+  CONFIRMEE
+  ANNULEE
+  TERMINEE
+}
+
+enum TypePartenaire {
+  HEBERGEMENT
+  RESTAURATION
+  ACTIVITE
+  TRANSPORT
+}
+
+enum MethodePaiement {
+  ESPECES
+  MOBILE_MONEY
+  VIREMENT
+  CARTE_SIMULEE
+}
+
+enum StatutPaiement {
+  EN_ATTENTE
+  VALIDE
+  ECHOUE
+  REMBOURSE
+}
+
+enum Algorithme {
+  DIJKSTRA
+  ASTAR
+}
+
+enum CritereItineraire {
+  PLUS_COURT
+  PLUS_RAPIDE
+  PLUS_FACILE
+  PERSONNALISE
+}
+
+enum StatutAbonnement {
+  ESSAI
+  ACTIF
+  EXPIRE
+  ANNULE
+}
+
+enum StatutAvis {
+  EN_ATTENTE
+  PUBLIE
+  REJETE
+}
+
+// ─── 1. Agence (tenant racine) ─────────────────────────────────────────────────
+
+model Agence {
+  id              String       @id @default(cuid())
+  nom             String       @db.VarChar(150)
+  slug            String       @unique @db.VarChar(100) // RG 1
+  description     String?      @db.Text
+  logoUrl         String?      @db.VarChar(500)
+  couleurPrimaire String?      @db.VarChar(7)
+  email           String?      @db.VarChar(191)
+  telephone       String?      @db.VarChar(30)
+  adresse         String?      @db.VarChar(255)
+  ville           String?      @db.VarChar(100)
+  pays            String?      @db.VarChar(100)
+  devise          String       @default("MGA") @db.VarChar(3)
+  statut          StatutAgence @default(ACTIVE)
+  createdAt       DateTime     @default(now())
+
+  utilisateurs        Utilisateur[]
+  guides              Guide[]
+  circuits            Circuit[]
+  etapes              Etape[]
+  troncons            Troncon[]
+  partenaires         Partenaire[]
+  sessionsDepart      SessionDepart[]
+  reservations        Reservation[]
+  avis                Avis[]
+  notifications       Notification[]
+  journalActivites    JournalActivite[]
+  itinerairesCalcules ItineraireCalcule[]
+  abonnements         Abonnement[]
+}
+
+// ─── 2. Utilisateur ────────────────────────────────────────────────────────────
+
+model Utilisateur {
+  id             String    @id @default(cuid())
+  agenceId       String? // null uniquement pour SUPER_ADMIN
+  nom            String    @db.VarChar(100)
+  prenom         String    @db.VarChar(100)
+  email          String    @db.VarChar(191)
+  motDePasseHash String    @db.VarChar(255)
+  telephone      String?   @db.VarChar(30)
+  role           Role
+  actif          Boolean   @default(true)
+  dernierLoginAt DateTime?
+  createdAt      DateTime  @default(now())
+
+  agence              Agence?             @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  guide               Guide?
+  reservations        Reservation[]
+  avis                Avis[]
+  notifications       Notification[]
+  journalActivites    JournalActivite[]
+  itinerairesCalcules ItineraireCalcule[]
+
+  // RG 3. L'unicité de l'e-mail du personnel sur toute la plateforme (connexion via
+  // /connexion) est vérifiée par l'application : MySQL n'a pas d'index unique partiel.
+  @@unique([agenceId, email])
+  @@index([email])
+}
+
+// ─── 3. Circuit ────────────────────────────────────────────────────────────────
+
+model Circuit {
+  id                 String            @id @default(cuid())
+  agenceId           String
+  titre              String            @db.VarChar(200)
+  slug               String            @db.VarChar(200)
+  resume             String?           @db.VarChar(500)
+  description        String?           @db.Text
+  difficulte         DifficulteCircuit
+  dureeJours         Int
+  distanceKm         Float? // cache, recalculé à partir des tronçons
+  prixParPersonne    Int
+  capaciteMax        Int
+  imagePrincipaleUrl String?           @db.VarChar(500)
+  statut             StatutCircuit     @default(BROUILLON)
+  createdAt          DateTime          @default(now())
+
+  agence              Agence              @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  etapes              CircuitEtape[]
+  partenaires         CircuitPartenaire[]
+  sessionsDepart      SessionDepart[]
+  avis                Avis[]
+  itinerairesCalcules ItineraireCalcule[]
+
+  @@unique([agenceId, slug])
+  @@index([agenceId, statut])
+}
+
+// ─── 4. Etape (nœud du graphe) ─────────────────────────────────────────────────
+
+model Etape {
+  id          String    @id @default(cuid())
+  agenceId    String
+  nom         String    @db.VarChar(150)
+  description String?   @db.Text
+  type        TypeEtape
+  latitude    Float
+  longitude   Float
+  altitudeM   Int?
+
+  agence              Agence              @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  tronconsDepart      Troncon[]           @relation("TronconDepart")
+  tronconsArrivee     Troncon[]           @relation("TronconArrivee")
+  circuits            CircuitEtape[]
+  circuitPartenaires  CircuitPartenaire[]
+  itinerairesDepartDe ItineraireCalcule[] @relation("ItineraireDepart")
+  itinerairesArriveeA ItineraireCalcule[] @relation("ItineraireArrivee")
+
+  @@index([agenceId])
+}
+
+// ─── 5. Troncon (arête du graphe) ──────────────────────────────────────────────
+
+model Troncon {
+  id              String  @id @default(cuid())
+  agenceId        String
+  etapeDepartId   String
+  etapeArriveeId  String
+  distanceKm      Float
+  dureeMinutes    Int
+  deniveleM       Int?
+  difficulte      Int // 1 à 5
+  bidirectionnel  Boolean @default(true)
+  distanceEstimee Boolean @default(false) // true = Haversine × sinuosité, sans mesure terrain
+  commentaire     String? @db.Text
+
+  agence       Agence @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  // RG 8 : une étape reliée par un tronçon ne peut pas être supprimée (Restrict).
+  etapeDepart  Etape  @relation("TronconDepart", fields: [etapeDepartId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  etapeArrivee Etape  @relation("TronconArrivee", fields: [etapeArriveeId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([etapeDepartId, etapeArriveeId]) // RG 7
+  @@index([agenceId])
+  @@index([etapeArriveeId])
+}
+
+// ─── 6. CircuitEtape (liaison ordonnée) ────────────────────────────────────────
+
+model CircuitEtape {
+  id             String  @id @default(cuid())
+  circuitId      String
+  etapeId        String
+  ordre          Int
+  jour           Int?
+  dureeSejourMin Int?
+  notes          String? @db.Text
+
+  circuit Circuit @relation(fields: [circuitId], references: [id], onDelete: Cascade)
+  etape   Etape   @relation(fields: [etapeId], references: [id], onDelete: Restrict) // RG 8
+
+  @@unique([circuitId, ordre]) // RG 4
+  @@index([etapeId])
+}
+
+// ─── 7. SessionDepart (disponibilité) ──────────────────────────────────────────
+
+model SessionDepart {
+  id              String        @id @default(cuid())
+  agenceId        String
+  circuitId       String
+  guideId         String?
+  dateDebut       DateTime      @db.Date
+  dateFin         DateTime      @db.Date
+  placesTotal     Int
+  prixParPersonne Int? // remplace le prix du circuit si renseigné
+  statut          StatutSession @default(OUVERTE)
+  notes           String?       @db.Text
+
+  agence       Agence        @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  circuit      Circuit       @relation(fields: [circuitId], references: [id], onDelete: Restrict)
+  guide        Guide?        @relation(fields: [guideId], references: [id], onDelete: SetNull)
+  reservations Reservation[]
+
+  @@index([agenceId, dateDebut])
+  @@index([circuitId])
+  @@index([guideId])
+}
+
+// ─── 8. Reservation ────────────────────────────────────────────────────────────
+
+model Reservation {
+  id              String            @id @default(cuid())
+  agenceId        String
+  reference       String            @unique @db.VarChar(20) // lisible, ex. GT-2026-4F7K2Q
+  clientId        String
+  sessionId       String
+  nombrePersonnes Int
+  montantTotal    Int // figé à la création (RG 14)
+  statut          StatutReservation @default(EN_ATTENTE)
+  remarques       String?           @db.Text
+  createdAt       DateTime          @default(now())
+  confirmeeAt     DateTime?
+  annuleeAt       DateTime?
+
+  agence       Agence        @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  client       Utilisateur   @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  session      SessionDepart @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  participants Participant[]
+  paiements    Paiement[]
+  avis         Avis?
+
+  @@index([agenceId, statut])
+  @@index([clientId])
+  @@index([sessionId])
+}
+
+// ─── 9. Guide ──────────────────────────────────────────────────────────────────
+
+model Guide {
+  id               String  @id @default(cuid())
+  agenceId         String
+  utilisateurId    String? @unique // un guide peut ne pas avoir de compte
+  nom              String  @db.VarChar(100)
+  prenom           String  @db.VarChar(100)
+  telephone        String? @db.VarChar(30)
+  bio              String? @db.Text
+  langues          Json // tableau de codes, ex. ["fr", "mg", "en"]
+  experienceAnnees Int?
+  actif            Boolean @default(true)
+
+  agence         Agence          @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  utilisateur    Utilisateur?    @relation(fields: [utilisateurId], references: [id], onDelete: SetNull)
+  sessionsDepart SessionDepart[]
+
+  @@index([agenceId])
+}
+
+// ─── 10. Partenaire ────────────────────────────────────────────────────────────
+
+model Partenaire {
+  id             String         @id @default(cuid())
+  agenceId       String
+  nom            String         @db.VarChar(150)
+  type           TypePartenaire
+  description    String?        @db.Text
+  telephone      String?        @db.VarChar(30)
+  email          String?        @db.VarChar(191)
+  adresse        String?        @db.VarChar(255)
+  latitude       Float?
+  longitude      Float?
+  tarifIndicatif Int?
+  actif          Boolean        @default(true)
+
+  agence   Agence              @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  circuits CircuitPartenaire[]
+
+  @@index([agenceId])
+}
+
+// ─── 11. CircuitPartenaire (liaison N–N) ───────────────────────────────────────
+
+model CircuitPartenaire {
+  id             String  @id @default(cuid())
+  circuitId      String
+  partenaireId   String
+  etapeId        String?
+  prestation     String  @db.VarChar(200)
+  prixUnitaire   Int?
+  inclusDansPrix Boolean @default(true)
+
+  circuit    Circuit    @relation(fields: [circuitId], references: [id], onDelete: Cascade)
+  partenaire Partenaire @relation(fields: [partenaireId], references: [id], onDelete: Restrict)
+  etape      Etape?     @relation(fields: [etapeId], references: [id], onDelete: Restrict)
+
+  @@index([circuitId])
+  @@index([partenaireId])
+  @@index([etapeId])
+}
+
+// ─── 12. Participant ───────────────────────────────────────────────────────────
+
+model Participant {
+  id             String  @id @default(cuid())
+  reservationId  String
+  nom            String  @db.VarChar(100)
+  prenom         String  @db.VarChar(100)
+  age            Int?
+  nationalite    String? @db.VarChar(100)
+  contactUrgence String? @db.VarChar(191)
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@index([reservationId])
+}
+
+// ─── 13. Paiement (simulé) ─────────────────────────────────────────────────────
+
+model Paiement {
+  id               String          @id @default(cuid())
+  reservationId    String
+  montant          Int
+  methode          MethodePaiement
+  statut           StatutPaiement  @default(EN_ATTENTE)
+  referenceExterne String?         @db.VarChar(100)
+  payeLe           DateTime?
+
+  // Une réservation qui a des paiements ne peut pas être supprimée (Restrict).
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Restrict)
+
+  @@index([reservationId])
+}
+
+// ─── 14. ItineraireCalcule (historique des calculs) ────────────────────────────
+
+model ItineraireCalcule {
+  id                String            @id @default(cuid())
+  agenceId          String
+  circuitId         String?
+  // Nullables : l'historique est un instantané (le chemin complet est dans cheminJson)
+  // et ne doit pas empêcher la suppression d'une étape.
+  etapeDepartId     String?
+  etapeArriveeId    String?
+  algorithme        Algorithme
+  critere           CritereItineraire
+  alpha             Float
+  beta              Float
+  gamma             Float
+  cheminJson        Json
+  distanceTotaleKm  Float
+  dureeTotaleMin    Int
+  difficulteCumulee Float // sortie exigée au §6.3
+  noeudsExplores    Int
+  tempsCalculMs     Float
+  creeParId         String?
+  createdAt         DateTime          @default(now())
+
+  agence       Agence       @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  circuit      Circuit?     @relation(fields: [circuitId], references: [id], onDelete: SetNull)
+  etapeDepart  Etape?       @relation("ItineraireDepart", fields: [etapeDepartId], references: [id], onDelete: SetNull)
+  etapeArrivee Etape?       @relation("ItineraireArrivee", fields: [etapeArriveeId], references: [id], onDelete: SetNull)
+  creePar      Utilisateur? @relation(fields: [creeParId], references: [id], onDelete: SetNull)
+
+  @@index([agenceId, createdAt])
+  @@index([circuitId])
+  @@index([etapeDepartId])
+  @@index([etapeArriveeId])
+  @@index([creeParId])
+}
+
+// ─── 15. Plan (fictif) ─────────────────────────────────────────────────────────
+
+model Plan {
+  id                 String  @id @default(cuid())
+  code               String  @unique @db.VarChar(30)
+  nom                String  @db.VarChar(100)
+  prixMensuel        Int
+  maxCircuits        Int
+  maxUtilisateurs    Int
+  maxSessionsActives Int
+  fonctionnalites    Json
+  actif              Boolean @default(true)
+
+  abonnements Abonnement[]
+}
+
+// ─── 16. Abonnement (simulé) ───────────────────────────────────────────────────
+
+model Abonnement {
+  id                 String           @id @default(cuid())
+  agenceId           String
+  planId             String
+  dateDebut          DateTime         @db.Date
+  dateFin            DateTime?        @db.Date
+  statut             StatutAbonnement
+  renouvellementAuto Boolean          @default(false)
+
+  agence Agence @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  @@index([agenceId])
+  @@index([planId])
+}
+
+// ─── 17. Avis ──────────────────────────────────────────────────────────────────
+
+model Avis {
+  id            String     @id @default(cuid())
+  agenceId      String
+  circuitId     String
+  reservationId String     @unique // RG 17 : un seul avis par réservation
+  clientId      String
+  note          Int // 1 à 5
+  commentaire   String?    @db.Text
+  statut        StatutAvis @default(EN_ATTENTE)
+  createdAt     DateTime   @default(now())
+
+  agence      Agence      @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  circuit     Circuit     @relation(fields: [circuitId], references: [id], onDelete: Restrict)
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Restrict)
+  client      Utilisateur @relation(fields: [clientId], references: [id], onDelete: Restrict)
+
+  @@index([agenceId, statut])
+  @@index([circuitId])
+  @@index([clientId])
+}
+
+// ─── 18. Notification (in-app) ─────────────────────────────────────────────────
+
+model Notification {
+  id            String   @id @default(cuid())
+  agenceId      String?
+  utilisateurId String
+  type          String   @db.VarChar(50)
+  titre         String   @db.VarChar(200)
+  message       String   @db.Text
+  lienUrl       String?  @db.VarChar(500)
+  lue           Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  agence      Agence?     @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@index([agenceId])
+  @@index([utilisateurId, lue])
+}
+
+// ─── 19. JournalActivite (audit) ───────────────────────────────────────────────
+
+model JournalActivite {
+  id            String   @id @default(cuid())
+  agenceId      String?
+  utilisateurId String?
+  action        String   @db.VarChar(100)
+  entite        String   @db.VarChar(50)
+  entiteId      String?  @db.VarChar(30)
+  details       Json?
+  createdAt     DateTime @default(now())
+
+  agence      Agence?      @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  utilisateur Utilisateur? @relation(fields: [utilisateurId], references: [id], onDelete: SetNull)
+
+  @@index([agenceId, createdAt])
+  @@index([utilisateurId])
 }
