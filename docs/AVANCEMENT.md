@@ -8,7 +8,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 |---|---|---|---|
 | E0 Initialisation | Fait | 2026-09-28 | Typecheck, lint, test et build verts ; base MySQL créée ; `/api/health` renvoie 200 « connectée » (vérifié chez l'étudiant) |
 | E1 Schéma Prisma | Fait | 2026-09-28 | 19 tables et 18 CHECK migrés, seed OK, ERD rédigé ; typecheck, lint et build verts ; `npm test` 23/23 (3 unitaires, 20 d'intégration) chez l'étudiant |
-| E2 Auth et multi-tenant | En cours | 2026-09-28 | **E2a** (helper tenant, permissions, tests d'isolation) : typecheck, lint, 124 tests et build verts, en attente de confirmation. **E2b** (Auth.js, pages, onboarding) : à faire |
+| E2 Auth et multi-tenant | En cours | 2026-09-28 | **E2a** : confirmé par l'étudiant (124 tests). **E2b** (Auth.js, pages, onboarding) : typecheck, lint, 167 tests, build et 14 scénarios de bout en bout verts ; en attente de vérification de l'interface par l'étudiant |
 | E3 Fondations back-office | À faire | | |
 | E4 Circuits et étapes | À faire | | |
 | E5 Éditeur de graphe | À faire | | |
@@ -75,11 +75,33 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - **Tests d'isolation** (`tests/integration/isolation.test.ts`, 35 tests) : deux agences complètes ; le client de A tente de lire, lister, compter, agréger, modifier, supprimer, créer et référencer des données de B (par identifiant direct, par liste et par relation, y compris dans une transaction). **Contre-épreuve** : avec le filtre d'agence désactivé, 19 de ces tests échouent. Les tests détectent donc bien une fuite ; les 16 autres portent sur les contrôles de création et de référence, qui sont indépendants.
 - **Limite connue (à citer dans le mémoire)** : l'isolation repose sur la discipline « passer par le helper », imposée par ESLint et la revue de code. Une isolation au niveau de la base (Row-Level Security) n'existe pas dans MySQL ; elle serait possible avec PostgreSQL.
 
+### E2b — Authentification et onboarding (2026-09-28)
+
+- **Auth.js v5 (`next-auth@5.0.0-beta.32`, version fixée)** : encore en bêta, mais c'est la version prévue pour l'App Router et elle déclare Next 16 compatible. Fournisseur Credentials (e-mail et mot de passe). Session en **jeton JWT** chiffré dans un cookie (obligatoire avec Credentials), durée 8 h, contenant `userId`, `role`, `agenceId`, `agenceSlug` (§4). `trustHost: true` : démonstration locale.
+- **Configuration en deux fichiers** : `src/auth.config.ts` (sans base de données, utilisé par `proxy.ts`) et `src/auth.ts` (complet). C'est le découpage recommandé par Auth.js : le proxy s'exécute sur chaque requête et doit rester léger.
+- **Deux portes de connexion** (décision d'E1) : `/connexion` pour le personnel et le super admin, `/a/[slug]/connexion` pour les clients de CETTE agence. Un client ne peut pas entrer par `/connexion`, ni par le site d'une autre agence ; le personnel ne peut pas entrer par la porte client.
+- **Sécurité de la connexion** :
+  - un seul message d'erreur, quelle que soit la cause (compte inconnu, mauvais mot de passe, compte désactivé, agence suspendue), pour ne pas révéler quels comptes existent ;
+  - comparaison bcrypt effectuée même si le compte n'existe pas (empreinte factice), pour un temps de réponse constant ;
+  - validation Zod côté navigateur (confort) ET côté serveur (qui fait foi) ;
+  - protection CSRF fournie par Auth.js (jeton CSRF) et par les actions serveur de Next.js (vérification de l'origine).
+- **Contrôle d'accès en couches** (défense en profondeur, recommandation de la documentation Next.js 16) :
+  1. `src/proxy.ts` (le nouveau nom du middleware dans Next 16) : redirection **optimiste** des visiteurs sans cookie de session, sans accès à la base ;
+  2. `src/lib/auth/session.ts` : `requireUser` / `requireAgencyUser`, appelés en tête de chaque page protégée. Ce sont les vrais contrôles : **relecture de l'utilisateur en base à chaque requête** (dédupliquée par `cache` de React) ;
+  3. `getTenantDb(agenceId)`, où `agenceId` vient de la base, jamais du navigateur.
+- **RG 19 appliquée immédiatement** : un jeton JWT ne se révoque pas. Grâce à la relecture en base, suspendre une agence ou désactiver un compte coupe l'accès dès la requête suivante, sans attendre l'expiration du jeton (vérifié de bout en bout, voir ci-dessous). Une agence suspendue disparaît aussi du public (404 sur ses pages).
+- **Onboarding `/inscription-agence`** : React Hook Form + Zod. Une seule transaction crée l'Agence, l'ADMIN_AGENCE (mot de passe haché) et un Abonnement ESSAI de 30 jours sur le plan « ESSAI ». Contrôles : slug unique (vérifié avant, puis garanti par l'index unique en cas d'inscriptions simultanées), slugs réservés (`admin`, `api`, `dashboard`…), e-mail du personnel unique sur toute la plateforme (`isStaffEmailTaken`), mot de passe d'au moins 8 caractères avec majuscule, minuscule et chiffre (72 au maximum, limite de bcrypt). Connexion automatique après l'inscription.
+- **Logique séparée de l'interface** : `authenticate`, `loadActiveUser`, `isStaffEmailTaken` et `registerAgency` sont des fonctions qui reçoivent le client Prisma en paramètre, testées en intégration sans navigateur. Les actions serveur (`src/lib/actions/auth.ts`) ne font que valider et appeler ces fonctions.
+- **Pages provisoires** `/dashboard`, `/admin`, `/a/[slug]/mon-compte` : affichent l'utilisateur, son rôle et son agence (le vrai back-office arrive en E3). Page d'aiguillage `/espace` : envoie chaque rôle vers son espace après la connexion.
+- **Tests** : 43 tests supplémentaires (validations Zod et slug en unitaire ; authentification, relecture RG 19, unicité de l'e-mail et onboarding en intégration). **Tests de bout en bout** (serveur de production, connexions HTTP réelles par Auth.js avec les comptes du seed) : redirections du proxy, accès par rôle, client refusé sur une autre agence et sur `/connexion`, isolation entre Green Trek et Démo Alpha, suspension d'une agence pendant une session ouverte, puis réactivation.
+- **Reporté** : inscription des clients (E9, avec le compte client) ; limitation des tentatives de connexion (P2, §12).
+
 ## Captures d'écran à prendre
 
 - E0 : page d'accueil provisoire (palette) et réponse JSON de `/api/health` avec `"database": "connectée"`.
 - E1 : ERD exporté depuis mermaid.live ou MySQL Workbench ; résultat de `npm test` (tests d'intégration des contraintes).
 - E2a : sortie de `npm test` montrant les tests d'isolation (liste détaillée : `npx vitest run tests/integration/isolation.test.ts`).
+- E2b : page `/connexion` ; formulaire `/inscription-agence` avec erreurs de validation ; `/dashboard` après inscription d'une nouvelle agence ; `/admin` (super admin) ; message d'erreur après une connexion refusée.
 
 ## Comptes de démonstration
 

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 // Page d'accueil provisoire (étape E0) : vérifie que Tailwind, les tokens de couleur
 // et les polices sont bien branchés. Elle sera remplacée par la landing SaaS (E11).
 
@@ -40,12 +42,29 @@ export default function HomePage() {
         </ul>
       </section>
 
-      <a
-        href="/api/health"
-        className="self-start rounded-full bg-gt-teal-700 px-6 py-3 font-medium text-white hover:bg-gt-teal-800"
-      >
-        Vérifier la connexion MySQL
-      </a>
+      <nav aria-label="Accès provisoires" className="flex flex-wrap gap-3">
+        <Link
+          href="/connexion"
+          className="rounded-full bg-gt-teal-700 px-6 py-3 font-medium text-white hover:bg-gt-teal-800"
+        >
+          Connexion
+        </Link>
+        <Link
+          href="/inscription-agence"
+          className="rounded-full border border-gt-teal-700 px-6 py-3 font-medium text-gt-teal-700 hover:bg-gt-cream"
+        >
+          Inscrire une agence
+        </Link>
+        <Link
+          href="/a/green-trek-mada/connexion"
+          className="rounded-full border border-gt-teal-700 px-6 py-3 font-medium text-gt-teal-700 hover:bg-gt-cream"
+        >
+          Connexion client (Green Trek Mada)
+        </Link>
+        <a href="/api/health" className="px-2 py-3 font-medium text-gt-teal-700 underline">
+          Vérifier la connexion MySQL
+        </a>
+      </nav>
     </main>
   );
 }

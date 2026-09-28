@@ -1,0 +1,74 @@
+import "server-only";
+
+import { redirect } from "next/navigation";
+import { cache } from "react";
+
+import { auth } from "@/auth";
+import type { Role } from "@/generated/prisma/client";
+import { type AuthUser, loadActiveUser } from "@/lib/auth/authenticate";
+import { getTenantDb, type TenantDb } from "@/lib/tenant";
+
+/**
+ * Couche d'accès côté serveur (« Data Access Layer » de la documentation Next.js) : c'est
+ * ici, et non dans `proxy.ts`, que se font les vrais contrôles d'accès. À appeler au début
+ * de chaque page, action serveur ou route protégée.
+ */
+
+/** Rôles du back-office d'agence. */
+export const AGENCY_STAFF_ROLES = [
+  "ADMIN_AGENCE",
+  "STAFF",
+  "GUIDE",
+] as const satisfies readonly Role[];
+
+/**
+ * Utilisateur courant, relu en base une fois par requête (`cache` de React déduplique les
+ * appels au sein d'un même rendu). `null` si pas de session, compte désactivé ou agence
+ * suspendue (RG 19).
+ */
+export const getCurrentUser = cache(async (): Promise<AuthUser | null> => {
+  const session = await auth();
+  if (!session?.user.id) return null;
+  return loadActiveUser(session.user.id);
+});
+
+/** Page d'accueil de chaque rôle après connexion. */
+export function homePathFor(user: AuthUser): string {
+  if (user.role === "SUPER_ADMIN") return "/admin";
+  if (user.role === "CLIENT") return `/a/${user.agenceSlug}/mon-compte`;
+  return "/dashboard";
+}
+
+type RequireOptions = {
+  roles: readonly Role[];
+  /** Pour l'espace client : le client doit appartenir à l'agence de l'URL. */
+  agenceSlug?: string;
+};
+
+/**
+ * Exige un utilisateur connecté, actif, avec l'un des rôles donnés. Sinon :
+ * - pas de session valide → page de connexion adaptée ;
+ * - mauvais rôle ou mauvaise agence → page d'accueil de son propre rôle.
+ */
+export async function requireUser({ roles, agenceSlug }: RequireOptions): Promise<AuthUser> {
+  const user = await getCurrentUser();
+  if (!user) {
+    redirect(agenceSlug ? `/a/${agenceSlug}/connexion` : "/connexion");
+  }
+  if (!roles.includes(user.role) || (agenceSlug && user.agenceSlug !== agenceSlug)) {
+    redirect(homePathFor(user));
+  }
+  return user;
+}
+
+/**
+ * Exige un membre du personnel d'une agence et renvoie, avec lui, le client Prisma confiné
+ * à SON agence (l'identifiant d'agence vient de la base, jamais du navigateur).
+ */
+export async function requireAgencyUser(
+  roles: readonly Role[] = AGENCY_STAFF_ROLES,
+): Promise<{ user: AuthUser & { agenceId: string }; db: TenantDb }> {
+  const user = await requireUser({ roles });
+  if (!user.agenceId) redirect(homePathFor(user));
+  return { user: { ...user, agenceId: user.agenceId }, db: getTenantDb(user.agenceId) };
+}
