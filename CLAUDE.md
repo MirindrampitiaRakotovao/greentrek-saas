@@ -35,6 +35,9 @@ Next.js (App Router) + TypeScript strict · MySQL + Prisma · Auth.js (credentia
 - Pas de secrets dans le code : `.env` (ignoré par git) + `.env.example`.
 - Algorithmes dans `src/lib/graph/` : fonctions pures (sans UI ni base de données), testées unitairement.
 - Palette et typographie : cahier des charges §8, tokens CSS dans `src/styles/tokens.css`.
+- Espaces connectés (back-office, console super admin, espace client) : coque commune `AppShell` (`src/components/shell/`) et briques `src/components/dashboard/widgets.tsx`, sur le modèle de tableau de bord validé par l'étudiant. Graphiques Recharts : un seul axe vertical, couleurs de séries `--gt-chart-1` / `--gt-chart-2` (validées par script), légende + tableau accessible.
+- Dates : jours et mois en heure de Madagascar (`src/lib/dates.ts`) ; comparer une colonne `@db.Date` avec `calendarDate(now)`.
+- Tableaux défilants : conteneur `relative overflow-x-auto` (sinon les libellés `sr-only` débordent) ; `min-w-0` sur les colonnes de grille qui en contiennent.
 - Commits petits, messages en français à l'impératif.
 
 ## Versions et documentation

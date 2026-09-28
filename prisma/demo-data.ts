@@ -1,0 +1,355 @@
+/**
+ * Générateur des données de DÉMONSTRATION (cahier des charges §11) : circuits, départs,
+ * réservations, participants et paiements, pour que les tableaux de bord soient lisibles.
+ *
+ * - Fonction PURE et DÉTERMINISTE : même graine + même date → mêmes données (testée).
+ * - Toutes les personnes sont FICTIVES. Les circuits de Green Trek Mada sont marqués
+ *   « [DÉMO] » et leurs prix, durées et capacités sont fictifs : TODO(données terrain).
+ * - Respecte les règles de gestion : RG 10 (fin ≥ début), RG 11 (COMPLETE quand plein),
+ *   RG 13 (jamais plus de personnes que de places), RG 14 (montant = prix × personnes,
+ *   figé), RG 16 (paiements validés ≤ montant). Vérifié par `tests/unit/demo-data.test.ts`.
+ *
+ * Les références entre objets sont des index (circuit n°, départ n°, client n°) : le seed
+ * les remplace par les identifiants créés en base.
+ */
+
+export type DemoCircuit = {
+  titre: string;
+  slug: string;
+  resume: string;
+  description: string;
+  difficulte: "FACILE" | "MOYENNE" | "DIFFICILE";
+  dureeJours: number;
+  prixParPersonne: number;
+  capaciteMax: number;
+};
+
+export type DemoSession = {
+  circuitIndex: number;
+  dateDebut: Date;
+  dateFin: Date;
+  placesTotal: number;
+  prixParPersonne: number | null;
+  statut: "OUVERTE" | "COMPLETE" | "ANNULEE" | "TERMINEE";
+  withGuide: boolean;
+};
+
+export type DemoPaiement = {
+  montant: number;
+  methode: "ESPECES" | "MOBILE_MONEY" | "VIREMENT" | "CARTE_SIMULEE";
+  statut: "EN_ATTENTE" | "VALIDE" | "ECHOUE" | "REMBOURSE";
+  payeLe: Date | null;
+};
+
+export type DemoReservation = {
+  sessionIndex: number;
+  clientIndex: number;
+  reference: string;
+  nombrePersonnes: number;
+  montantTotal: number;
+  statut: "EN_ATTENTE" | "CONFIRMEE" | "ANNULEE" | "TERMINEE";
+  createdAt: Date;
+  confirmeeAt: Date | null;
+  annuleeAt: Date | null;
+  participants: { nom: string; prenom: string; age: number }[];
+  paiements: DemoPaiement[];
+};
+
+export type DemoAgencyData = {
+  circuits: DemoCircuit[];
+  sessions: DemoSession[];
+  reservations: DemoReservation[];
+};
+
+type AgencySpec = {
+  /** Préfixe des références de réservation (ex. « GT »). */
+  prefix: string;
+  circuits: DemoCircuit[];
+  /** Nombre de clients fictifs disponibles (index 0 = le client de démonstration). */
+  clientCount: number;
+  seed: number;
+};
+
+const HOUR = 60 * 60 * 1000;
+const DAY = 24 * HOUR;
+
+/** Générateur pseudo-aléatoire à graine (mulberry32) : reproductible. */
+function createRandom(seed: number) {
+  let state = seed >>> 0;
+  const next = () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;
+  };
+  return {
+    next,
+    int: (min: number, max: number) => min + Math.floor(next() * (max - min + 1)),
+    pick: <T>(items: readonly T[]): T => {
+      const item = items[Math.floor(next() * items.length)];
+      if (item === undefined) throw new Error("pick : liste vide");
+      return item;
+    },
+  };
+}
+
+/** Minuit (UTC) du jour de `date` décalé de `offsetDays` jours. */
+function dayAt(date: Date, offsetDays: number): Date {
+  const start = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+  return new Date(start + offsetDays * DAY);
+}
+
+/** Décalages (en jours, depuis aujourd'hui) des départs de chaque circuit. */
+const SESSION_OFFSETS: readonly (readonly number[])[] = [
+  [-280, -150, -40, 12, 55],
+  [-220, -95, -18, 26],
+  [-120, -9, 40],
+  [-60, 20, 75],
+];
+
+const PRENOMS = ["Hery", "Lalao", "Mialy", "Tojo", "Anja", "Fara", "Niry", "Voahirana", "Sitraka"];
+
+export function generateAgencyDemo(spec: AgencySpec, now: Date): DemoAgencyData {
+  const random = createRandom(spec.seed);
+  const sessions: DemoSession[] = [];
+  const reservations: DemoReservation[] = [];
+
+  spec.circuits.forEach((circuit, circuitIndex) => {
+    const offsets = SESSION_OFFSETS[circuitIndex % SESSION_OFFSETS.length] ?? [];
+    for (const offset of offsets) {
+      const dateDebut = dayAt(now, offset);
+      const dateFin = dayAt(now, offset + circuit.dureeJours - 1); // RG 10 : fin ≥ début
+      const isPast = dateFin.getTime() < dayAt(now, 0).getTime();
+      const placesTotal = Math.min(circuit.capaciteMax, random.pick([6, 8, 10, 12]));
+      // Un départ sur cinq a un prix spécifique (ex. haute saison), remplaçant celui du circuit.
+      const prixParPersonne =
+        random.next() < 0.2 ? Math.round((circuit.prixParPersonne * 1.15) / 1000) * 1000 : null;
+      const annule = !isPast && offset === 75; // un départ futur annulé, pour la démonstration
+      sessions.push({
+        circuitIndex,
+        dateDebut,
+        dateFin,
+        placesTotal,
+        prixParPersonne,
+        statut: annule ? "ANNULEE" : isPast ? "TERMINEE" : "OUVERTE",
+        withGuide: random.next() < 0.8,
+      });
+    }
+  });
+
+  sessions.forEach((session, sessionIndex) => {
+    if (session.statut === "ANNULEE") return;
+    const circuit = spec.circuits[session.circuitIndex];
+    if (!circuit) return;
+    const isPast = session.statut === "TERMINEE";
+    const prix = session.prixParPersonne ?? circuit.prixParPersonne;
+    let placesRestantes = session.placesTotal;
+    const wanted = random.int(1, 4);
+
+    for (let i = 0; i < wanted && placesRestantes > 0; i += 1) {
+      // RG 13 : on ne réserve jamais plus que les places restantes.
+      const nombrePersonnes = Math.min(random.int(1, 4), placesRestantes);
+      // Réservation faite 3 à 45 jours avant le départ ; pour un départ proche, cette date
+      // tomberait dans le futur : on l'étale alors sur les 4 dernières semaines.
+      const joursAvant = random.int(3, 45);
+      const ideal = session.dateDebut.getTime() - joursAvant * DAY - random.int(2, 14) * HOUR;
+      const createdAt = new Date(
+        ideal < now.getTime() - DAY
+          ? ideal
+          : now.getTime() - random.int(0, 27) * DAY - random.int(1, 20) * HOUR,
+      );
+      const roll = random.next();
+      const statut: DemoReservation["statut"] = isPast
+        ? roll < 0.12
+          ? "ANNULEE"
+          : "TERMINEE"
+        : roll < 0.1
+          ? "ANNULEE"
+          : roll < 0.4
+            ? "EN_ATTENTE"
+            : "CONFIRMEE";
+      if (statut !== "ANNULEE") placesRestantes -= nombrePersonnes;
+
+      const montantTotal = prix * nombrePersonnes; // RG 14 : figé à la création
+      // Aucun événement dans le futur : confirmation et annulation au plus tard « maintenant ».
+      const notAfterNow = (time: number) => new Date(Math.min(time, now.getTime() - 5 * 60_000));
+      const confirmeeAt =
+        statut === "CONFIRMEE" || statut === "TERMINEE"
+          ? notAfterNow(createdAt.getTime() + DAY / 2)
+          : null;
+      const annuleeAt = statut === "ANNULEE" ? notAfterNow(createdAt.getTime() + 2 * DAY) : null;
+
+      const paiements: DemoPaiement[] = [];
+      const methode = random.pick([
+        "ESPECES",
+        "MOBILE_MONEY",
+        "VIREMENT",
+        "CARTE_SIMULEE",
+      ] as const);
+      if (statut === "TERMINEE") {
+        paiements.push({ montant: montantTotal, methode, statut: "VALIDE", payeLe: confirmeeAt });
+      } else if (statut === "CONFIRMEE") {
+        // Acompte de 30 % validé ; le solde reste à régler (RG 16 : total validé ≤ montant).
+        const acompte = Math.round((montantTotal * 0.3) / 1000) * 1000;
+        paiements.push({ montant: acompte, methode, statut: "VALIDE", payeLe: confirmeeAt });
+      } else if (statut === "EN_ATTENTE" && random.next() < 0.5) {
+        paiements.push({
+          montant: montantTotal,
+          methode: "MOBILE_MONEY",
+          statut: "EN_ATTENTE",
+          payeLe: null,
+        });
+      }
+
+      reservations.push({
+        sessionIndex,
+        // Le client de démonstration (index 0) reçoit une réservation sur trois.
+        clientIndex: random.next() < 0.33 ? 0 : random.int(1, spec.clientCount - 1),
+        reference: "",
+        nombrePersonnes,
+        montantTotal,
+        statut,
+        createdAt,
+        confirmeeAt,
+        annuleeAt,
+        participants: Array.from({ length: nombrePersonnes }, (_, n) => ({
+          nom: "Démo",
+          prenom: `${random.pick(PRENOMS)} ${n + 1}`,
+          age: random.int(12, 68),
+        })),
+        paiements,
+      });
+    }
+
+    // RG 11 : un départ futur sans place restante passe à COMPLETE.
+    if (!isPast && placesRestantes === 0) session.statut = "COMPLETE";
+  });
+
+  // Références lisibles et uniques, dans l'ordre chronologique de création.
+  reservations
+    .slice()
+    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+    .forEach((reservation, index) => {
+      reservation.reference = `${spec.prefix}-${reservation.createdAt.getUTCFullYear()}-${String(index + 1).padStart(4, "0")}`;
+    });
+
+  return { circuits: spec.circuits, sessions, reservations };
+}
+
+/* ─── Circuits de démonstration par agence ───────────────────────────────────── */
+
+const TODO_TERRAIN =
+  "TODO(données terrain) : durée, prix et capacité FICTIFS, pour la démonstration uniquement.";
+
+/** Green Trek Mada : seul le sentier « Mahambo Doany – Ambodiforaha » est connu (§11). */
+export const GREEN_TREK_CIRCUITS: DemoCircuit[] = [
+  {
+    titre: "[DÉMO] Sentier Mahambo Doany – Ambodiforaha",
+    slug: "demo-mahambo-doany-ambodiforaha",
+    resume: "Le sentier emblématique de l'agence, entre villages et littoral.",
+    description: TODO_TERRAIN,
+    difficulte: "MOYENNE",
+    dureeJours: 2,
+    prixParPersonne: 180_000,
+    capaciteMax: 10,
+  },
+  {
+    titre: "[DÉMO] Randonnée côtière et pirogue",
+    slug: "demo-randonnee-cotiere-pirogue",
+    resume: "Une journée à pied le long de la côte, retour en pirogue.",
+    description: TODO_TERRAIN,
+    difficulte: "FACILE",
+    dureeJours: 1,
+    prixParPersonne: 95_000,
+    capaciteMax: 8,
+  },
+  {
+    titre: "[DÉMO] Immersion au village",
+    slug: "demo-immersion-village",
+    resume: "Trois jours au rythme d'un village partenaire.",
+    description: TODO_TERRAIN,
+    difficulte: "MOYENNE",
+    dureeJours: 3,
+    prixParPersonne: 320_000,
+    capaciteMax: 12,
+  },
+  {
+    titre: "[DÉMO] Journée découverte de Mahambo",
+    slug: "demo-decouverte-mahambo",
+    resume: "Une première approche, accessible à tous.",
+    description: TODO_TERRAIN,
+    difficulte: "FACILE",
+    dureeJours: 1,
+    prixParPersonne: 60_000,
+    capaciteMax: 12,
+  },
+];
+
+const FICTIF = "Circuit FICTIF de l'agence de démonstration.";
+
+export const DEMO_ALPHA_CIRCUITS: DemoCircuit[] = [
+  {
+    titre: "Traversée des Hautes Terres (fictif)",
+    slug: "traversee-hautes-terres",
+    resume: "Circuit fictif de démonstration.",
+    description: FICTIF,
+    difficulte: "DIFFICILE",
+    dureeJours: 5,
+    prixParPersonne: 650_000,
+    capaciteMax: 10,
+  },
+  {
+    titre: "Lacs et volcans (fictif)",
+    slug: "lacs-et-volcans",
+    resume: "Circuit fictif de démonstration.",
+    description: FICTIF,
+    difficulte: "MOYENNE",
+    dureeJours: 3,
+    prixParPersonne: 380_000,
+    capaciteMax: 12,
+  },
+  {
+    titre: "Forêt des brumes (fictif)",
+    slug: "foret-des-brumes",
+    resume: "Circuit fictif de démonstration.",
+    description: FICTIF,
+    difficulte: "FACILE",
+    dureeJours: 1,
+    prixParPersonne: 85_000,
+    capaciteMax: 12,
+  },
+];
+
+export const DEMO_BETA_CIRCUITS: DemoCircuit[] = [
+  {
+    titre: "Canyon rouge (fictif)",
+    slug: "canyon-rouge",
+    resume: "Circuit fictif de démonstration.",
+    description: FICTIF,
+    difficulte: "DIFFICILE",
+    dureeJours: 4,
+    prixParPersonne: 540_000,
+    capaciteMax: 8,
+  },
+  {
+    titre: "Rivière des pirogues (fictif)",
+    slug: "riviere-des-pirogues",
+    resume: "Circuit fictif de démonstration.",
+    description: FICTIF,
+    difficulte: "FACILE",
+    dureeJours: 2,
+    prixParPersonne: 150_000,
+    capaciteMax: 10,
+  },
+  {
+    titre: "Plateau des orchidées (fictif)",
+    slug: "plateau-des-orchidees",
+    resume: "Circuit fictif de démonstration.",
+    description: FICTIF,
+    difficulte: "MOYENNE",
+    dureeJours: 2,
+    prixParPersonne: 210_000,
+    capaciteMax: 12,
+  },
+];

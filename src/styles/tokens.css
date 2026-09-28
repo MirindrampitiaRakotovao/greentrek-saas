@@ -19,4 +19,17 @@
   --gt-mist: #d1d9da;
   --gt-sky: #96beca;
   --gt-white: #ffffff;
+
+  /* Teintes claires dérivées du teal (fonds du back-office, pastilles, barres de progression),
+     à la place du vert citron de la maquette du tableau de bord. */
+  --gt-teal-50: #f2f8f8;
+  --gt-teal-100: #dcefef;
+  --gt-teal-200: #b8dfe2;
+  --gt-canvas: #eef3f3;
+
+  /* Séries des graphiques : paire validée (luminosité, saturation, daltonisme) avec le script
+     du guide de visualisation. Le sable foncé a un contraste < 3:1 : légende, infobulle et
+     tableau accessible obligatoires. */
+  --gt-chart-1: #00899e;
+  --gt-chart-2: #c98a1b;
 }

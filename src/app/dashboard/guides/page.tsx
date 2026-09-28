@@ -45,7 +45,7 @@ export default async function GuidesPage({ searchParams }: PageProps<"/dashboard
           Aucun guide pour l&apos;instant.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-gt-mist bg-white">
+        <div className="relative overflow-x-auto rounded-2xl border border-gt-mist bg-white">
           <table className="w-full min-w-[640px] text-left text-sm">
             <caption className="sr-only">Guides de l&apos;agence</caption>
             <thead className="border-b border-gt-mist bg-gt-cream/50 text-gt-teal-900/80">

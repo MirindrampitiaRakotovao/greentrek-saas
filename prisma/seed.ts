@@ -8,7 +8,12 @@
  * - un abonnement par agence (simulé) ;
  * - les 4 partenaires réels de Green Trek Mada (noms seulement, détails à relever sur le terrain).
  *
- * Le graphe (étapes, tronçons) et les circuits sont ajoutés aux étapes E4 et E5.
+ * - une activité de DÉMONSTRATION par agence (prisma/demo-data.ts, avancée de l'étape E12
+ *   pour que les tableaux de bord soient lisibles) : 8 voyageurs fictifs, un second guide
+ *   sans compte, circuits, départs, réservations, participants, paiements simulés et
+ *   notifications. Circuits de Green Trek marqués « [DÉMO] », prix TODO(données terrain).
+ *
+ * Le graphe (étapes, tronçons) est ajouté aux étapes E4 et E5.
  * Le script vide d'abord la base : il est destiné au développement uniquement.
  */
 import "dotenv/config";
@@ -17,6 +22,14 @@ import bcrypt from "bcryptjs";
 
 import type { Role } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
+
+import {
+  DEMO_ALPHA_CIRCUITS,
+  DEMO_BETA_CIRCUITS,
+  type DemoCircuit,
+  generateAgencyDemo,
+  GREEN_TREK_CIRCUITS,
+} from "./demo-data";
 
 /** Mot de passe commun à tous les comptes de démonstration (documenté dans docs/AVANCEMENT.md). */
 const DEMO_PASSWORD = "Demo2026!";
@@ -134,6 +147,133 @@ const AGENCES: readonly AgenceSeed[] = [
   },
 ];
 
+/** Paramètres de la démonstration de chaque agence (préfixe des références, circuits, graine). */
+const DEMO_BY_SLUG: Record<string, { prefix: string; circuits: DemoCircuit[]; seed: number }> = {
+  "green-trek-mada": { prefix: "GT", circuits: GREEN_TREK_CIRCUITS, seed: 1 },
+  "demo-alpha": { prefix: "ALP", circuits: DEMO_ALPHA_CIRCUITS, seed: 2 },
+  "demo-beta": { prefix: "BET", circuits: DEMO_BETA_CIRCUITS, seed: 3 },
+};
+
+const VOYAGEURS = 8;
+
+type AgencyRefs = {
+  agenceId: string;
+  slug: string;
+  adminId: string;
+  clientId: string;
+  guideId: string;
+  motDePasseHash: string;
+};
+
+/** Activité de démonstration d'une agence (données entièrement fictives). */
+async function seedDemoActivity(refs: AgencyRefs, now: Date): Promise<void> {
+  const demo = DEMO_BY_SLUG[refs.slug];
+  if (!demo) return;
+  const { agenceId } = refs;
+
+  // Voyageurs fictifs (domaine réservé `.test`) ; l'index 0 est le client de démonstration.
+  const clientIds = [refs.clientId];
+  for (let n = 1; n <= VOYAGEURS; n += 1) {
+    const numero = String(n).padStart(2, "0");
+    const voyageur = await db.utilisateur.create({
+      data: {
+        agenceId,
+        nom: "Démo",
+        prenom: `Voyageur ${numero}`,
+        email: `voyageur${numero}@${refs.slug}.test`,
+        motDePasseHash: refs.motDePasseHash,
+        role: "CLIENT",
+      },
+    });
+    clientIds.push(voyageur.id);
+  }
+
+  // Second guide, sans compte de connexion (§5.2 : un guide peut ne pas avoir de compte).
+  await db.guide.create({
+    data: {
+      agenceId,
+      nom: "Démo",
+      prenom: "Guide sans compte",
+      langues: ["fr", "en"],
+      experienceAnnees: 3,
+    },
+  });
+
+  const data = generateAgencyDemo(
+    {
+      prefix: demo.prefix,
+      circuits: demo.circuits,
+      clientCount: clientIds.length,
+      seed: demo.seed,
+    },
+    now,
+  );
+
+  const circuitIds: string[] = [];
+  for (const circuit of data.circuits) {
+    const created = await db.circuit.create({ data: { ...circuit, agenceId, statut: "PUBLIE" } });
+    circuitIds.push(created.id);
+  }
+
+  const sessionIds: string[] = [];
+  for (const session of data.sessions) {
+    const created = await db.sessionDepart.create({
+      data: {
+        agenceId,
+        circuitId: circuitIds[session.circuitIndex]!,
+        guideId: session.withGuide ? refs.guideId : null,
+        dateDebut: session.dateDebut,
+        dateFin: session.dateFin,
+        placesTotal: session.placesTotal,
+        prixParPersonne: session.prixParPersonne,
+        statut: session.statut,
+      },
+    });
+    sessionIds.push(created.id);
+  }
+
+  for (const reservation of data.reservations) {
+    const created = await db.reservation.create({
+      data: {
+        agenceId,
+        reference: reservation.reference,
+        clientId: clientIds[reservation.clientIndex]!,
+        sessionId: sessionIds[reservation.sessionIndex]!,
+        nombrePersonnes: reservation.nombrePersonnes,
+        montantTotal: reservation.montantTotal,
+        statut: reservation.statut,
+        createdAt: reservation.createdAt,
+        confirmeeAt: reservation.confirmeeAt,
+        annuleeAt: reservation.annuleeAt,
+      },
+    });
+    await db.participant.createMany({
+      data: reservation.participants.map((p) => ({ ...p, reservationId: created.id })),
+    });
+    if (reservation.paiements.length > 0) {
+      await db.paiement.createMany({
+        data: reservation.paiements.map((p) => ({ ...p, reservationId: created.id })),
+      });
+    }
+  }
+
+  // Notifications in-app de l'administrateur : les 5 dernières réservations (P2, simulées).
+  const recentes = [...data.reservations]
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, 5);
+  await db.notification.createMany({
+    data: recentes.map((r, index) => ({
+      agenceId,
+      utilisateurId: refs.adminId,
+      type: "RESERVATION",
+      titre: `Nouvelle réservation ${r.reference}`,
+      message: `${r.nombrePersonnes} personne(s) — ${data.circuits[data.sessions[r.sessionIndex]!.circuitIndex]!.titre}`,
+      lue: index >= 3,
+      createdAt: r.createdAt,
+    })),
+  });
+}
+
 const ROLES_AGENCE: readonly { role: Role; prefixe: string; prenom: string }[] = [
   { role: "ADMIN_AGENCE", prefixe: "admin", prenom: "Admin" },
   { role: "STAFF", prefixe: "staff", prenom: "Staff" },
@@ -166,6 +306,7 @@ async function main(): Promise<void> {
 
   for (const agenceSeed of AGENCES) {
     const agence = await db.agence.create({ data: agenceSeed });
+    const ids: Partial<Record<"adminId" | "clientId" | "guideId", string>> = {};
 
     for (const { role, prefixe, prenom } of ROLES_AGENCE) {
       // Domaine réservé `.test` (RFC 2606) : ces adresses ne peuvent appartenir à personne.
@@ -180,16 +321,20 @@ async function main(): Promise<void> {
         },
       });
 
+      if (role === "ADMIN_AGENCE") ids.adminId = utilisateur.id;
+      if (role === "CLIENT") ids.clientId = utilisateur.id;
       if (role === "GUIDE") {
-        await db.guide.create({
+        const fiche = await db.guide.create({
           data: {
             agenceId: agence.id,
             utilisateurId: utilisateur.id,
             nom: "Démo",
             prenom: "Guide",
             langues: ["fr", "mg"],
+            experienceAnnees: 6,
           },
         });
+        ids.guideId = fiche.id;
       }
     }
 
@@ -199,7 +344,8 @@ async function main(): Promise<void> {
       data: {
         agenceId: agence.id,
         planId: estGreenTrek ? pro.id : essai.id,
-        dateDebut: aujourdhui,
+        // Green Trek : abonnée depuis 10 mois (cohérent avec l'historique de démonstration).
+        dateDebut: estGreenTrek ? new Date(aujourdhui.getTime() - 300 * 86_400_000) : aujourdhui,
         dateFin: estGreenTrek ? null : dans30Jours,
         statut: estGreenTrek ? "ACTIF" : "ESSAI",
       },
@@ -217,15 +363,33 @@ async function main(): Promise<void> {
         ],
       });
     }
+
+    if (!ids.adminId || !ids.clientId || !ids.guideId)
+      throw new Error("Comptes de démo manquants.");
+    await seedDemoActivity(
+      {
+        agenceId: agence.id,
+        slug: agence.slug,
+        adminId: ids.adminId,
+        clientId: ids.clientId,
+        guideId: ids.guideId,
+        motDePasseHash,
+      },
+      aujourdhui,
+    );
   }
 
-  const [agences, utilisateurs, partenaires] = await Promise.all([
+  const [agences, utilisateurs, partenaires, circuits, departs, reservations] = await Promise.all([
     db.agence.count(),
     db.utilisateur.count(),
     db.partenaire.count(),
+    db.circuit.count(),
+    db.sessionDepart.count(),
+    db.reservation.count(),
   ]);
   console.log(
-    `Seed terminé : ${agences} agences, ${utilisateurs} utilisateurs, ${partenaires} partenaires.`,
+    `Seed terminé : ${agences} agences, ${utilisateurs} utilisateurs, ${partenaires} partenaires, ` +
+      `${circuits} circuits, ${departs} départs, ${reservations} réservations (démonstration fictive).`,
   );
 }
 

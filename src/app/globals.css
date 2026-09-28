@@ -20,6 +20,12 @@
   --color-gt-mist: var(--gt-mist);
   --color-gt-sky: var(--gt-sky);
   --color-gt-white: var(--gt-white);
+  --color-gt-teal-50: var(--gt-teal-50);
+  --color-gt-teal-100: var(--gt-teal-100);
+  --color-gt-teal-200: var(--gt-teal-200);
+  --color-gt-canvas: var(--gt-canvas);
+  --color-gt-chart-1: var(--gt-chart-1);
+  --color-gt-chart-2: var(--gt-chart-2);
 
   --font-sans: var(--font-poppins);
   --font-script: var(--font-kaushan);

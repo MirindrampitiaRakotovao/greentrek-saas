@@ -1,9 +1,8 @@
+import type { IconName } from "@/components/ui/icon";
 import type { Role } from "@/generated/prisma/client";
 import { type Action, can, type Resource } from "@/lib/permissions";
 
-export type NavIcon = "home" | "users" | "user" | "compass" | "handshake" | "settings";
-
-export type NavItem = { href: string; label: string; icon: NavIcon };
+export type NavItem = { href: string; label: string; icon: IconName };
 
 type NavEntry = NavItem & {
   /** Permission requise pour voir le lien (absente : visible par tout le personnel). */

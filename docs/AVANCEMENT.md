@@ -9,14 +9,14 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E0 Initialisation | Fait | 2026-09-28 | Typecheck, lint, test et build verts ; base MySQL créée ; `/api/health` renvoie 200 « connectée » (vérifié chez l'étudiant) |
 | E1 Schéma Prisma | Fait | 2026-09-28 | 19 tables et 18 CHECK migrés, seed OK, ERD rédigé ; typecheck, lint et build verts ; `npm test` 23/23 (3 unitaires, 20 d'intégration) chez l'étudiant |
 | E2 Auth et multi-tenant | Fait | 2026-09-28 | Typecheck, lint, 167 tests, build et 14 scénarios de bout en bout verts ; parcours vérifiés dans le navigateur par l'étudiant (connexion admin, inscription d'agence, connexion client, super admin) |
-| E3 Fondations back-office | En cours | 2026-09-28 | **E3a** (layout, équipe, profil) : validé par l'étudiant. **E3b** (paramètres, partenaires, guides) : typecheck, lint, 235 tests, build et contrôles d'accès par rôle et par agence verts ; en attente de vérification par l'étudiant |
+| E3 Fondations back-office | Fait | 2026-09-28 | Validé par l'étudiant. Complété par la refonte visuelle des tableaux de bord (voir « Refonte des tableaux de bord ») |
 | E4 Circuits et étapes | À faire | | |
 | E5 Éditeur de graphe | À faire | | |
 | E6 Algorithmes | À faire | | |
 | E7 Départs | À faire | | |
 | E8 Site vitrine | À faire | | |
 | E9 Réservation client | À faire | | |
-| E10 Back-office opérationnel | À faire | | |
+| E10 Back-office opérationnel | En partie | 2026-09-28 | Tableau de bord et KPIs avancés à la demande de l'étudiant (refonte des tableaux de bord). Reste : gestion des réservations, clients, paiements |
 | E11 Super admin, plans | À faire | | |
 | E12 Finition | À faire | | |
 
@@ -131,6 +131,23 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - **Menu** : Guides et Partenaires visibles par ADMIN_AGENCE et STAFF, Paramètres par ADMIN_AGENCE seulement, rien de tout cela pour GUIDE (dérivé de la matrice des permissions, testé).
 - **Tests** : 35 tests supplémentaires (idempotence et transformations des schémas, format des montants, menu selon le rôle en unitaire ; règles des paramètres, partenaires et guides, isolation comprise, en intégration). Contrôle de bout en bout sur le serveur de production : accès aux pages selon le rôle ; partenaire et guide de Green Trek en 404 pour l'administrateur de Démo Alpha.
 
+### Refonte des tableaux de bord (2026-09-28, demandée par l'étudiant)
+
+- **Demande** : reprendre la maquette de tableau de bord fournie (image « COINEST », référence visuelle tierce : on reprend la structure et la densité, ni le nom ni les textes), pour les trois espaces connectés, avec un tableau de bord « bien rempli ».
+- **Décisions de l'étudiant** : mise en page de la maquette aux couleurs Green Trek (teal à la place du vert, teintes claires de teal à la place du vert citron, sable pour les boutons d'accent : pas d'écart avec le §8.2) ; données de démonstration fictives dès maintenant ; back-office d'agence, console super admin ET espace client (déconseillé pour l'espace client, qui relève du site vitrine : choix de l'étudiant retenu).
+- **Écarts assumés avec le plan** : une partie d'E10 (indicateurs, graphiques Recharts) et d'E12 (seed de démonstration) est avancée.
+- **Coque commune** (`src/components/shell/app-shell.tsx`) : barre latérale (élément actif en « pilule », encart en bas), barre supérieure (titre, recherche de page réelle parmi les entrées du menu, cloche des notifications in-app lues en base, utilisateur), pied de page. Menu repliable sur mobile.
+- **Indicateurs calculés en direct** (`src/lib/dashboard/`), via le client confiné (isolation conservée), définitions documentées dans le code : réservations du mois (hors annulations) et évolution, montant réservé, paiements encaissés (statut VALIDE, par date de paiement), taux de remplissage des départs à venir, répartition par statut, circuits les plus réservés, abonnement et limites du plan, activité récente (événements réels : réservations, paiements, annulations). Vue dédiée pour le GUIDE (ses départs seulement), vue plateforme pour le SUPER_ADMIN (comptages globaux ; montants par agence, car les devises peuvent différer), vue client (ses réservations et ses paiements).
+- **Calendrier** : jours et mois en heure de Madagascar (UTC+3, sans heure d'été) ; les colonnes SQL `DATE` (dates de départ) sont comparées à la date calendaire locale (`calendarDate`), sinon les départs d'hier seraient comptés « à venir ».
+- **Règles de visualisation** (guide de visualisation appliqué) : un seul axe vertical (les deux séries de la courbe sont en Ariary) ; couleurs des séries validées par script (luminosité, saturation, séparation pour les daltoniens) : les teals d'origine étaient trop peu saturés, d'où `#00899E` et le sable `#C98A1B` ; contraste du sable < 3:1, donc légende, infobulle et tableau accessible pour les lecteurs d'écran ; texte jamais dans la couleur de la série ; statuts toujours écrits en toutes lettres.
+- **Seed de démonstration** (`prisma/demo-data.ts`) : fonction pure et déterministe (graine fixe), 10 circuits, 39 départs, 80 à 95 réservations sur 12 mois (dates relatives à la date du seed), participants, paiements simulés et notifications ; 8 voyageurs fictifs et un guide sans compte par agence. Circuits de Green Trek marqués « [DÉMO] », prix, durées et capacités TODO(données terrain). Tests : RG 10, 11, 13, 14, 16, cohérence des dates (aucun événement dans le futur), déterminisme, volumes du §11.
+  - Les circuits de démonstration sont publiés **sans étapes** pour l'instant : les étapes arrivent en E4, qui les ajoutera au seed (RG 4 : au moins deux étapes).
+- **Vérification visuelle** : captures d'écran automatisées (Chrome sans interface, connexion par le vrai formulaire) des sept écrans sur ordinateur et sur mobile, avec détection du débordement horizontal. Trois défauts trouvés et corrigés :
+  - un tableau masqué pour les lecteurs d'écran allongeait la page (`sr-only` est sans effet sur un `<table>` : il est désormais dans une `div` masquée) ;
+  - dans une grille, un tableau large élargissait sa colonne (`min-w-0` sur les colonnes) ;
+  - les libellés `sr-only` d'un tableau défilant débordaient de la page (conteneurs défilants en `position: relative`).
+- **Tests** : 36 tests supplémentaires (générateur de démonstration, calendrier, séries des graphiques en unitaire ; indicateurs des quatre tableaux de bord calculés à la main et isolation entre agences en intégration).
+
 ## Captures d'écran à prendre
 
 - E0 : page d'accueil provisoire (palette) et réponse JSON de `/api/health` avec `"database": "connectée"`.
@@ -138,6 +155,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - E2a : sortie de `npm test` montrant les tests d'isolation (liste détaillée : `npx vitest run tests/integration/isolation.test.ts`).
 - E3a : back-office sur ordinateur et sur mobile (menu ouvert) ; liste de l'équipe ; refus « dernier administrateur » ; page Mon profil.
 - E3b : paramètres de l'agence ; liste des partenaires (les 4 partenaires réels de Green Trek) ; fiche d'un guide avec ses langues ; refus de suppression d'un partenaire utilisé (après E4).
+- Refonte : tableau de bord de l'agence (ordinateur et mobile), vue plateforme du super admin, espace voyageur, tableau de bord du guide ; comparaison avec la maquette d'inspiration.
 - E2b : page `/connexion` ; formulaire `/inscription-agence` avec erreurs de validation ; `/dashboard` après inscription d'une nouvelle agence ; `/admin` (super admin) ; message d'erreur après une connexion refusée.
 
 ## Comptes de démonstration
