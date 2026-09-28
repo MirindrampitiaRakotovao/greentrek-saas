@@ -1,3 +1,5 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+
 import type { PrismaClient } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import {
@@ -22,6 +24,10 @@ import {
  *    (ex. un tronçon ne peut pas relier une étape d'une autre agence, RG 6 et RG 20) ;
  * 4. écritures imbriquées (`create`, `connect`… dans `data`) interdites : elles
  *    échapperaient aux contrôles 2 et 3.
+ *
+ * Transactions : utiliser `db.$tenantTransaction(async (tx) => …)`. Les contrôles de
+ * références s'exécutent alors dans la transaction et voient ses écritures non encore
+ * validées (ex. créer un utilisateur puis sa fiche Guide dans la même transaction).
  */
 
 export class TenantViolationError extends Error {
@@ -123,38 +129,46 @@ function writtenId(value: unknown): string | null {
   return null;
 }
 
-function createReferenceChecker(base: PrismaClient) {
-  const belongsTo: Record<ReferenceTarget, (id: string, agenceId: string) => Promise<number>> = {
-    Utilisateur: (id, agenceId) => base.utilisateur.count({ where: { id, agenceId } }),
-    Etape: (id, agenceId) => base.etape.count({ where: { id, agenceId } }),
-    Circuit: (id, agenceId) => base.circuit.count({ where: { id, agenceId } }),
-    Guide: (id, agenceId) => base.guide.count({ where: { id, agenceId } }),
-    SessionDepart: (id, agenceId) => base.sessionDepart.count({ where: { id, agenceId } }),
-    Reservation: (id, agenceId) => base.reservation.count({ where: { id, agenceId } }),
-    Partenaire: (id, agenceId) => base.partenaire.count({ where: { id, agenceId } }),
-  };
+/** Accès minimal utilisé par le contrôle des références : un `count` par table cible. */
+type Counter = { count(args: { where: { id: string } }): Promise<number> };
+type ReferenceReader = Record<
+  "utilisateur" | "etape" | "circuit" | "guide" | "sessionDepart" | "reservation" | "partenaire",
+  Counter
+>;
 
-  return async function assertReferences(
-    model: ModelName,
-    config: ModelConfig,
-    data: Data,
-    agenceId: string,
-  ): Promise<void> {
-    for (const [field, target] of Object.entries(config.references)) {
-      const id = writtenId(data[field]);
-      if (id === null) continue; // champ absent ou mis à null
-      if ((await belongsTo[target](id, agenceId)) === 0) {
-        throw new TenantViolationError(
-          `${model}.${field} : la ressource ${target} référencée n'appartient pas à l'agence.`,
-        );
-      }
+const TARGET_DELEGATE: Record<ReferenceTarget, keyof ReferenceReader> = {
+  Utilisateur: "utilisateur",
+  Etape: "etape",
+  Circuit: "circuit",
+  Guide: "guide",
+  SessionDepart: "sessionDepart",
+  Reservation: "reservation",
+  Partenaire: "partenaire",
+};
+
+/**
+ * Vérifie que chaque clé étrangère écrite vise une ligne visible par l'agence. Le comptage
+ * passe par le client CONFINÉ (`reader`) : le filtre d'agence y est ajouté automatiquement,
+ * et, dans une transaction, c'est le client de la transaction qui est utilisé.
+ */
+async function assertReferences(
+  reader: ReferenceReader,
+  model: ModelName,
+  config: ModelConfig,
+  data: Data,
+): Promise<void> {
+  for (const [field, target] of Object.entries(config.references)) {
+    const id = writtenId(data[field]);
+    if (id === null) continue; // champ absent ou mis à null
+    if ((await reader[TARGET_DELEGATE[target]].count({ where: { id } })) === 0) {
+      throw new TenantViolationError(
+        `${model}.${field} : la ressource ${target} référencée n'appartient pas à l'agence.`,
+      );
     }
-  };
+  }
 }
 
-function createTenantClient(base: PrismaClient, agenceId: string) {
-  const assertReferences = createReferenceChecker(base);
-
+function extendForTenant(base: PrismaClient, agenceId: string, reader: () => ReferenceReader) {
   async function prepareCreate(
     model: ModelName,
     config: ModelConfig,
@@ -170,7 +184,7 @@ function createTenantClient(base: PrismaClient, agenceId: string) {
       }
       prepared.agenceId = agenceId;
     }
-    await assertReferences(model, config, prepared, agenceId);
+    await assertReferences(reader(), model, config, prepared);
     return prepared;
   }
 
@@ -181,7 +195,7 @@ function createTenantClient(base: PrismaClient, agenceId: string) {
     if ("agenceId" in data && writtenId(data.agenceId) !== agenceId) {
       throw new TenantViolationError(`${model} : changement d'agence refusé.`);
     }
-    await assertReferences(model, config, data, agenceId);
+    await assertReferences(reader(), model, config, data);
   }
 
   return base.$extends({
@@ -228,21 +242,45 @@ function createTenantClient(base: PrismaClient, agenceId: string) {
   });
 }
 
-type ExtendedTenantClient = ReturnType<typeof createTenantClient>;
+type ExtendedTenantClient = ReturnType<typeof extendForTenant>;
+
+/** Requêtes SQL brutes : retirées des types, elles contourneraient l'extension. */
+type RawMethods = "$queryRaw" | "$queryRawUnsafe" | "$executeRaw" | "$executeRawUnsafe";
+
+/** Client d'une transaction confinée à l'agence. */
+export type TenantTx = Omit<
+  ExtendedTenantClient,
+  RawMethods | "$transaction" | "$connect" | "$disconnect" | "$extends" | "$on"
+>;
 
 /**
- * Client confiné à une agence. Les requêtes SQL brutes sont retirées du type : elles
- * contourneraient l'extension.
+ * Client confiné à une agence. `$transaction` est remplacé par `$tenantTransaction`, qui
+ * fait exécuter les contrôles de références dans la transaction.
  */
-export type TenantDb = Omit<
-  ExtendedTenantClient,
-  "$queryRaw" | "$queryRawUnsafe" | "$executeRaw" | "$executeRawUnsafe"
->;
+export type TenantDb = Omit<ExtendedTenantClient, RawMethods | "$transaction"> & {
+  $tenantTransaction<R>(fn: (tx: TenantTx) => Promise<R>): Promise<R>;
+};
 
 /** Client Prisma confiné à l'agence `agenceId`. `base` n'est fourni que par les tests. */
 export function getTenantDb(agenceId: string, base: PrismaClient = db): TenantDb {
   if (!agenceId) {
     throw new TenantViolationError("getTenantDb : agenceId manquant.");
   }
-  return createTenantClient(base, agenceId);
+
+  // Transaction en cours pour ce client (propagée à travers les `await` par Node).
+  const currentTx = new AsyncLocalStorage<TenantTx>();
+  const extended: ExtendedTenantClient = extendForTenant(
+    base,
+    agenceId,
+    () => currentTx.getStore() ?? extended,
+  );
+
+  return extended.$extends({
+    name: "tenant-transaction",
+    client: {
+      $tenantTransaction<R>(fn: (tx: TenantTx) => Promise<R>): Promise<R> {
+        return extended.$transaction((tx) => currentTx.run(tx, () => fn(tx)));
+      },
+    },
+  });
 }

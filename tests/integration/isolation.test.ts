@@ -229,7 +229,7 @@ describe("lecture par liste et agrégats", () => {
   });
 
   it("une transaction interactive reste confinée à A", async () => {
-    const circuits = await tenantA.$transaction((tx) => tx.circuit.findMany());
+    const circuits = await tenantA.$tenantTransaction((tx) => tx.circuit.findMany());
     expect(circuits.map((c) => c.id)).toEqual([a.circuit.id]);
   });
 });
@@ -443,5 +443,53 @@ describe("création et références", () => {
         },
       }),
     ).rejects.toThrow(TenantViolationError);
+  });
+});
+
+describe("transactions ($tenantTransaction)", () => {
+  it("une création peut référencer une ligne créée juste avant dans la même transaction", async () => {
+    const troncon = await tenantA.$tenantTransaction(async (tx) => {
+      const etape = await tx.etape.create({
+        data: {
+          agenceId: a.agence.id,
+          nom: "Nouvelle",
+          type: "AUTRE",
+          latitude: 0,
+          longitude: 0.02,
+        },
+      });
+      return tx.troncon.create({
+        data: {
+          agenceId: a.agence.id,
+          etapeDepartId: a.etape2.id,
+          etapeArriveeId: etape.id,
+          distanceKm: 1,
+          dureeMinutes: 15,
+          difficulte: 1,
+        },
+      });
+    });
+    expect(troncon.agenceId).toBe(a.agence.id);
+  });
+
+  it("une référence vers B reste refusée, et toute la transaction est annulée", async () => {
+    await expect(
+      tenantA.$tenantTransaction(async (tx) => {
+        await tx.partenaire.create({
+          data: { agenceId: a.agence.id, nom: "Annulé", type: "ACTIVITE" },
+        });
+        await tx.troncon.create({
+          data: {
+            agenceId: a.agence.id,
+            etapeDepartId: a.etape1.id,
+            etapeArriveeId: b.etape2.id,
+            distanceKm: 1,
+            dureeMinutes: 15,
+            difficulte: 1,
+          },
+        });
+      }),
+    ).rejects.toThrow(TenantViolationError);
+    await expect(raw.partenaire.count({ where: { nom: "Annulé" } })).resolves.toBe(0);
   });
 });

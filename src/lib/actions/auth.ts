@@ -3,13 +3,10 @@
 import { AuthError } from "next-auth";
 
 import { signIn, signOut } from "@/auth";
+import { zodFieldErrors } from "@/lib/actions/helpers";
+import type { ActionResult } from "@/lib/actions/types";
 import { registerAgency } from "@/lib/services/onboarding";
 import { agencyRegistrationSchema, loginSchema } from "@/lib/validators/auth";
-
-export type ActionResult = {
-  error?: string;
-  fieldErrors?: Partial<Record<string, string>>;
-};
 
 const GENERIC_LOGIN_ERROR = "E-mail ou mot de passe incorrect.";
 
@@ -48,12 +45,10 @@ export async function logoutAction(): Promise<void> {
 export async function registerAgencyAction(input: unknown): Promise<ActionResult> {
   const parsed = agencyRegistrationSchema.safeParse(input);
   if (!parsed.success) {
-    const fieldErrors: Partial<Record<string, string>> = {};
-    for (const issue of parsed.error.issues) {
-      const field = String(issue.path[0] ?? "form");
-      fieldErrors[field] ??= issue.message;
-    }
-    return { error: "Certains champs sont invalides.", fieldErrors };
+    return {
+      error: "Certains champs sont invalides.",
+      fieldErrors: zodFieldErrors(parsed.error.issues),
+    };
   }
 
   const result = await registerAgency(parsed.data);

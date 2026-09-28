@@ -9,7 +9,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E0 Initialisation | Fait | 2026-09-28 | Typecheck, lint, test et build verts ; base MySQL créée ; `/api/health` renvoie 200 « connectée » (vérifié chez l'étudiant) |
 | E1 Schéma Prisma | Fait | 2026-09-28 | 19 tables et 18 CHECK migrés, seed OK, ERD rédigé ; typecheck, lint et build verts ; `npm test` 23/23 (3 unitaires, 20 d'intégration) chez l'étudiant |
 | E2 Auth et multi-tenant | Fait | 2026-09-28 | Typecheck, lint, 167 tests, build et 14 scénarios de bout en bout verts ; parcours vérifiés dans le navigateur par l'étudiant (connexion admin, inscription d'agence, connexion client, super admin) |
-| E3 Fondations back-office | À faire | | |
+| E3 Fondations back-office | En cours | 2026-09-28 | **E3a** (layout, équipe, profil) : typecheck, lint, 200 tests, build et contrôles d'accès par rôle verts ; en attente de vérification par l'étudiant. **E3b** (paramètres, partenaires, guides) : à faire |
 | E4 Circuits et étapes | À faire | | |
 | E5 Éditeur de graphe | À faire | | |
 | E6 Algorithmes | À faire | | |
@@ -102,11 +102,31 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
   - *Test sur téléphone* : origines de développement supplémentaires via `ALLOWED_DEV_ORIGINS` (`.env`), lues par `next.config.ts`.
   - *Avertissement d'hydratation* : provoqué par des extensions du navigateur qui ajoutent des attributs à `<html>` ; `suppressHydrationWarning` sur cette seule balise.
 
+### E3a — Layout du back-office, équipe et profil (2026-09-28)
+
+- **Correctif du helper tenant (transactions)** : le contrôle des références interrogeait la base hors de la transaction en cours ; créer un utilisateur puis sa fiche Guide dans la même transaction aurait été refusé à tort. Désormais :
+  - le contrôle passe par le client **confiné** lui-même (le filtre d'agence y est ajouté automatiquement) ;
+  - `db.$tenantTransaction(fn)` mémorise la transaction en cours (`AsyncLocalStorage` de Node) pour que ces contrôles s'y exécutent et voient ses écritures non encore validées ;
+  - `$transaction` est retiré du type `TenantDb` pour imposer `$tenantTransaction`.
+  Deux tests d'isolation ajoutés : référence vers une ligne créée dans la même transaction acceptée ; référence vers l'agence B refusée, avec annulation complète de la transaction.
+- **Architecture d'un module** (appliquée à l'équipe, reprise pour les suivants) : page serveur (`requireAgencyUser` + contrôle du rôle) → formulaire client (React Hook Form + Zod) → action serveur (`requireAgencyUser` + `assertCan` + Zod) → service métier (`src/lib/services/`, reçoit le client confiné, renvoie un `ServiceResult`) → Prisma. Les règles de gestion vivent dans les services, testés en intégration sans navigateur.
+- **Layout `/dashboard`** (§8.6) : barre latérale générée depuis la matrice des permissions (`navigationFor(role)`), menu repliable sur mobile, nom de l'agence et de l'utilisateur, déconnexion. Masquer un lien n'est qu'un confort : chaque page revérifie les droits (Next.js ne réexécute pas toujours le layout lors d'une navigation).
+- **Équipe `/dashboard/equipe`** : liste paginée côté serveur (`?page=n`, 20 par page, §12) ; ADMIN_AGENCE crée, modifie et désactive ; STAFF consulte ; GUIDE n'y a pas accès. Règles appliquées (décisions A à D validées) :
+  - mot de passe initial saisi par l'administrateur (aucun e-mail envoyé), changé ensuite par le membre ;
+  - e-mail du personnel unique sur toute la plateforme ; même e-mail qu'un client de l'agence refusé (index unique) ;
+  - pas de suppression d'utilisateur, seulement la désactivation (accès coupé immédiatement, RG 19) ;
+  - on ne peut ni se désactiver soi-même ni changer son propre rôle ; l'agence garde toujours au moins un ADMIN_AGENCE actif ;
+  - un compte GUIDE reçoit automatiquement sa fiche Guide ; quitter le rôle GUIDE détache la fiche sans la supprimer (départs déjà encadrés).
+- **Mon profil `/dashboard/profil`** : identité et téléphone ; changement de mot de passe avec l'ancien exigé (protection si une session est laissée ouverte).
+- **Dates** affichées en français dans le fuseau de Madagascar (`Indian/Antananarivo`), identiques côté serveur et navigateur.
+- **Tests** : 33 tests supplémentaires (règles de l'équipe et du profil en intégration ; menu selon le rôle, pagination, format des dates en unitaire). Contrôle de bout en bout sur le serveur de production : accès aux pages selon le rôle (admin, staff, guide) et 404 pour un membre d'une autre agence.
+
 ## Captures d'écran à prendre
 
 - E0 : page d'accueil provisoire (palette) et réponse JSON de `/api/health` avec `"database": "connectée"`.
 - E1 : ERD exporté depuis mermaid.live ou MySQL Workbench ; résultat de `npm test` (tests d'intégration des contraintes).
 - E2a : sortie de `npm test` montrant les tests d'isolation (liste détaillée : `npx vitest run tests/integration/isolation.test.ts`).
+- E3a : back-office sur ordinateur et sur mobile (menu ouvert) ; liste de l'équipe ; refus « dernier administrateur » ; page Mon profil.
 - E2b : page `/connexion` ; formulaire `/inscription-agence` avec erreurs de validation ; `/dashboard` après inscription d'une nouvelle agence ; `/admin` (super admin) ; message d'erreur après une connexion refusée.
 
 ## Comptes de démonstration

@@ -2,18 +2,11 @@ import type { ReactNode } from "react";
 
 import { LogoutButton } from "@/components/auth/logout-button";
 import type { AuthUser } from "@/lib/auth/authenticate";
-
-const ROLE_LABELS: Record<AuthUser["role"], string> = {
-  SUPER_ADMIN: "Super administrateur",
-  ADMIN_AGENCE: "Administrateur d'agence",
-  STAFF: "Personnel",
-  GUIDE: "Guide",
-  CLIENT: "Client",
-};
+import { ROLE_LABELS } from "@/lib/roles";
 
 /**
  * Espace provisoire (étape E2) : prouve la connexion, le rôle et l'agence de l'utilisateur.
- * Remplacé par le vrai layout du back-office à l'étape E3.
+ * Encore utilisé par l'espace client (remplacé en E9) et la console super admin (E11).
  */
 export function PlaceholderSpace({
   title,

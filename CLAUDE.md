@@ -30,6 +30,8 @@ Next.js (App Router) + TypeScript strict · MySQL + Prisma · Auth.js (credentia
 - Multi-tenant : toute requête sur une table liée à une agence passe par le helper tenant (cahier des charges §4). Jamais de requête Prisma sans filtre `agenceId` sur ces tables. Tests d'isolation obligatoires.
   - Implémentation : `getTenantDb(agenceId)` dans `src/lib/tenant.ts`, configuration dans `src/lib/tenant-config.ts` (à mettre à jour pour toute nouvelle table ou clé étrangère). Importer `@/lib/db` dans `src/` est une erreur ESLint ; super admin et authentification passent par `getAdminDb()`.
   - À la création, passer `agenceId` explicitement (le helper vérifie qu'il correspond). Pas d'écriture imbriquée (`connect`, `create` dans `data`) : utiliser les clés étrangères.
+  - Transactions : `db.$tenantTransaction(async (tx) => …)` (pas `$transaction`).
+- Module du back-office : page serveur (`requireAgencyUser`) → formulaire client (RHF + Zod) → action serveur (`requireAgencyUser` + `assertCan` + Zod, `src/lib/actions/`) → service (`src/lib/services/`, reçoit `TenantDb`, renvoie `ServiceResult`, testé en intégration).
 - Pas de secrets dans le code : `.env` (ignoré par git) + `.env.example`.
 - Algorithmes dans `src/lib/graph/` : fonctions pures (sans UI ni base de données), testées unitairement.
 - Palette et typographie : cahier des charges §8, tokens CSS dans `src/styles/tokens.css`.
