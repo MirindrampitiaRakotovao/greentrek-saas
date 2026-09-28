@@ -43,7 +43,10 @@ function createDefaultClient(): PrismaClient {
  * Attention : ce client est « brut ». À partir de l'étape E2, les tables liées à une
  * agence ne doivent être lues ou écrites qu'au travers du helper tenant (`src/lib/tenant.ts`).
  */
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+// Typé largement : l'instance en cache peut venir d'une version antérieure du client généré.
+const globalForPrisma = globalThis as unknown as {
+  prisma?: { $disconnect: () => Promise<void> };
+};
 
 // Après un `prisma generate` (nouveau schéma), la classe PrismaClient change : une instance
 // mise en cache par l'ancienne version ne connaît pas les nouvelles tables. On ne la
