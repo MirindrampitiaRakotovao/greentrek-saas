@@ -51,6 +51,10 @@ const PATHS = {
   utensils:
     "M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20m14-7V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2zm0 0v7",
   anchor: "M12 22V8m0 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6M5 12H2a10 10 0 0 0 20 0h-3",
+  navigation: "M3 11 22 2l-9 19-2-8z",
+  download: "M12 3v12m-5-5 5 5 5-5M4 21h16",
+  play: "M6 4l14 8-14 8z",
+  swap: "M7 4v16m0 0-3-3m3 3 3-3M17 20V4m0 0-3 3m3-3 3 3",
 } as const;
 
 export type IconName = keyof typeof PATHS;

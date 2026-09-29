@@ -27,8 +27,11 @@ describe("navigationFor : menu selon le rôle", () => {
       "/dashboard",
       "/dashboard/circuits",
       "/dashboard/etapes",
+      "/dashboard/itineraires",
       "/dashboard/profil",
     ]);
+    // La page de performances (banc d'essai) est réservée à l'administrateur et au personnel.
+    expect(hrefs("STAFF")).toContain("/dashboard/performances");
   });
 
   it("GUIDE ne voit pas l'équipe, mais voit son profil", () => {

@@ -35,6 +35,18 @@ const NAVIGATION: readonly NavEntry[] = [
     permission: ["lire", "etape"],
   },
   {
+    href: "/dashboard/itineraires",
+    label: "Calcul d'itinéraire",
+    icon: "navigation",
+    permission: ["lire", "troncon"],
+  },
+  {
+    href: "/dashboard/performances",
+    label: "Performances",
+    icon: "gauge",
+    permission: ["modifier", "circuit"],
+  },
+  {
     href: "/dashboard/guides",
     label: "Guides",
     icon: "compass",

@@ -12,7 +12,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E3 Fondations back-office | Fait | 2026-09-28 | Validé par l'étudiant. Complété par la refonte visuelle des tableaux de bord (voir « Refonte des tableaux de bord ») |
 | E4 Circuits et étapes | Fait | 2026-09-29 | Validé par l'étudiant, y compris la carte au style Google Maps et les 27 lieux réels de la côte Est |
 | E5 Éditeur de graphe | Fait | 2026-09-29 | Validé par l'étudiant (333 tests, parcours complet dans le navigateur) |
-| E6 Algorithmes | En cours | 2026-09-29 | **E6a** (algorithmes purs, tests, benchmark) : typecheck, lint, 378 tests et build verts ; en attente de vérification. **E6b** (service, pages de calcul et de performances) : à faire |
+| E6 Algorithmes | En cours | 2026-09-29 | **E6a** : validé par l'étudiant (45 tests d'algorithmes). **E6b** (service, calcul d'itinéraire, comparaison, performances, tracé réel des circuits) : typecheck, lint, 386 tests, build et parcours complet dans le navigateur verts ; en attente de vérification |
 | E7 Départs | À faire | | |
 | E8 Site vitrine | À faire | | |
 | E9 Réservation client | À faire | | |
@@ -219,6 +219,16 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
   Le calibrage est amorti dès la 4e recherche sur 5 000 nœuds. Pour « Plus facile », le gain est faible (≈ −20 % de nœuds) : l'heuristique ne peut pas anticiper la pénalité de difficulté (terme γ minoré par 0). Les coûts de Dijkstra et d'A* sont identiques sur toutes les paires, pour tous les critères. Mesures sur la machine de développement : les temps absolus varient d'une machine à l'autre, les rapports restent.
 - **Tests** (45 pour le module) : graphe de référence (chemins et coûts à la main, sens inverse, cas limites §6.4 : aucun chemin, départ = arrivée, graphe à un nœud, étape inconnue, poids invalides, tronçon dupliqué, sens unique) ; propriétés sur des centaines de graphes aléatoires (même coût Dijkstra / A*, chemin continu fait d'arcs existants, coût recalculé = coût annoncé, A* explore moins) ; heuristique admissible et cohérente vérifiée nœud par nœud et arc par arc ; Held-Karp = force brute sur 30 cas ; benchmark reproductible, connexe et CSV.
 
+### E6b — Calcul d'itinéraire dans l'application (2026-09-29)
+
+- **Service** (`src/lib/services/itineraires.ts`) : charge les étapes et les tronçons de l'agence (client confiné), construit le graphe, lance le module pur et enregistre chaque résultat trouvé dans `ItineraireCalcule` : algorithme, critère, α, β, γ, métriques, auteur, et un instantané JSON du chemin (étapes, ordre retenu, tracé GeoJSON), lisible même si une étape est supprimée ensuite. Un calcul sans chemin n'est pas enregistré et renvoie un message clair nommant les deux étapes non reliées (§6.4).
+- **Page « Calcul d'itinéraire »** (style du panneau « Itinéraires » de Google Maps) : départ et arrivée (listes ou clic sur la carte), inversion, étapes imposées (ordre fixé réordonnable, ou ordre libre Held-Karp), critère (Plus court, Plus rapide, Plus facile, ou α, β, γ personnalisés avec la formule affichée), algorithme (Dijkstra, A*, Comparer). Résultat : durée et distance, difficulté moyenne, coût, étapes de l'itinéraire, tracé plein sur la carte ; en mode Comparer, tableau coût / nœuds explorés / temps et **affichage sur la carte des nœuds explorés par chaque algorithme**. Historique paginé des calculs sous la carte.
+- **Page « Performances »** (ADMIN_AGENCE, STAFF) : banc d'essai lancé côté serveur pour le critère choisi, deux graphiques Recharts séparés (temps médian ; nœuds explorés : jamais deux unités sur un même axe), tableau détaillé (dont le calibrage d'A* mesuré à part) et export CSV (encodage UTF-8 avec BOM pour Excel).
+- **Tracé réel d'un circuit** (fiche circuit) : plus court chemin (A*, Plus court) passant par les étapes du circuit dans leur ordre, à travers les tronçons ; remplace les lignes droites sur la carte et met à jour `Circuit.distanceKm` (« cache calculé » du §5.2). Enregistré dans l'historique avec le circuit.
+- **Permissions** : calcul d'itinéraire pour tout le personnel, GUIDE compris (lecture du réseau) ; banc d'essai et tracé des circuits pour ADMIN_AGENCE et STAFF.
+- **Mesures sur les données réelles de Green Trek** (27 lieux, 42 tronçons estimés) : Fénérive-Est → Foulpointe, 45,51 km, même coût pour les deux algorithmes, 19 nœuds explorés par Dijkstra contre 8 par A* (−58 %). Vers Sainte-Marie : « Aucun chemin entre Fenoarivo Atsinanana et Ambodifototra » (île non reliée à pied).
+- **Tests** : 8 tests d'intégration du service sur le graphe de référence chargé en base (résultats calculés à la main pour chaque critère, enregistrement de l'historique, comparaison, critère personnalisé, ordre libre, aucun chemin sans enregistrement, isolation, tracé de circuit). Parcours complet dans un vrai navigateur : comparaison, nœuds explorés, aucun chemin, ordre libre avec « Plus facile », historique, banc d'essai, tracé réel d'un circuit ; aucune erreur.
+
 ## Captures d'écran à prendre
 
 - E0 : page d'accueil provisoire (palette) et réponse JSON de `/api/health` avec `"database": "connectée"`.
@@ -226,6 +236,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - E2a : sortie de `npm test` montrant les tests d'isolation (liste détaillée : `npx vitest run tests/integration/isolation.test.ts`).
 - E3a : back-office sur ordinateur et sur mobile (menu ouvert) ; liste de l'équipe ; refus « dernier administrateur » ; page Mon profil.
 - E3b : paramètres de l'agence ; liste des partenaires (les 4 partenaires réels de Green Trek) ; fiche d'un guide avec ses langues ; refus de suppression d'un partenaire utilisé (après E4).
+- E6 : comparaison Dijkstra / A* (tableau et nœuds explorés de chacun sur la carte) ; message « aucun chemin » vers Sainte-Marie ; étapes imposées en ordre libre ; historique des calculs ; page Performances (graphiques et tableau) ; tracé réel d'un circuit ; sortie de `npx vitest run tests/unit/graph`.
 - E5 : vue Tronçons (réseau en pointillés, légende) ; création d'un tronçon (départ rouge, arrivée orange, distance proposée) ; refus d'un doublon ; fiche d'un lieu avec ses tronçons ; Sainte-Marie non reliée.
 - E4 bis : carte plein cadre (côte Est, 27 lieux réels), fiche d'un lieu avec vue satellite, calque Satellite, filtre « Embarcadères », version mobile.
 - E4 : carte des étapes (lieux OpenStreetMap autour de Mahambo) ; formulaire « Nouvelle étape » après un clic ; fiche d'un circuit avec l'itinéraire numéroté sur la carte ; liste des circuits ; refus de publication sous deux étapes.

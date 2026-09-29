@@ -5,6 +5,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  CircleMarker,
   MapContainer,
   Marker,
   Polyline,
@@ -49,16 +50,24 @@ export type MapEdge = {
 
 const EDGE_COLORS = { default: "#1a73e8", selected: "#d93025", muted: "#7aa7c7" } as const;
 
+/** Point discret (ex. nœud exploré par un algorithme). */
+export type MapDot = { id: string; lat: number; lng: number; color: string; label: string };
+
 export type LeafletMapProps = {
   markers: readonly MapMarker[];
   path?: readonly [number, number][];
   edges?: readonly MapEdge[];
   onEdgeClick?: (id: string) => void;
+  /** « indicatif » : pointillés (lignes droites) ; « route » : trait plein (chemin calculé). */
+  pathStyle?: "indicatif" | "route";
+  dots?: readonly MapDot[];
   onMapClick?: (lat: number, lng: number) => void;
   onMarkerClick?: (id: string) => void;
   onMarkerDragEnd?: (id: string, lat: number, lng: number) => void;
   /** Change quand il faut recadrer la carte sur tous les marqueurs. */
   fitKey?: string;
+  /** Points sur lesquels recadrer (par défaut : les marqueurs), ex. un itinéraire calculé. */
+  fitTo?: readonly [number, number][];
   /** Centre la carte sur un point (animation), à chaque changement de `key`. */
   focus?: MapFocus;
   /** Marges (px) laissées libres lors d'un recadrage, ex. sous un panneau flottant. */
@@ -308,10 +317,13 @@ export default function LeafletMap({
   path,
   edges,
   onEdgeClick,
+  pathStyle = "indicatif",
+  dots,
   onMapClick,
   onMarkerClick,
   onMarkerDragEnd,
   fitKey,
+  fitTo,
   focus,
   fitPadding,
   initialLayer = "plan",
@@ -339,7 +351,11 @@ export default function LeafletMap({
         maxZoom={tiles.maxZoom}
         detectRetina
       />
-      <FitBounds points={points} fitKey={fitKey} padding={padding} />
+      <FitBounds
+        points={fitTo && fitTo.length > 0 ? [...fitTo] : points}
+        fitKey={fitKey}
+        padding={padding}
+      />
       <FlyTo focus={focus} />
       {onMapClick ? <ClickHandler onMapClick={onMapClick} /> : null}
       {path && path.length > 1 ? (
@@ -351,7 +367,12 @@ export default function LeafletMap({
           />
           <Polyline
             positions={path as [number, number][]}
-            pathOptions={{ color: "#1a73e8", weight: 4, dashArray: "8 8", opacity: 0.95 }}
+            pathOptions={{
+              color: "#1a73e8",
+              weight: pathStyle === "route" ? 6 : 4,
+              dashArray: pathStyle === "route" ? undefined : "8 8",
+              opacity: 0.95,
+            }}
           />
         </>
       ) : null}
@@ -370,6 +391,16 @@ export default function LeafletMap({
           />
         );
       })}
+      {dots?.map((dot) => (
+        <CircleMarker
+          key={dot.id}
+          center={[dot.lat, dot.lng]}
+          radius={9}
+          pathOptions={{ color: "#fff", weight: 2, fillColor: dot.color, fillOpacity: 0.9 }}
+        >
+          <Tooltip direction="top">{dot.label}</Tooltip>
+        </CircleMarker>
+      ))}
       {markers.map((marker) => (
         <Marker
           key={marker.id}

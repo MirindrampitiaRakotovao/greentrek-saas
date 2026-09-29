@@ -13,6 +13,7 @@ import { formatMoney } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { getAgencySettings } from "@/lib/services/agency-settings";
 import { getCircuit, MIN_ETAPES_PUBLICATION } from "@/lib/services/circuits";
+import { latestCircuitTrace } from "@/lib/services/itineraires";
 import { DIFFICULTE_LABELS, STATUT_CIRCUIT_LABELS } from "@/lib/validators/circuits";
 
 export const metadata: Metadata = { title: "Circuit — Green Trek" };
@@ -22,7 +23,7 @@ export default async function CircuitPage({ params }: PageProps<"/dashboard/circ
   const { user, db } = await requireAgencyUser();
   const { id } = await params;
   // Client confiné : un circuit d'une autre agence donne une page 404.
-  const [circuit, settings, etapes, partenaires] = await Promise.all([
+  const [circuit, settings, etapes, partenaires, trace] = await Promise.all([
     getCircuit(db, id),
     getAgencySettings(db, user.agenceId),
     db.etape.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true, type: true } }),
@@ -31,6 +32,7 @@ export default async function CircuitPage({ params }: PageProps<"/dashboard/circ
       orderBy: { nom: "asc" },
       select: { id: true, nom: true },
     }),
+    latestCircuitTrace(db, id),
   ]);
   if (!circuit) notFound();
 
@@ -44,7 +46,7 @@ export default async function CircuitPage({ params }: PageProps<"/dashboard/circ
       </Link>
       <PageHeader
         title={circuit.titre}
-        description={`${STATUT_CIRCUIT_LABELS[circuit.statut]} · ${DIFFICULTE_LABELS[circuit.difficulte]} · ${circuit.dureeJours} jour(s) · ${formatMoney(circuit.prixParPersonne, settings.devise)} / pers. · ${circuit._count.sessionsDepart} départ(s)`}
+        description={`${STATUT_CIRCUIT_LABELS[circuit.statut]} · ${DIFFICULTE_LABELS[circuit.difficulte]} · ${circuit.dureeJours} jour(s) · ${formatMoney(circuit.prixParPersonne, settings.devise)} / pers. · ${circuit._count.sessionsDepart} départ(s)${trace ? ` · ${trace.distanceKm.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} km` : ""}`}
       />
 
       {canEdit ? (
@@ -76,6 +78,7 @@ export default async function CircuitPage({ params }: PageProps<"/dashboard/circ
           steps={circuit.etapes}
           etapes={etapes}
           canEdit={canEdit}
+          trace={trace}
         />
       </Card>
 

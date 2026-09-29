@@ -12,6 +12,7 @@ import {
   removeCircuitEtapeAction,
   updateCircuitEtapeAction,
 } from "@/lib/actions/circuits";
+import { tracerCircuitAction } from "@/lib/actions/itineraires";
 import { TYPE_ETAPE_LABELS, type TypeEtape } from "@/lib/validators/circuits";
 
 export type ItineraryStep = {
@@ -27,19 +28,26 @@ type EtapeOption = { id: string; nom: string; type: TypeEtape };
 
 /**
  * Itinéraire d'un circuit : étapes ordonnées (RG 4), réordonnées par boutons ↑ ↓ (accessibles
- * au clavier), et leur tracé sur la carte. Le tracé relie les étapes en ligne droite : les
- * vrais chemins (tronçons, plus courts chemins) arrivent aux étapes E5 et E6.
+ * au clavier), et leur tracé sur la carte : en ligne droite (indicatif), ou le tracé RÉEL
+ * calculé à travers les tronçons (A*, étape E6), qui met aussi à jour la distance du circuit.
  */
 export function CircuitItinerary({
   circuitId,
   steps,
   etapes,
   canEdit,
+  trace,
 }: {
   circuitId: string;
   steps: readonly ItineraryStep[];
   etapes: readonly EtapeOption[];
   canEdit: boolean;
+  /** Dernier tracé réel calculé à travers les tronçons (étape E6), s'il existe. */
+  trace?: {
+    path: { latitude: number; longitude: number }[];
+    distanceKm: number;
+    dureeMinutes: number;
+  } | null;
 }) {
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
@@ -62,7 +70,11 @@ export function CircuitItinerary({
     label: `${s.ordre}. ${s.etape.nom}`,
     badge: String(s.ordre),
   }));
-  const path = steps.map((s) => [s.etape.latitude, s.etape.longitude] as [number, number]);
+  // Tracé réel (chemin calculé à travers les tronçons) s'il existe, sinon lignes droites.
+  const path = trace
+    ? trace.path.map((p) => [p.latitude, p.longitude] as [number, number])
+    : steps.map((s) => [s.etape.latitude, s.etape.longitude] as [number, number]);
+  const [traceMessage, setTraceMessage] = useState<string>();
 
   return (
     <div className="grid gap-5 lg:grid-cols-2">
@@ -220,14 +232,41 @@ export function CircuitItinerary({
           <MapView
             markers={markers}
             path={path}
+            pathStyle={trace ? "route" : "indicatif"}
             fitKey={steps.map((s) => s.id).join()}
             className="h-[400px]"
           />
         </div>
         <p className="mt-2 text-xs text-gt-teal-900/55">
-          Tracé indicatif en ligne droite entre les étapes (chemins réels : étapes E5 et E6). Fond
-          de carte © contributeurs OpenStreetMap.
+          {trace
+            ? `Tracé réel à travers les tronçons (A*, critère « Plus court ») : ${trace.distanceKm.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} km, ${Math.floor(trace.dureeMinutes / 60)} h ${String(trace.dureeMinutes % 60).padStart(2, "0")} de marche.`
+            : "Tracé indicatif en ligne droite entre les étapes : calculez le tracé réel à travers les tronçons."}
         </p>
+        {canEdit ? (
+          <div className="mt-3 space-y-2">
+            <button
+              type="button"
+              disabled={pending || steps.length < 2}
+              onClick={() =>
+                run(async () => {
+                  setTraceMessage(undefined);
+                  const result = await tracerCircuitAction({ id: circuitId });
+                  setTraceMessage(result.success);
+                  return result;
+                })
+              }
+              className="flex items-center gap-2 rounded-full border border-gt-teal-700 px-4 py-2 text-sm font-medium text-gt-teal-700 hover:bg-gt-teal-50 disabled:opacity-50"
+            >
+              <Icon name="navigation" className="size-4" />
+              {trace ? "Recalculer le tracé réel" : "Calculer le tracé réel"}
+            </button>
+            {traceMessage ? (
+              <p role="status" className="text-xs text-emerald-800">
+                {traceMessage}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );
