@@ -15,7 +15,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E6 Algorithmes | Fait | 2026-09-29 | Validé par l'étudiant : algorithmes (45 tests), calcul d'itinéraire, comparaison Dijkstra / A*, performances, tracé réel des circuits |
 | E7 Départs | Fait | 2026-09-29 | Validé par l'étudiant : typecheck, lint, 415 tests, build et parcours dans le navigateur verts (création, statut automatique, annulation en cascade, vue du guide, isolation) |
 | E8 Site vitrine | Fait | 2026-09-29 | Validé par l'étudiant : E8a (données publiques, recherche, détail d'un circuit), E8b (accueil d'après la maquette), E8c (photos sous licence libre avec crédits, partenaires illustrés, titre script, cercles flous) ; typecheck, lint, 436 tests, build et parcours dans le navigateur verts |
-| E9 Réservation client | En cours | 2026-09-29 | Implémenté : typecheck, lint, 459 tests, build et parcours complet dans le navigateur verts (inscription, tunnel, anti-surbooking, paiement simulé, annulation) ; en attente de la validation de l'étudiant |
+| E9 Réservation client | Fait | 2026-09-29 | Validé par l'étudiant : inscription, tunnel, anti-surbooking testé en simultané, paiement simulé, annulation ; typecheck, lint, 459 tests, build et parcours dans le navigateur verts |
 | E10 Back-office opérationnel | En partie | 2026-09-28 | Tableau de bord et KPIs avancés à la demande de l'étudiant (refonte des tableaux de bord). Reste : gestion des réservations, clients, paiements |
 | E11 Super admin, plans | À faire | | |
 | E12 Finition | À faire | | |
