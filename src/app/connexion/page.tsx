@@ -11,7 +11,7 @@ export default function ConnexionPage() {
   return (
     <AuthCard
       title="Connexion"
-      subtitle="Espace des agences et administration de la plateforme."
+      subtitle="Espace des agences (administrateurs, personnel, guides) et administration de la plateforme. Voyageurs : connectez-vous depuis le site de votre agence."
       footer={
         <>
           Pas encore de compte ?{" "}

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AuthCard } from "@/components/auth/auth-card";
@@ -19,7 +20,18 @@ export default async function AgencyLoginPage({ params }: PageProps<"/a/[slug]/c
   if (!agence) notFound();
 
   return (
-    <AuthCard title={`Connexion — ${agence.nom}`} subtitle="Accédez à vos réservations.">
+    <AuthCard
+      title={`Connexion — ${agence.nom}`}
+      subtitle="Espace voyageur : accédez à vos réservations."
+      footer={
+        <>
+          Vous faites partie de l&apos;équipe de l&apos;agence ?{" "}
+          <Link href="/connexion" className="font-medium text-gt-teal-700 underline">
+            Espace agence
+          </Link>
+        </>
+      }
+    >
       <LoginForm agenceSlug={agence.slug} />
     </AuthCard>
   );

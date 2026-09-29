@@ -12,6 +12,14 @@ export const authConfig = {
   // Démo locale (`next start` sur localhost) : on fait confiance à l'en-tête Host.
   trustHost: true,
   providers: [],
+  logger: {
+    // Un mot de passe erroné est un événement normal, pas une panne : on n'affiche pas de
+    // trace d'erreur (et aucune donnée saisie n'est journalisée). Les vraies erreurs restent.
+    error(error) {
+      if (error.name === "CredentialsSignin") return;
+      console.error(error);
+    },
+  },
   callbacks: {
     // Copie des champs utiles dans le jeton à la connexion…
     jwt({ token, user }) {
