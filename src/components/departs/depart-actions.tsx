@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { FormAlert } from "@/components/ui/form-alert";
 import { FormSuccess } from "@/components/ui/form-success";
+import { useConfirm } from "@/components/ui/dialogs";
 import { cancelDepartAction, deleteDepartAction } from "@/lib/actions/departs";
 
 /**
@@ -26,13 +27,21 @@ export function DepartActions({
   const [error, setError] = useState<string>();
   const [success, setSuccess] = useState<string>();
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
 
-  function cancel() {
+  async function cancel() {
     const message =
       reservationsActives > 0
-        ? `Annuler ce départ ? Ses ${reservationsActives} réservation(s) active(s) seront annulées elles aussi. Cette action est définitive.`
-        : "Annuler ce départ ? Cette action est définitive.";
-    if (!window.confirm(message)) return;
+        ? `Ses ${reservationsActives} réservation(s) active(s) seront annulées elles aussi. Cette action est définitive.`
+        : "Cette action est définitive.";
+    const ok = await confirm({
+      title: "Annuler ce départ ?",
+      message,
+      confirmLabel: "Annuler le départ",
+      cancelLabel: "Retour",
+      tone: "danger",
+    });
+    if (!ok) return;
     setError(undefined);
     startTransition(async () => {
       const result = await cancelDepartAction({ id });

@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 import { authorize, parseInput, toActionResult } from "@/lib/actions/helpers";
 import type { ActionResult } from "@/lib/actions/types";
@@ -44,9 +43,10 @@ export async function createPartenaireAction(input: unknown): Promise<ActionResu
   if (!parsed.ok) return parsed.result;
 
   const result = await createPartenaire(auth.db, auth.user.agenceId, parsed.data);
-  if (!result.ok) return toActionResult(result);
-  revalidatePath(PARTENAIRES_PATH);
-  redirect(PARTENAIRES_PATH);
+  if (result.ok) revalidatePath(PARTENAIRES_PATH);
+  // Formulaire en modale sur la liste : message de succès (la modale se ferme), pas de
+  // redirection vers la page où l'on est déjà.
+  return toActionResult(result, "Partenaire ajouté.");
 }
 
 export async function updatePartenaireAction(id: string, input: unknown): Promise<ActionResult> {
@@ -67,9 +67,8 @@ export async function deletePartenaireAction(input: unknown): Promise<ActionResu
   if (!parsed.ok) return parsed.result;
 
   const result = await deletePartenaire(auth.db, parsed.data.id);
-  if (!result.ok) return toActionResult(result);
-  revalidatePath(PARTENAIRES_PATH);
-  redirect(PARTENAIRES_PATH);
+  if (result.ok) revalidatePath(PARTENAIRES_PATH);
+  return toActionResult(result, "Partenaire supprimé.");
 }
 
 /* ─── Guides ─────────────────────────────────────────────────────────────────── */
@@ -83,9 +82,8 @@ export async function createGuideAction(input: unknown): Promise<ActionResult> {
   if (!parsed.ok) return parsed.result;
 
   const result = await createGuide(auth.db, auth.user.agenceId, parsed.data);
-  if (!result.ok) return toActionResult(result);
-  revalidatePath(GUIDES_PATH);
-  redirect(GUIDES_PATH);
+  if (result.ok) revalidatePath(GUIDES_PATH);
+  return toActionResult(result, "Guide ajouté.");
 }
 
 export async function updateGuideAction(id: string, input: unknown): Promise<ActionResult> {
@@ -106,7 +104,6 @@ export async function deleteGuideAction(input: unknown): Promise<ActionResult> {
   if (!parsed.ok) return parsed.result;
 
   const result = await deleteGuide(auth.db, parsed.data.id);
-  if (!result.ok) return toActionResult(result);
-  revalidatePath(GUIDES_PATH);
-  redirect(GUIDES_PATH);
+  if (result.ok) revalidatePath(GUIDES_PATH);
+  return toActionResult(result, "Fiche guide supprimée.");
 }

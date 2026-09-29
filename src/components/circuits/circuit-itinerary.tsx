@@ -6,6 +6,7 @@ import { MapView, type MapMarker } from "@/components/map/map-view";
 import { Button } from "@/components/ui/button";
 import { FormAlert } from "@/components/ui/form-alert";
 import { Icon } from "@/components/ui/icon";
+import { useConfirm } from "@/components/ui/dialogs";
 import {
   addCircuitEtapeAction,
   moveCircuitEtapeAction,
@@ -51,6 +52,7 @@ export function CircuitItinerary({
 }) {
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
   const [etapeId, setEtapeId] = useState("");
   const [jour, setJour] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
@@ -136,10 +138,15 @@ export function CircuitItinerary({
                       <button
                         type="button"
                         disabled={pending}
-                        onClick={() => {
-                          if (window.confirm(`Retirer « ${s.etape.nom} » du circuit ?`)) {
-                            run(() => removeCircuitEtapeAction({ id: s.id }));
-                          }
+                        onClick={async () => {
+                          const ok = await confirm({
+                            title: "Retirer cette étape ?",
+                            message: `« ${s.etape.nom} » sera retirée du circuit ; les étapes suivantes seront renumérotées.`,
+                            confirmLabel: "Retirer",
+                            cancelLabel: "Retour",
+                            tone: "danger",
+                          });
+                          if (ok) run(() => removeCircuitEtapeAction({ id: s.id }));
                         }}
                         className="grid size-8 place-items-center rounded-full border border-red-200 text-red-700 hover:bg-red-50"
                         aria-label={`Retirer ${s.etape.nom}`}

@@ -16,6 +16,16 @@ export function formatDateTime(date: Date | null | undefined, fallback = "—"):
   return date ? dateTimeFormat.format(date) : fallback;
 }
 
+const shortDateFormat = new Intl.DateTimeFormat("fr-FR", {
+  dateStyle: "short",
+  timeZone: TIME_ZONE,
+});
+
+/** « 29/09/2026 » : colonnes de tableaux. */
+export function formatShortDate(date: Date | null | undefined, fallback = "—"): string {
+  return date ? shortDateFormat.format(date) : fallback;
+}
+
 export function formatDate(date: Date | null | undefined, fallback = "—"): string {
   // Usage français : « 1er novembre », pas « 1 novembre ».
   return date ? dateFormat.format(date).replace(/^1 /, "1er ") : fallback;

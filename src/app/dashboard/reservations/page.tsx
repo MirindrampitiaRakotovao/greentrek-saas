@@ -6,7 +6,7 @@ import { Pagination } from "@/components/dashboard/pagination";
 import { EmptyState, StatusPill } from "@/components/dashboard/widgets";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { requireAgencyUser } from "@/lib/auth/session";
-import { formatDateRange, formatDateTime, formatMoney } from "@/lib/format";
+import { formatDateRange, formatMoney, formatShortDate } from "@/lib/format";
 import { parsePage } from "@/lib/pagination";
 import { getAgencySettings } from "@/lib/services/agency-settings";
 import { countATraiter, listReservations } from "@/lib/services/gestion-reservations";
@@ -193,66 +193,70 @@ export default async function ReservationsPage({
       {reservations.total === 0 ? (
         <EmptyState>Aucune réservation ne correspond à ces critères.</EmptyState>
       ) : (
-        <div className="relative overflow-x-auto rounded-2xl bg-white ring-1 ring-gt-mist/70">
-          <table className="w-full min-w-[860px] text-left text-sm">
+        <div className="gt-table-wrap">
+          <table className="gt-table min-w-[760px]">
             <caption className="sr-only">Réservations</caption>
-            <thead className="text-xs text-gt-teal-900/55">
-              <tr className="border-b border-gt-mist/70">
+            <thead>
+              <tr>
                 {[
                   "Référence",
                   "Client",
                   "Circuit et départ",
                   "Pers.",
                   "Montant",
-                  "Payé",
                   "Réservée le",
                   "Statut",
                 ].map((h) => (
-                  <th key={h} scope="col" className="px-4 py-3 font-medium">
+                  <th key={h} scope="col">
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gt-mist/60">
+            <tbody>
               {reservations.items.map((r) => (
-                <tr key={r.id} className="hover:bg-gt-teal-50/60">
-                  <td className="px-4 py-3">
+                <tr key={r.id}>
+                  <td>
                     <Link
                       href={`/dashboard/reservations/${r.id}`}
-                      className="font-mono text-xs font-semibold text-gt-teal-700 underline"
+                      className="font-mono text-xs font-semibold whitespace-nowrap text-gt-teal-700 underline"
                     >
                       {r.reference}
                     </Link>
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     <p className="font-medium text-gt-teal-900">
                       {r.client.prenom} {r.client.nom}
                     </p>
                     <p className="text-xs text-gt-teal-900/60">{r.client.email}</p>
                   </td>
-                  <td className="px-4 py-3">
-                    <p className="text-gt-teal-900">{r.session.circuit.titre}</p>
+                  <td>
+                    <p
+                      className="max-w-[200px] truncate text-gt-teal-900"
+                      title={r.session.circuit.titre}
+                    >
+                      {r.session.circuit.titre}
+                    </p>
                     <p className="text-xs text-gt-teal-900/60">
                       {formatDateRange(r.session.dateDebut, r.session.dateFin)}
                     </p>
                   </td>
-                  <td className="px-4 py-3">{r.nombrePersonnes}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {formatMoney(r.montantTotal, devise)}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {formatMoney(r.paye, devise)}
+                  <td>{r.nombrePersonnes}</td>
+                  <td className="whitespace-nowrap">
+                    <span className="font-medium">{formatMoney(r.montantTotal, devise)}</span>
+                    <span className="block text-xs text-gt-teal-900/60">
+                      {r.paye >= r.montantTotal ? "payé" : `payé ${formatMoney(r.paye, devise)}`}
+                    </span>
                     {r.paiementsEnAttente > 0 ? (
                       <span className="block text-xs font-semibold text-gt-teal-700">
                         {r.paiementsEnAttente} à valider
                       </span>
                     ) : null}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-gt-teal-900/75">
-                    {formatDateTime(r.createdAt)}
+                  <td className="whitespace-nowrap text-gt-teal-900/75">
+                    {formatShortDate(r.createdAt)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     <StatusPill statut={r.statut} />
                   </td>
                 </tr>

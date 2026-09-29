@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 import { forbiddenToResult, parseInput, toActionResult } from "@/lib/actions/helpers";
 import type { ActionResult } from "@/lib/actions/types";
@@ -43,9 +42,9 @@ export async function createMemberAction(input: unknown): Promise<ActionResult> 
   if (!parsed.ok) return parsed.result;
 
   const result = await createMember(db, user.agenceId, parsed.data);
-  if (!result.ok) return toActionResult(result);
-  revalidatePath(TEAM_PATH);
-  redirect(TEAM_PATH);
+  if (result.ok) revalidatePath(TEAM_PATH);
+  // Formulaire en modale sur la liste : message de succès, pas de redirection.
+  return toActionResult(result, "Membre ajouté à l'équipe.");
 }
 
 export async function updateMemberAction(input: unknown): Promise<ActionResult> {

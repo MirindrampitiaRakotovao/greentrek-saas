@@ -10,6 +10,7 @@ import { FormSuccess } from "@/components/ui/form-success";
 import { SelectField } from "@/components/ui/select-field";
 import { TextareaField } from "@/components/ui/textarea-field";
 import { TextField } from "@/components/ui/text-field";
+import { useCloseOnSuccess } from "@/components/ui/form-modal";
 import { createDepartAction, updateDepartAction } from "@/lib/actions/departs";
 import { defaultDateFin, parseIsoDate, toIsoDate } from "@/lib/departs";
 import { applyFieldErrors } from "@/lib/forms";
@@ -71,6 +72,7 @@ export function DepartForm({
   const [success, setSuccess] = useState<string>();
   const [finEdited, setFinEdited] = useState(Boolean(depart));
   const [pending, startTransition] = useTransition();
+  const closeOnSuccess = useCloseOnSuccess();
   const initialCircuit = circuits.find((c) => c.id === defaultCircuitId) ?? circuits[0];
   const {
     register,
@@ -108,6 +110,8 @@ export function DepartForm({
       const result = depart
         ? await updateDepartAction(depart.id, values)
         : await createDepartAction(values); // redirige vers le départ créé
+      // Dans une modale : fermeture et notification ; sinon, message sous le formulaire.
+      if (closeOnSuccess(result)) return;
       setServerError(result.error);
       setSuccess(result.success);
       applyFieldErrors(result.fieldErrors, setError, FIELDS);

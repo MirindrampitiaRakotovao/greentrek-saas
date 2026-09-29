@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { DepartForm } from "@/components/departs/depart-form";
 import { DepartList } from "@/components/departs/depart-list";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Pagination } from "@/components/dashboard/pagination";
 import { EmptyState } from "@/components/dashboard/widgets";
+import { FormModal } from "@/components/ui/form-modal";
 import { requireAgencyUser } from "@/lib/auth/session";
 import { parsePage } from "@/lib/pagination";
 import { can } from "@/lib/permissions";
 import { getAgencySettings } from "@/lib/services/agency-settings";
-import { findGuideFiche, listDeparts } from "@/lib/services/departs";
+import { departFormOptions, findGuideFiche, listDeparts } from "@/lib/services/departs";
 import {
   departFiltersSchema,
   type Periode,
@@ -55,10 +57,11 @@ export default async function DepartsPage({ searchParams }: PageProps<"/dashboar
     );
   }
 
-  const [departs, circuits, { devise }] = await Promise.all([
+  const [departs, circuits, { devise }, options] = await Promise.all([
     listDeparts(db, { ...filters, guideId: fiche?.id }, page),
     db.circuit.findMany({ orderBy: { titre: "asc" }, select: { id: true, titre: true } }),
     getAgencySettings(db, user.agenceId),
+    departFormOptions(db),
   ]);
 
   const query = {
@@ -82,16 +85,20 @@ export default async function DepartsPage({ searchParams }: PageProps<"/dashboar
         description={`${departs.total} départ${departs.total > 1 ? "s" : ""} · le statut passe à « Complet » dès que toutes les places sont réservées (RG 11).`}
         actions={
           can(user.role, "creer", "sessionDepart") ? (
-            <Link
-              href={
-                filters.circuitId
-                  ? `/dashboard/departs/nouveau?circuit=${filters.circuitId}`
-                  : "/dashboard/departs/nouveau"
-              }
-              className="rounded-full bg-gt-teal-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-gt-teal-800"
+            <FormModal
+              triggerLabel="Programmer un départ"
+              title="Programmer un départ"
+              description="Un départ ouvre les réservations d'un circuit à des dates données."
+              icon="calendar"
             >
-              Programmer un départ
-            </Link>
+              <DepartForm
+                circuits={options.circuits}
+                guides={options.guides}
+                devise={devise}
+                today={options.today}
+                defaultCircuitId={filters.circuitId}
+              />
+            </FormModal>
           ) : null
         }
       />

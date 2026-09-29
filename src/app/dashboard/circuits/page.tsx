@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { CircuitForm } from "@/components/circuits/circuit-form";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Pagination } from "@/components/dashboard/pagination";
 import { EmptyState } from "@/components/dashboard/widgets";
+import { FormModal } from "@/components/ui/form-modal";
 import { Icon } from "@/components/ui/icon";
 import { requireAgencyUser } from "@/lib/auth/session";
 import { formatMoney } from "@/lib/format";
@@ -25,7 +27,7 @@ const STATUT_STYLES = {
 export default async function CircuitsPage({ searchParams }: PageProps<"/dashboard/circuits">) {
   const { user, db } = await requireAgencyUser();
   const page = parsePage((await searchParams).page);
-  const [circuits, { devise }] = await Promise.all([
+  const [circuits, { devise, slug }] = await Promise.all([
     listCircuits(db, page),
     getAgencySettings(db, user.agenceId),
   ]);
@@ -37,12 +39,14 @@ export default async function CircuitsPage({ searchParams }: PageProps<"/dashboa
         description="Un circuit est publié sur le site vitrine dès qu'il compte au moins deux étapes."
         actions={
           can(user.role, "creer", "circuit") ? (
-            <Link
-              href="/dashboard/circuits/nouveau"
-              className="rounded-full bg-gt-teal-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-gt-teal-800"
+            <FormModal
+              triggerLabel="Nouveau circuit"
+              title="Nouveau circuit"
+              description="Créé en brouillon : vous ajouterez ensuite ses étapes."
+              icon="mountain"
             >
-              Nouveau circuit
-            </Link>
+              <CircuitForm devise={devise} agenceSlug={slug} />
+            </FormModal>
           ) : null
         }
       />

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 
 import type { ActionResult } from "@/lib/actions/types";
+import { useConfirm } from "@/components/ui/dialogs";
 
 const VARIANTS = {
   primary: "bg-gt-teal-700 text-white hover:bg-gt-teal-800",
@@ -20,6 +21,7 @@ export function ActionButton({
   pendingLabel,
   action,
   confirmMessage,
+  confirmTitle,
   variant = "primary",
   size = "md",
 }: {
@@ -28,14 +30,28 @@ export function ActionButton({
   pendingLabel?: string;
   action: (input: { id: string }) => Promise<ActionResult>;
   confirmMessage?: string;
+  /** Titre de la modale de confirmation (par défaut : le libellé du bouton). */
+  confirmTitle?: string;
   variant?: keyof typeof VARIANTS;
   size?: "sm" | "md";
 }) {
   const [result, setResult] = useState<ActionResult>();
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
 
-  function onClick() {
-    if (confirmMessage && !window.confirm(confirmMessage)) return;
+  async function onClick() {
+    if (
+      confirmMessage &&
+      !(await confirm({
+        title: confirmTitle ?? `${label} ?`,
+        message: confirmMessage,
+        confirmLabel: label,
+        cancelLabel: "Retour",
+        tone: variant === "danger" ? "danger" : "default",
+      }))
+    ) {
+      return;
+    }
     setResult(undefined);
     startTransition(async () => setResult(await action({ id })));
   }

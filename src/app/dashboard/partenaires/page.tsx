@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
+import { PartenaireForm } from "@/components/backoffice/partenaire-form";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Pagination } from "@/components/dashboard/pagination";
 import { Badge } from "@/components/ui/badge";
+import { DeleteButton } from "@/components/ui/delete-button";
+import { FormModal } from "@/components/ui/form-modal";
+import { deletePartenaireAction } from "@/lib/actions/backoffice";
 import { requireAgencyUser } from "@/lib/auth/session";
 import { formatMoney } from "@/lib/format";
 import { parsePage } from "@/lib/pagination";
@@ -33,12 +36,14 @@ export default async function PartenairesPage({
         description="Hébergements, restaurants, activités et transports associés à vos circuits."
         actions={
           can(user.role, "creer", "partenaire") ? (
-            <Link
-              href="/dashboard/partenaires/nouveau"
-              className="rounded-full bg-gt-teal-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-gt-teal-800"
+            <FormModal
+              triggerLabel="Ajouter un partenaire"
+              title="Ajouter un partenaire"
+              description="Hébergement, restauration, activité ou transport."
+              icon="handshake"
             >
-              Ajouter un partenaire
-            </Link>
+              <PartenaireForm devise={devise} />
+            </FormModal>
           ) : null
         }
       />
@@ -48,57 +53,61 @@ export default async function PartenairesPage({
           Aucun partenaire pour l&apos;instant.
         </p>
       ) : (
-        <div className="relative overflow-x-auto rounded-2xl border border-gt-mist bg-white">
-          <table className="w-full min-w-[640px] text-left text-sm">
+        <div className="gt-table-wrap">
+          <table className="gt-table min-w-[640px]">
             <caption className="sr-only">Partenaires de l&apos;agence</caption>
-            <thead className="border-b border-gt-mist bg-gt-cream/50 text-gt-teal-900/80">
+            <thead>
               <tr>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  Nom
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  Type
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  Téléphone
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  Tarif indicatif
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  Circuits
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  Statut
-                </th>
+                <th scope="col">Nom</th>
+                <th scope="col">Type</th>
+                <th scope="col">Téléphone</th>
+                <th scope="col">Tarif indicatif</th>
+                <th scope="col">Circuits</th>
+                <th scope="col">Statut</th>
                 {canEdit ? (
-                  <th scope="col" className="px-4 py-3 font-medium">
+                  <th scope="col">
                     <span className="sr-only">Actions</span>
                   </th>
                 ) : null}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gt-mist">
+            <tbody>
               {partenaires.items.map((partenaire) => (
                 <tr key={partenaire.id} className={partenaire.actif ? "" : "text-gt-teal-900/60"}>
-                  <td className="px-4 py-3 font-medium text-gt-teal-900">{partenaire.nom}</td>
-                  <td className="px-4 py-3">{TYPE_PARTENAIRE_LABELS[partenaire.type]}</td>
-                  <td className="px-4 py-3">{partenaire.telephone ?? "—"}</td>
-                  <td className="px-4 py-3">{formatMoney(partenaire.tarifIndicatif, devise)}</td>
-                  <td className="px-4 py-3">{partenaire._count.circuits}</td>
-                  <td className="px-4 py-3">
+                  <td className="font-medium text-gt-teal-900">{partenaire.nom}</td>
+                  <td>{TYPE_PARTENAIRE_LABELS[partenaire.type]}</td>
+                  <td>{partenaire.telephone ?? "—"}</td>
+                  <td>{formatMoney(partenaire.tarifIndicatif, devise)}</td>
+                  <td>{partenaire._count.circuits}</td>
+                  <td>
                     <Badge tone={partenaire.actif ? "success" : "danger"}>
                       {partenaire.actif ? "Actif" : "Inactif"}
                     </Badge>
                   </td>
                   {canEdit ? (
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/dashboard/partenaires/${partenaire.id}`}
-                        className="font-medium text-gt-teal-700 underline hover:text-gt-teal-900"
+                    <td className="text-right">
+                      <FormModal
+                        triggerLabel="Modifier"
+                        triggerIcon="pencil"
+                        variant="ghost"
+                        title={partenaire.nom}
+                        description={`Inclus dans ${partenaire._count.circuits} circuit(s).`}
+                        icon="handshake"
                       >
-                        Modifier
-                      </Link>
+                        <PartenaireForm partenaire={partenaire} devise={devise} />
+                        <div className="mt-6 border-t border-gt-mist/70 pt-5">
+                          <p className="mb-3 text-sm text-gt-teal-900/70">
+                            Suppression possible uniquement si le partenaire n&apos;est inclus dans
+                            aucun circuit. Sinon, décochez « Partenaire actif ».
+                          </p>
+                          <DeleteButton
+                            id={partenaire.id}
+                            label="Supprimer le partenaire"
+                            confirmMessage={`« ${partenaire.nom} » sera supprimé définitivement.`}
+                            action={deletePartenaireAction}
+                          />
+                        </div>
+                      </FormModal>
                     </td>
                   ) : null}
                 </tr>

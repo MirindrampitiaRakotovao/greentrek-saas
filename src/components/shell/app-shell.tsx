@@ -74,9 +74,17 @@ export function AppShell({
   const [menuOpen, setMenuOpen] = useState(false);
   const current = activeHref(pathname, nav);
   const title = nav.find((item) => item.href === current)?.label ?? brand.name;
+  // La zone défilante n'est pas la fenêtre : Next.js ne la remet pas en haut lors d'un
+  // changement de page, on le fait ici.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [pathname]);
 
   return (
-    <div className="min-h-screen bg-gt-canvas lg:flex">
+    // Sur ordinateur, la page entière ne défile pas : barre latérale et en-tête restent fixes,
+    // seul le contenu du milieu défile (demande de l'étudiant).
+    <div className="min-h-screen bg-gt-canvas lg:flex lg:h-dvh lg:overflow-hidden">
       {/* Fond assombri derrière le menu mobile */}
       {menuOpen ? (
         <button
@@ -179,8 +187,8 @@ export function AppShell({
         </form>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col lg:py-3 lg:pr-3">
-        <div className="flex min-h-screen min-w-0 flex-1 flex-col bg-gt-teal-50 lg:min-h-0 lg:rounded-[28px]">
+      <div className="flex min-w-0 flex-1 flex-col lg:h-dvh lg:py-3 lg:pr-3">
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col bg-gt-teal-50 lg:min-h-0 lg:overflow-hidden lg:rounded-[28px]">
           <header className="flex flex-wrap items-center gap-3 px-4 pt-4 sm:px-6 lg:px-8 lg:pt-6">
             <button
               type="button"
@@ -209,15 +217,21 @@ export function AppShell({
             </div>
           </header>
 
-          <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8">{children}</main>
+          {/* Zone défilante : contenu de la page et pied de page. */}
+          <div
+            ref={scrollRef}
+            className="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain"
+          >
+            <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8">{children}</main>
 
-          <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-gt-mist/70 px-4 py-4 text-xs text-gt-teal-900/60 sm:px-6 lg:px-8">
-            <p>
-              © {new Date().getFullYear()} Green Trek · Projet de fin d&apos;études, ENI
-              Fianarantsoa
-            </p>
-            <p>{footerNote}</p>
-          </footer>
+            <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-gt-mist/70 px-4 py-4 text-xs text-gt-teal-900/60 sm:px-6 lg:px-8">
+              <p>
+                © {new Date().getFullYear()} Green Trek · Projet de fin d&apos;études, ENI
+                Fianarantsoa
+              </p>
+              <p>{footerNote}</p>
+            </footer>
+          </div>
         </div>
       </div>
     </div>

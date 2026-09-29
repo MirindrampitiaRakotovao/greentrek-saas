@@ -54,11 +54,11 @@ export default async function ClientsPage({ searchParams }: PageProps<"/dashboar
       {clients.total === 0 ? (
         <EmptyState>Aucun client ne correspond.</EmptyState>
       ) : (
-        <div className="relative overflow-x-auto rounded-2xl bg-white ring-1 ring-gt-mist/70">
-          <table className="w-full min-w-[760px] text-left text-sm">
+        <div className="gt-table-wrap">
+          <table className="gt-table min-w-[760px]">
             <caption className="sr-only">Clients de l&apos;agence</caption>
-            <thead className="text-xs text-gt-teal-900/55">
-              <tr className="border-b border-gt-mist/70">
+            <thead>
+              <tr>
                 {[
                   "Client",
                   "Téléphone",
@@ -67,16 +67,16 @@ export default async function ClientsPage({ searchParams }: PageProps<"/dashboar
                   "Dernière réservation",
                   "Inscrit le",
                 ].map((h) => (
-                  <th key={h} scope="col" className="px-4 py-3 font-medium">
+                  <th key={h} scope="col">
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gt-mist/60">
+            <tbody>
               {clients.items.map((c) => (
-                <tr key={c.id} className="hover:bg-gt-teal-50/60">
-                  <td className="px-4 py-3">
+                <tr key={c.id}>
+                  <td>
                     <Link
                       href={`/dashboard/clients/${c.id}`}
                       className="font-medium text-gt-teal-700 underline"
@@ -85,15 +85,11 @@ export default async function ClientsPage({ searchParams }: PageProps<"/dashboar
                     </Link>
                     <p className="text-xs text-gt-teal-900/60">{c.email}</p>
                   </td>
-                  <td className="px-4 py-3">{c.telephone ?? "—"}</td>
-                  <td className="px-4 py-3">{c.reservations}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {formatMoney(c.totalReserve, devise)}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {formatDate(c.derniereReservation)}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">{formatDate(c.createdAt)}</td>
+                  <td>{c.telephone ?? "—"}</td>
+                  <td>{c.reservations}</td>
+                  <td className="whitespace-nowrap">{formatMoney(c.totalReserve, devise)}</td>
+                  <td className="whitespace-nowrap">{formatDate(c.derniereReservation)}</td>
+                  <td className="whitespace-nowrap">{formatDate(c.createdAt)}</td>
                 </tr>
               ))}
             </tbody>

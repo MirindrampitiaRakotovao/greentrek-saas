@@ -1,6 +1,12 @@
 import type { Prisma, StatutSession } from "@/generated/prisma/client";
 import { calendarDate } from "@/lib/dates";
-import { computeSessionStatut, parseIsoDate, periodsOverlap, placesReservees } from "@/lib/departs";
+import {
+  computeSessionStatut,
+  parseIsoDate,
+  periodsOverlap,
+  placesReservees,
+  toIsoDate,
+} from "@/lib/departs";
 import { type Paginated, pageArgs, pageCount } from "@/lib/pagination";
 import { failure, type ServiceResult, success } from "@/lib/services/result";
 import type { TenantDb, TenantTx } from "@/lib/tenant";
@@ -379,4 +385,28 @@ export async function deleteDepart(db: TenantDb, id: string): Promise<ServiceRes
   }
   await db.sessionDepart.delete({ where: { id } });
   return success(undefined);
+}
+
+/**
+ * Options du formulaire « Programmer un départ » : circuits publiés ou brouillons (décision A,
+ * pas les archivés), guides actifs, date du jour à Madagascar (borne des champs date).
+ */
+export async function departFormOptions(db: TenantDb, now: Date = new Date()) {
+  const [circuits, guides] = await Promise.all([
+    db.circuit.findMany({
+      where: { statut: { not: "ARCHIVE" } },
+      orderBy: { titre: "asc" },
+      select: { id: true, titre: true, dureeJours: true, capaciteMax: true, prixParPersonne: true },
+    }),
+    db.guide.findMany({
+      where: { actif: true },
+      orderBy: [{ nom: "asc" }, { prenom: "asc" }],
+      select: { id: true, prenom: true, nom: true },
+    }),
+  ]);
+  return {
+    circuits,
+    guides: guides.map((g) => ({ id: g.id, label: `${g.prenom} ${g.nom}` })),
+    today: toIsoDate(calendarDate(now)),
+  };
 }

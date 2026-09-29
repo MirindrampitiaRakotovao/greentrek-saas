@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Dancing_Script, Poppins } from "next/font/google";
 import localFont from "next/font/local";
 
+import { DialogsProvider } from "@/components/ui/dialogs";
+
 import "./globals.css";
 
 // `next/font` télécharge les polices au build et les sert depuis l'application :
@@ -47,7 +49,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${poppins.variable} ${nohemi.variable} ${dancingScript.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="flex min-h-full flex-col font-sans">{children}</body>
+      <body className="flex min-h-full flex-col font-sans">
+        {/* Modales de confirmation et notifications, disponibles dans toute l'application. */}
+        <DialogsProvider>{children}</DialogsProvider>
+      </body>
     </html>
   );
 }

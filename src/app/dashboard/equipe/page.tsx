@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Pagination } from "@/components/dashboard/pagination";
+import { MemberCreateForm } from "@/components/team/member-create-form";
+import { MemberEditForm } from "@/components/team/member-edit-form";
 import { ToggleActiveButton } from "@/components/team/toggle-active-button";
 import { Badge } from "@/components/ui/badge";
+import { FormModal } from "@/components/ui/form-modal";
 import { requireAgencyUser } from "@/lib/auth/session";
 import { formatDateTime } from "@/lib/format";
 import { parsePage } from "@/lib/pagination";
@@ -34,74 +36,79 @@ export default async function EquipePage({ searchParams }: PageProps<"/dashboard
         description={`${team.total} membre${team.total > 1 ? "s" : ""} (administrateurs, personnel, guides).`}
         actions={
           can(user.role, "creer", "utilisateur") ? (
-            <Link
-              href="/dashboard/equipe/nouveau"
-              className="rounded-full bg-gt-teal-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-gt-teal-800"
+            <FormModal
+              triggerLabel="Ajouter un membre"
+              title="Ajouter un membre"
+              description="Administrateur, personnel ou guide : vous choisissez son mot de passe initial."
+              icon="users"
             >
-              Ajouter un membre
-            </Link>
+              <MemberCreateForm />
+            </FormModal>
           ) : null
         }
       />
 
-      <div className="relative overflow-x-auto rounded-2xl border border-gt-mist bg-white">
-        <table className="w-full min-w-[640px] text-left text-sm">
+      <div className="gt-table-wrap">
+        <table className="gt-table min-w-[640px]">
           <caption className="sr-only">Membres de l&apos;équipe</caption>
-          <thead className="border-b border-gt-mist bg-gt-cream/50 text-gt-teal-900/80">
+          <thead>
             <tr>
-              <th scope="col" className="px-4 py-3 font-medium">
-                Nom
-              </th>
-              <th scope="col" className="px-4 py-3 font-medium">
-                E-mail
-              </th>
-              <th scope="col" className="px-4 py-3 font-medium">
-                Rôle
-              </th>
-              <th scope="col" className="px-4 py-3 font-medium">
-                Statut
-              </th>
-              <th scope="col" className="px-4 py-3 font-medium">
-                Dernière connexion
-              </th>
+              <th scope="col">Nom</th>
+              <th scope="col">E-mail</th>
+              <th scope="col">Rôle</th>
+              <th scope="col">Statut</th>
+              <th scope="col">Dernière connexion</th>
               {canManage ? (
-                <th scope="col" className="px-4 py-3 font-medium">
+                <th scope="col">
                   <span className="sr-only">Actions</span>
                 </th>
               ) : null}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gt-mist">
+          <tbody>
             {team.items.map((member) => {
               const role = member.role as TeamRole;
               const isSelf = member.id === user.id;
               return (
                 <tr key={member.id} className={member.actif ? "" : "text-gt-teal-900/60"}>
-                  <td className="px-4 py-3 font-medium text-gt-teal-900">
+                  <td className="font-medium text-gt-teal-900">
                     {member.prenom} {member.nom}
                     {isSelf ? (
                       <span className="ml-2 text-xs text-gt-teal-900/60">(vous)</span>
                     ) : null}
                   </td>
-                  <td className="px-4 py-3">{member.email}</td>
-                  <td className="px-4 py-3">
+                  <td>{member.email}</td>
+                  <td>
                     <Badge tone={ROLE_TONES[role]}>{TEAM_ROLE_LABELS[role]}</Badge>
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     <Badge tone={member.actif ? "success" : "danger"}>
                       {member.actif ? "Actif" : "Désactivé"}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3">{formatDateTime(member.dernierLoginAt, "Jamais")}</td>
+                  <td>{formatDateTime(member.dernierLoginAt, "Jamais")}</td>
                   {canManage ? (
-                    <td className="px-4 py-3">
-                      <div className="flex items-start gap-4">
-                        <Link
-                          href={`/dashboard/equipe/${member.id}`}
-                          className="text-sm font-medium text-gt-teal-700 underline hover:text-gt-teal-900"
+                    <td>
+                      <div className="flex items-center justify-end gap-2">
+                        <FormModal
+                          triggerLabel="Modifier"
+                          triggerIcon="pencil"
+                          variant="ghost"
+                          title={`${member.prenom} ${member.nom}`}
+                          description={`${member.email} · dernière connexion : ${formatDateTime(member.dernierLoginAt, "jamais")}`}
+                          icon="user"
                         >
-                          Modifier
-                        </Link>
+                          <MemberEditForm
+                            member={{
+                              id: member.id,
+                              prenom: member.prenom,
+                              nom: member.nom,
+                              telephone: member.telephone,
+                              role,
+                            }}
+                            isSelf={isSelf}
+                          />
+                        </FormModal>
                         {isSelf ? null : (
                           <ToggleActiveButton
                             id={member.id}

@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { FormAlert } from "@/components/ui/form-alert";
 import { FormSuccess } from "@/components/ui/form-success";
+import { useConfirm } from "@/components/ui/dialogs";
 import { cancelReservationAction } from "@/lib/actions/reservations";
 
 /** Annulation par le client, après confirmation (RG 15 vérifiée côté serveur). */
@@ -12,12 +13,17 @@ export function CancelReservationButton({ id, reference }: { id: string; referen
   const [error, setError] = useState<string>();
   const [success, setSuccess] = useState<string>();
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
 
-  function onClick() {
+  async function onClick() {
     if (
-      !window.confirm(
-        `Annuler la réservation ${reference} ? Les places seront libérées ; cette action est définitive.`,
-      )
+      !(await confirm({
+        title: "Annuler cette réservation ?",
+        message: `La réservation ${reference} sera annulée et les places libérées. Cette action est définitive.`,
+        confirmLabel: "Annuler la réservation",
+        cancelLabel: "Retour",
+        tone: "danger",
+      }))
     ) {
       return;
     }

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { FormAlert } from "@/components/ui/form-alert";
 import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
+import { useCloseOnSuccess } from "@/components/ui/form-modal";
 import { createMemberAction } from "@/lib/actions/team";
 import { applyFieldErrors } from "@/lib/forms";
 import { createMemberSchema, TEAM_ROLE_LABELS, TEAM_ROLES } from "@/lib/validators/team";
@@ -18,6 +19,7 @@ const ROLE_OPTIONS = TEAM_ROLES.map((role) => ({ value: role, label: TEAM_ROLE_L
 export function MemberCreateForm() {
   const [serverError, setServerError] = useState<string>();
   const [pending, startTransition] = useTransition();
+  const closeOnSuccess = useCloseOnSuccess();
   const {
     register,
     handleSubmit,
@@ -38,9 +40,9 @@ export function MemberCreateForm() {
   const onSubmit = handleSubmit((values) => {
     setServerError(undefined);
     startTransition(async () => {
-      // En cas de succès, l'action redirige vers la liste de l'équipe.
       const result = await createMemberAction(values);
-      if (!result.error) return;
+      // Succès : la modale se ferme et le message s'affiche en notification.
+      if (closeOnSuccess(result) || !result.error) return;
       setServerError(result.error);
       applyFieldErrors(result.fieldErrors, setError, [
         "prenom",

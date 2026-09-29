@@ -47,6 +47,90 @@ body {
   }
 }
 
+/* ─── Listes du back-office : style commun épuré (demande de l'étudiant) ──────────── */
+@layer components {
+  .gt-table-wrap {
+    position: relative; /* libellés sr-only contenus dans la zone défilante */
+    overflow-x: auto;
+    border-radius: 1.25rem;
+    border: 1px solid rgb(209 217 218 / 0.6);
+    background: var(--gt-white);
+    box-shadow: 0 1px 2px rgb(15 65 77 / 0.04);
+  }
+  .gt-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    text-align: left;
+    font-size: 0.875rem;
+    color: var(--gt-teal-900);
+  }
+  .gt-table thead th {
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid rgb(209 217 218 / 0.6);
+    background: var(--gt-teal-50);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: rgb(15 65 77 / 0.55);
+  }
+  .gt-table tbody td,
+  .gt-table tbody th {
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid rgb(209 217 218 / 0.45);
+    vertical-align: middle;
+  }
+  .gt-table tbody tr:last-child > * {
+    border-bottom: 0;
+  }
+  .gt-table tbody tr {
+    transition: background-color 120ms;
+  }
+  .gt-table tbody tr:hover {
+    background: rgb(242 248 248 / 0.8);
+  }
+}
+
+/* ─── Modales et notifications (composants ui/modal et ui/dialogs) ─────────────── */
+
+/* En-tête des modales : quadrillage très léger, comme la maquette de référence. */
+.gt-modal-header {
+  background-image:
+    linear-gradient(rgb(15 65 77 / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(15 65 77 / 0.05) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.gt-modal[open] {
+  animation: gt-modal-in 180ms ease-out;
+}
+.gt-modal[open]::backdrop {
+  animation: gt-fade-in 180ms ease-out;
+}
+.gt-toast {
+  animation: gt-toast-in 220ms ease-out;
+}
+
+@keyframes gt-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+@keyframes gt-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes gt-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

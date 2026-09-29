@@ -7,6 +7,7 @@ import { Card, StatusPill } from "@/components/dashboard/widgets";
 import { InvoicePanel } from "@/components/facture/invoice-panel";
 import { ActionButton } from "@/components/reservations/action-button";
 import { EncaissementForm } from "@/components/reservations/encaissement-form";
+import { FormModal } from "@/components/ui/form-modal";
 import {
   cancelReservationAgencyAction,
   confirmReservationAction,
@@ -215,10 +216,16 @@ export default async function ReservationPage({
           )}
           {canPay && r.peutEncaisser ? (
             <div className="mt-4 border-t border-gt-mist/60 pt-4">
-              <p className="mb-3 text-sm font-medium text-gt-teal-900">
-                Enregistrer un paiement reçu à l&apos;agence
-              </p>
-              <EncaissementForm reservationId={r.id} reste={r.reste} devise={devise} />
+              <FormModal
+                triggerLabel="Enregistrer un paiement"
+                triggerIcon="wallet"
+                variant="secondary"
+                title="Paiement reçu à l'agence"
+                description={`${r.reference} · reste à payer : ${formatMoney(r.reste, devise)}`}
+                icon="wallet"
+              >
+                <EncaissementForm reservationId={r.id} reste={r.reste} devise={devise} />
+              </FormModal>
             </div>
           ) : null}
         </Card>

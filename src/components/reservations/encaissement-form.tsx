@@ -9,6 +9,7 @@ import { FormAlert } from "@/components/ui/form-alert";
 import { FormSuccess } from "@/components/ui/form-success";
 import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
+import { useCloseOnSuccess } from "@/components/ui/form-modal";
 import { recordPaymentAction } from "@/lib/actions/gestion-reservations";
 import { applyFieldErrors } from "@/lib/forms";
 import {
@@ -33,6 +34,7 @@ export function EncaissementForm({
   const [serverError, setServerError] = useState<string>();
   const [success, setSuccess] = useState<string>();
   const [pending, startTransition] = useTransition();
+  const closeOnSuccess = useCloseOnSuccess();
   const {
     register,
     handleSubmit,
@@ -48,6 +50,8 @@ export function EncaissementForm({
     setSuccess(undefined);
     startTransition(async () => {
       const result = await recordPaymentAction(values);
+      // Dans une modale : fermeture et notification ; sinon, message sous le formulaire.
+      if (closeOnSuccess(result)) return;
       setServerError(result.error);
       setSuccess(result.success);
       applyFieldErrors(result.fieldErrors, setError, ["montant", "methode"] as const);

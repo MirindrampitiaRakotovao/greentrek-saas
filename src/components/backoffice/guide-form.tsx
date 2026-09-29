@@ -11,6 +11,7 @@ import { FormSuccess } from "@/components/ui/form-success";
 import { SelectField } from "@/components/ui/select-field";
 import { TextareaField } from "@/components/ui/textarea-field";
 import { TextField } from "@/components/ui/text-field";
+import { useCloseOnSuccess } from "@/components/ui/form-modal";
 import { createGuideAction, updateGuideAction } from "@/lib/actions/backoffice";
 import { applyFieldErrors } from "@/lib/forms";
 import { guideSchema, LANGUE_LABELS, LANGUES } from "@/lib/validators/backoffice";
@@ -45,6 +46,7 @@ export function GuideForm({ guide, accounts }: { guide?: Guide; accounts: readon
   const [serverError, setServerError] = useState<string>();
   const [success, setSuccess] = useState<string>();
   const [pending, startTransition] = useTransition();
+  const closeOnSuccess = useCloseOnSuccess();
   const {
     register,
     handleSubmit,
@@ -79,6 +81,8 @@ export function GuideForm({ guide, accounts }: { guide?: Guide; accounts: readon
       const result = guide
         ? await updateGuideAction(guide.id, values)
         : await createGuideAction(values); // redirige vers la liste en cas de succès
+      // Dans une modale : fermeture et notification ; sinon, message sous le formulaire.
+      if (closeOnSuccess(result)) return;
       setServerError(result.error);
       setSuccess(result.success);
       applyFieldErrors(result.fieldErrors, setError, FIELDS);

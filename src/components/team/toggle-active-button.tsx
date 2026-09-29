@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 
 import { setMemberActiveAction } from "@/lib/actions/team";
+import { useConfirm } from "@/components/ui/dialogs";
 
 /**
  * Active ou désactive un compte. Une confirmation est demandée avant de désactiver
@@ -19,11 +20,18 @@ export function ToggleActiveButton({
 }) {
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
 
-  function onClick() {
+  async function onClick() {
     if (
       actif &&
-      !window.confirm(`Désactiver le compte de ${name} ? Il perdra l'accès immédiatement.`)
+      !(await confirm({
+        title: "Désactiver ce compte ?",
+        message: `${name} perdra l'accès immédiatement. Vous pourrez le réactiver plus tard.`,
+        confirmLabel: "Désactiver",
+        cancelLabel: "Retour",
+        tone: "danger",
+      }))
     ) {
       return;
     }

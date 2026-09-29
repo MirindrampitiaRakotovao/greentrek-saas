@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 
 import type { ActionResult } from "@/lib/actions/types";
+import { useConfirm, useNotify } from "@/components/ui/dialogs";
 
 /**
  * Suppression avec confirmation. L'action serveur redirige en cas de succès ; en cas de
@@ -21,12 +22,24 @@ export function DeleteButton({
 }) {
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
+  const notify = useNotify();
 
-  function onClick() {
-    if (!window.confirm(confirmMessage)) return;
+  async function onClick() {
+    const ok = await confirm({
+      title: `${label} ?`,
+      message: confirmMessage,
+      confirmLabel: label,
+      cancelLabel: "Retour",
+      tone: "danger",
+      icon: "trash",
+    });
+    if (!ok) return;
     setError(undefined);
     startTransition(async () => {
       const result = await action({ id });
+      // Succès sans redirection (suppression depuis une liste) : notification.
+      if (!result.error && result.success) notify(result.success);
       setError(result.error);
     });
   }

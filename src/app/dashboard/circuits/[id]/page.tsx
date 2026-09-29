@@ -6,15 +6,17 @@ import { CircuitForm } from "@/components/circuits/circuit-form";
 import { CircuitItinerary } from "@/components/circuits/circuit-itinerary";
 import { CircuitPartenaires } from "@/components/circuits/circuit-partenaires";
 import { CircuitStatusActions } from "@/components/circuits/circuit-status-actions";
+import { DepartForm } from "@/components/departs/depart-form";
 import { DepartList } from "@/components/departs/depart-list";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, EmptyState } from "@/components/dashboard/widgets";
+import { FormModal } from "@/components/ui/form-modal";
 import { requireAgencyUser } from "@/lib/auth/session";
 import { formatMoney } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { getAgencySettings } from "@/lib/services/agency-settings";
 import { getCircuit, MIN_ETAPES_PUBLICATION } from "@/lib/services/circuits";
-import { listCircuitDeparts } from "@/lib/services/departs";
+import { departFormOptions, listCircuitDeparts } from "@/lib/services/departs";
 import { latestCircuitTrace } from "@/lib/services/itineraires";
 import { DIFFICULTE_LABELS, STATUT_CIRCUIT_LABELS } from "@/lib/validators/circuits";
 
@@ -25,19 +27,22 @@ export default async function CircuitPage({ params }: PageProps<"/dashboard/circ
   const { user, db } = await requireAgencyUser();
   const { id } = await params;
   // Client confiné : un circuit d'une autre agence donne une page 404.
-  const [circuit, settings, etapes, partenaires, trace, departs] = await Promise.all([
-    getCircuit(db, id),
-    getAgencySettings(db, user.agenceId),
-    db.etape.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true, type: true } }),
-    db.partenaire.findMany({
-      where: { actif: true },
-      orderBy: { nom: "asc" },
-      select: { id: true, nom: true },
-    }),
-    latestCircuitTrace(db, id),
-    // Un GUIDE ne voit que ses propres départs : il les consulte depuis « Départs ».
-    user.role === "GUIDE" ? Promise.resolve([]) : listCircuitDeparts(db, id),
-  ]);
+  const [circuit, settings, etapes, partenaires, trace, departOptions, departs] = await Promise.all(
+    [
+      getCircuit(db, id),
+      getAgencySettings(db, user.agenceId),
+      db.etape.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true, type: true } }),
+      db.partenaire.findMany({
+        where: { actif: true },
+        orderBy: { nom: "asc" },
+        select: { id: true, nom: true },
+      }),
+      latestCircuitTrace(db, id),
+      departFormOptions(db),
+      // Un GUIDE ne voit que ses propres départs : il les consulte depuis « Départs ».
+      user.role === "GUIDE" ? Promise.resolve([]) : listCircuitDeparts(db, id),
+    ],
+  );
   if (!circuit) notFound();
 
   const canEdit = can(user.role, "modifier", "circuit");
@@ -102,12 +107,20 @@ export default async function CircuitPage({ params }: PageProps<"/dashboard/circ
                 Tous les départs
               </Link>
               {can(user.role, "creer", "sessionDepart") && circuit.statut !== "ARCHIVE" ? (
-                <Link
-                  href={`/dashboard/departs/nouveau?circuit=${circuit.id}`}
-                  className="rounded-full bg-gt-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-gt-teal-800"
+                <FormModal
+                  triggerLabel="Programmer un départ"
+                  title="Programmer un départ"
+                  description={circuit.titre}
+                  icon="calendar"
                 >
-                  Programmer un départ
-                </Link>
+                  <DepartForm
+                    circuits={departOptions.circuits}
+                    guides={departOptions.guides}
+                    devise={settings.devise}
+                    today={departOptions.today}
+                    defaultCircuitId={circuit.id}
+                  />
+                </FormModal>
               ) : null}
             </div>
           </div>
@@ -130,17 +143,30 @@ export default async function CircuitPage({ params }: PageProps<"/dashboard/circ
             canEdit={canEdit}
           />
         </Card>
-        {canEdit ? (
-          <Card title="Informations" className="min-w-0">
-            <CircuitForm circuit={circuit} devise={settings.devise} agenceSlug={settings.slug} />
-          </Card>
-        ) : (
-          <Card title="Description" className="min-w-0">
-            <p className="text-sm whitespace-pre-line text-gt-teal-900/80">
-              {circuit.description ?? circuit.resume ?? "—"}
-            </p>
-          </Card>
-        )}
+        <Card title="Description" className="min-w-0">
+          <p className="text-sm whitespace-pre-line text-gt-teal-900/80">
+            {circuit.description ?? circuit.resume ?? "—"}
+          </p>
+          {canEdit ? (
+            <div className="mt-4">
+              <FormModal
+                triggerLabel="Modifier les informations"
+                triggerIcon="pencil"
+                variant="secondary"
+                title="Modifier le circuit"
+                description={circuit.titre}
+                icon="mountain"
+                size="lg"
+              >
+                <CircuitForm
+                  circuit={circuit}
+                  devise={settings.devise}
+                  agenceSlug={settings.slug}
+                />
+              </FormModal>
+            </div>
+          ) : null}
+        </Card>
       </div>
     </div>
   );

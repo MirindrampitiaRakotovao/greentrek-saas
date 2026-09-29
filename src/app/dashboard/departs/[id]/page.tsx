@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { DepartActions } from "@/components/departs/depart-actions";
 import { DepartForm } from "@/components/departs/depart-form";
+import { FormModal } from "@/components/ui/form-modal";
 import { DepartStatusBadge } from "@/components/departs/depart-status-badge";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, EmptyState, ProgressBar, StatusPill } from "@/components/dashboard/widgets";
@@ -186,31 +187,37 @@ export default async function DepartPage({ params }: PageProps<"/dashboard/depar
       </Card>
 
       {canEdit ? (
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <Card title="Modifier le départ" className="min-w-0">
-            <DepartForm
-              circuits={[]}
-              guides={guides.map((g) => ({ id: g.id, label: `${g.prenom} ${g.nom}` }))}
-              devise={settings.devise}
-              today={toIsoDate(calendarDate(new Date()))}
-              depart={{
-                id: depart.id,
-                circuitId: depart.circuit.id,
-                dateDebut: depart.dateDebut,
-                dateFin: depart.dateFin,
-                placesTotal: depart.placesTotal,
-                prixParPersonne: depart.prixParPersonne,
-                guideId: depart.guideId,
-                notes: depart.notes,
-                reservees: depart.reservees,
-              }}
-            />
-          </Card>
-          <Card title="Annulation" className="min-w-0">
-            <p className="mb-3 text-sm text-gt-teal-900/70">
-              Annuler le départ annule aussi ses réservations actives. Les remboursements seront
-              gérés avec les paiements (étape E10).
-            </p>
+        <Card title="Gestion du départ">
+          <p className="mb-4 text-sm text-gt-teal-900/70">
+            Modifier les dates, les places, le prix ou le guide. Annuler le départ annule aussi ses
+            réservations actives (remboursements depuis la fiche de chaque réservation).
+          </p>
+          <div className="flex flex-wrap items-start gap-3">
+            <FormModal
+              triggerLabel="Modifier le départ"
+              triggerIcon="pencil"
+              title="Modifier le départ"
+              description={`${depart.circuit.titre} · ${formatDateRange(depart.dateDebut, depart.dateFin)}`}
+              icon="calendar"
+            >
+              <DepartForm
+                circuits={[]}
+                guides={guides.map((g) => ({ id: g.id, label: `${g.prenom} ${g.nom}` }))}
+                devise={settings.devise}
+                today={toIsoDate(calendarDate(new Date()))}
+                depart={{
+                  id: depart.id,
+                  circuitId: depart.circuit.id,
+                  dateDebut: depart.dateDebut,
+                  dateFin: depart.dateFin,
+                  placesTotal: depart.placesTotal,
+                  prixParPersonne: depart.prixParPersonne,
+                  guideId: depart.guideId,
+                  notes: depart.notes,
+                  reservees: depart.reservees,
+                }}
+              />
+            </FormModal>
             <DepartActions
               id={depart.id}
               reservationsActives={actives.length}
@@ -219,8 +226,8 @@ export default async function DepartPage({ params }: PageProps<"/dashboard/depar
                 can(user.role, "supprimer", "sessionDepart") && depart.reservations.length === 0
               }
             />
-          </Card>
-        </div>
+          </div>
+        </Card>
       ) : null}
     </div>
   );

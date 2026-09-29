@@ -10,6 +10,7 @@ import { FormSuccess } from "@/components/ui/form-success";
 import { SelectField } from "@/components/ui/select-field";
 import { TextareaField } from "@/components/ui/textarea-field";
 import { TextField } from "@/components/ui/text-field";
+import { useCloseOnSuccess } from "@/components/ui/form-modal";
 import { createCircuitAction, updateCircuitAction } from "@/lib/actions/circuits";
 import { applyFieldErrors } from "@/lib/forms";
 import { slugify } from "@/lib/slug";
@@ -55,6 +56,7 @@ export function CircuitForm({
   const [success, setSuccess] = useState<string>();
   const [slugEdited, setSlugEdited] = useState(Boolean(circuit));
   const [pending, startTransition] = useTransition();
+  const closeOnSuccess = useCloseOnSuccess();
   const {
     register,
     handleSubmit,
@@ -85,6 +87,8 @@ export function CircuitForm({
       const result = circuit
         ? await updateCircuitAction(circuit.id, values)
         : await createCircuitAction(values); // redirige vers le circuit créé
+      // Dans une modale : fermeture et notification ; sinon, message sous le formulaire.
+      if (closeOnSuccess(result)) return;
       setServerError(result.error);
       setSuccess(result.success);
       applyFieldErrors(result.fieldErrors, setError, FIELDS);

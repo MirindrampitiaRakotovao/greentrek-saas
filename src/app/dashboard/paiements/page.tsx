@@ -96,24 +96,24 @@ export default async function PaiementsPage({ searchParams }: PageProps<"/dashbo
       {paiements.total === 0 ? (
         <EmptyState>Aucun paiement ne correspond.</EmptyState>
       ) : (
-        <div className="relative overflow-x-auto rounded-2xl bg-white ring-1 ring-gt-mist/70">
-          <table className="w-full min-w-[820px] text-left text-sm">
+        <div className="gt-table-wrap">
+          <table className="gt-table min-w-[820px]">
             <caption className="sr-only">Paiements</caption>
-            <thead className="text-xs text-gt-teal-900/55">
-              <tr className="border-b border-gt-mist/70">
+            <thead>
+              <tr>
                 {["Réservation", "Client", "Moyen", "Montant", "Payé le", "Statut", ""].map(
                   (h, i) => (
-                    <th key={`${h}-${i}`} scope="col" className="px-4 py-3 font-medium">
+                    <th key={`${h}-${i}`} scope="col">
                       {h}
                     </th>
                   ),
                 )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gt-mist/60">
+            <tbody>
               {paiements.items.map((p) => (
                 <tr key={p.id}>
-                  <td className="px-4 py-3">
+                  <td>
                     <Link
                       href={`/dashboard/reservations/${p.reservation.id}`}
                       className="font-mono text-xs font-semibold text-gt-teal-700 underline"
@@ -121,10 +121,10 @@ export default async function PaiementsPage({ searchParams }: PageProps<"/dashbo
                       {p.reservation.reference}
                     </Link>
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     {p.reservation.client.prenom} {p.reservation.client.nom}
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     {METHODE_PAIEMENT_LABELS[p.methode]}
                     {p.referenceExterne ? (
                       <span className="block text-xs text-gt-teal-900/60">
@@ -132,16 +132,16 @@ export default async function PaiementsPage({ searchParams }: PageProps<"/dashbo
                       </span>
                     ) : null}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">{formatMoney(p.montant, devise)}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(p.payeLe)}</td>
-                  <td className="px-4 py-3">
+                  <td className="whitespace-nowrap">{formatMoney(p.montant, devise)}</td>
+                  <td className="whitespace-nowrap">{formatDateTime(p.payeLe)}</td>
+                  <td>
                     <span
                       className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold ${STATUT_STYLES[p.statut]}`}
                     >
                       {STATUT_PAIEMENT_LABELS[p.statut]}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     {p.statut === "EN_ATTENTE" && p.reservation.statut !== "ANNULEE" ? (
                       <span className="flex gap-2">
                         <ActionButton
