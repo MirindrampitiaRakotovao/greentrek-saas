@@ -1,8 +1,11 @@
 import "server-only";
 
+import { networkInterfaces } from "node:os";
+
 import { headers } from "next/headers";
 
 import { invoicePath, invoiceSecret, publicBaseUrl, signInvoice } from "@/lib/invoice";
+import { lanAddress } from "@/lib/network";
 import { qrSvg } from "@/lib/qr";
 
 /**
@@ -16,6 +19,11 @@ export async function invoiceLink(agenceSlug: string, agenceId: string, reservat
     signInvoice(invoiceSecret(), agenceId, reservationId),
   );
   const h = await headers();
-  const url = `${publicBaseUrl(h.get("x-forwarded-host") ?? h.get("host"), h.get("x-forwarded-proto"))}${path}`;
+  const base = publicBaseUrl(
+    h.get("x-forwarded-host") ?? h.get("host"),
+    h.get("x-forwarded-proto"),
+    lanAddress(networkInterfaces()),
+  );
+  const url = `${base}${path}`;
   return { path, url, qr: await qrSvg(url) };
 }

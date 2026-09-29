@@ -38,6 +38,10 @@ export function InvoicePanel({
           <p className="text-xs text-gt-teal-900/65">
             Scannez avec un téléphone pour ouvrir la facture.
           </p>
+          {/* Adresse contenue dans le QR : on voit tout de suite si un téléphone peut l'ouvrir. */}
+          <p className="max-w-full font-mono text-[10px] break-all text-gt-teal-900/55">
+            {link.url.split("/a/")[0]}
+          </p>
           <a
             href={link.path}
             target="_blank"

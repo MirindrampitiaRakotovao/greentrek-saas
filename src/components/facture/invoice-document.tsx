@@ -20,7 +20,7 @@ export function InvoiceDocument({ invoice, qr }: { invoice: Invoice; qr?: string
   const lieu = [agence.adresse, agence.ville, agence.pays].filter(Boolean).join(", ");
 
   return (
-    <article className="mx-auto w-full max-w-[794px] bg-white p-8 text-sm text-gt-teal-900 shadow-sm ring-1 ring-gt-mist/70 sm:p-12 print:max-w-none print:p-0 print:shadow-none print:ring-0">
+    <article className="mx-auto w-full max-w-[794px] bg-white p-5 text-sm text-gt-teal-900 shadow-sm ring-1 ring-gt-mist/70 sm:p-12 print:max-w-none print:p-0 print:shadow-none print:ring-0">
       <header className="flex flex-wrap items-start justify-between gap-6 border-b-2 border-gt-teal-700 pb-6">
         <div>
           <p className="font-display text-2xl font-medium text-gt-teal-800">{agence.nom}</p>
@@ -64,42 +64,45 @@ export function InvoiceDocument({ invoice, qr }: { invoice: Invoice; qr?: string
         </div>
       </section>
 
-      <table className="mt-8 w-full text-left">
-        <caption className="sr-only">Détail de la facture</caption>
-        <thead>
-          <tr className="border-b border-gt-mist text-xs text-gt-teal-900/60">
-            <th scope="col" className="py-2 font-medium">
-              Désignation
-            </th>
-            <th scope="col" className="py-2 text-right font-medium">
-              Quantité
-            </th>
-            <th scope="col" className="py-2 text-right font-medium">
-              Prix unitaire
-            </th>
-            <th scope="col" className="py-2 text-right font-medium">
-              Montant
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr className="border-b border-gt-mist/70">
-            <td className="py-3">
-              Circuit « {r.session.circuit.titre} »
-              <span className="block text-xs text-gt-teal-900/60">
-                Départ du {formatDate(r.session.dateDebut)}, par personne
-              </span>
-            </td>
-            <td className="py-3 text-right">{r.nombrePersonnes}</td>
-            <td className="py-3 text-right whitespace-nowrap">
-              {formatMoney(invoice.prixUnitaire, devise)}
-            </td>
-            <td className="py-3 text-right whitespace-nowrap">
-              {formatMoney(r.montantTotal, devise)}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      {/* Conteneur défilant : sur un téléphone étroit, le tableau ne déborde jamais de la page. */}
+      <div className="relative mt-8 overflow-x-auto">
+        <table className="w-full min-w-[300px] text-left text-xs sm:text-sm">
+          <caption className="sr-only">Détail de la facture</caption>
+          <thead>
+            <tr className="border-b border-gt-mist text-xs text-gt-teal-900/60">
+              <th scope="col" className="py-2 font-medium">
+                Désignation
+              </th>
+              <th scope="col" className="py-2 pl-3 text-right font-medium">
+                Quantité
+              </th>
+              <th scope="col" className="py-2 pl-3 text-right font-medium">
+                Prix unitaire
+              </th>
+              <th scope="col" className="py-2 pl-3 text-right font-medium">
+                Montant
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-b border-gt-mist/70">
+              <td className="py-3">
+                Circuit « {r.session.circuit.titre} »
+                <span className="block text-xs text-gt-teal-900/60">
+                  Départ du {formatDate(r.session.dateDebut)}, par personne
+                </span>
+              </td>
+              <td className="py-3 pl-3 text-right">{r.nombrePersonnes}</td>
+              <td className="py-3 pl-3 text-right whitespace-nowrap">
+                {formatMoney(invoice.prixUnitaire, devise)}
+              </td>
+              <td className="py-3 pl-3 text-right whitespace-nowrap">
+                {formatMoney(r.montantTotal, devise)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <div className="mt-4 flex flex-wrap items-end justify-between gap-6">
         {qr ? (

@@ -1,5 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+import { reachableHost } from "@/lib/network";
+
 /**
  * Lien signé vers la facture d'une réservation (ajout demandé par l'étudiant à l'étape E10).
  *
@@ -42,14 +44,19 @@ export function invoicePath(agenceSlug: string, reservationId: string, signature
 }
 
 /**
- * Adresse de base du QR code. Un téléphone ne peut pas ouvrir « localhost » : pour la
- * démonstration, `PUBLIC_BASE_URL` (ex. http://192.168.0.101:3000, adresse de l'ordinateur
- * sur le Wi-Fi) est prioritaire ; sinon, l'hôte de la requête en cours.
+ * Adresse de base du QR code, par ordre de priorité :
+ * 1. `PUBLIC_BASE_URL` (.env) : adresse imposée, par exemple celle d'un tunnel Internet ;
+ * 2. l'hôte de la requête, où « localhost » est remplacé par l'adresse de l'ordinateur sur
+ *    le Wi-Fi (`lanIp`), pour qu'un téléphone du même réseau puisse ouvrir la facture.
  */
-export function publicBaseUrl(host: string | null, proto: string | null): string {
+export function publicBaseUrl(
+  host: string | null,
+  proto: string | null,
+  lanIp: string | null = null,
+): string {
   const configured = process.env.PUBLIC_BASE_URL?.trim();
   if (configured) return configured.replace(/\/+$/, "");
-  return `${proto ?? "http"}://${host ?? "localhost:3000"}`;
+  return `${proto ?? "http"}://${reachableHost(host ?? "localhost:3000", lanIp)}`;
 }
 
 /** Numéro de facture dérivé de la référence (démonstration : pas de numérotation fiscale). */
