@@ -37,9 +37,23 @@ export type MapMarker = {
 
 export type MapFocus = { lat: number; lng: number; zoom?: number; key: string };
 
+/** Tronçon (arête du graphe) : trait plein si mesuré, pointillé si estimé. */
+export type MapEdge = {
+  id: string;
+  from: [number, number];
+  to: [number, number];
+  label: string;
+  dashed?: boolean;
+  tone?: "default" | "selected" | "muted";
+};
+
+const EDGE_COLORS = { default: "#1a73e8", selected: "#d93025", muted: "#7aa7c7" } as const;
+
 export type LeafletMapProps = {
   markers: readonly MapMarker[];
   path?: readonly [number, number][];
+  edges?: readonly MapEdge[];
+  onEdgeClick?: (id: string) => void;
   onMapClick?: (lat: number, lng: number) => void;
   onMarkerClick?: (id: string) => void;
   onMarkerDragEnd?: (id: string, lat: number, lng: number) => void;
@@ -248,9 +262,52 @@ function Controls({
   );
 }
 
+/** Un tronçon : liseré blanc + trait coloré + zone de clic invisible plus large. */
+function EdgeLine({
+  positions,
+  color,
+  dashed,
+  weight,
+  label,
+  onClick,
+}: {
+  positions: [number, number][];
+  color: string;
+  dashed: boolean;
+  weight: number;
+  label: string;
+  onClick?: () => void;
+}) {
+  return (
+    <>
+      <Polyline
+        positions={positions}
+        interactive={false}
+        pathOptions={{ color: "#fff", weight: weight + 3, opacity: 0.9 }}
+      />
+      <Polyline
+        positions={positions}
+        interactive={false}
+        pathOptions={{ color, weight, dashArray: dashed ? "7 7" : undefined, opacity: 0.95 }}
+      />
+      <Polyline
+        positions={positions}
+        pathOptions={{ color: "#000", weight: 16, opacity: 0 }}
+        eventHandlers={onClick ? { click: onClick } : undefined}
+      >
+        <Tooltip sticky className="gt-edge-tooltip">
+          {label}
+        </Tooltip>
+      </Polyline>
+    </>
+  );
+}
+
 export default function LeafletMap({
   markers,
   path,
+  edges,
+  onEdgeClick,
   onMapClick,
   onMarkerClick,
   onMarkerDragEnd,
@@ -298,6 +355,21 @@ export default function LeafletMap({
           />
         </>
       ) : null}
+      {edges?.map((edge) => {
+        const tone = edge.tone ?? "default";
+        const positions: [number, number][] = [edge.from, edge.to];
+        return (
+          <EdgeLine
+            key={`${edge.id}-${tone}`}
+            positions={positions}
+            color={EDGE_COLORS[tone]}
+            dashed={edge.dashed ?? false}
+            weight={tone === "muted" ? 2.5 : tone === "selected" ? 5 : 4}
+            label={edge.label}
+            onClick={onEdgeClick ? () => onEdgeClick(edge.id) : undefined}
+          />
+        );
+      })}
       {markers.map((marker) => (
         <Marker
           key={marker.id}

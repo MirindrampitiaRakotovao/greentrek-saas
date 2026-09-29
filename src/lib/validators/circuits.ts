@@ -127,3 +127,32 @@ export const circuitPartenaireSchema = z.object({
   inclusDansPrix: checkbox,
 });
 export type CircuitPartenaireInput = z.infer<typeof circuitPartenaireSchema>;
+
+/* ─── Tronçons (arêtes du graphe, §5.2 table 5) ──────────────────────────────── */
+
+export const tronconSchema = z
+  .object({
+    etapeDepartId: z.string().min(1, { error: "Choisissez l'étape de départ." }),
+    etapeArriveeId: z.string().min(1, { error: "Choisissez l'étape d'arrivée." }),
+    distanceKm: requiredNumber(0.01, 1000, "La distance"),
+    dureeMinutes: requiredInt(1, 100_000, "La durée"),
+    deniveleM: optionalInt(-9000, 9000, "Le dénivelé"),
+    difficulte: requiredInt(1, 5, "La difficulté"),
+    bidirectionnel: checkbox,
+    distanceEstimee: checkbox,
+    commentaire: optionalText(500),
+  })
+  // RG 6 : un tronçon relie deux étapes DISTINCTES.
+  .refine((data) => data.etapeDepartId !== data.etapeArriveeId, {
+    error: "Le départ et l'arrivée doivent être deux étapes différentes.",
+    path: ["etapeArriveeId"],
+  });
+export type TronconInput = z.infer<typeof tronconSchema>;
+
+export const DIFFICULTE_TRONCON_LABELS: Record<number, string> = {
+  1: "1 · Très facile",
+  2: "2 · Facile",
+  3: "3 · Moyen",
+  4: "4 · Difficile",
+  5: "5 · Très difficile",
+};

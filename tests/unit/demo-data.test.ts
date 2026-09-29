@@ -5,10 +5,14 @@ import {
   DEMO_ALPHA_GRAPH,
   DEMO_BETA_CIRCUITS,
   DEMO_BETA_GRAPH,
+  type DemoGraph,
   generateAgencyDemo,
+  generateDemoEdges,
   GREEN_TREK_CIRCUITS,
   GREEN_TREK_GRAPH,
+  ISLANDS,
 } from "../../prisma/demo-data";
+import { estimateDistanceKm } from "@/lib/graph/estimation";
 import { COTE_EST_OSM_PLACES, MAHAMBO_OSM_PLACES } from "../../prisma/osm-mahambo";
 
 /**
@@ -160,6 +164,65 @@ describe("données de démonstration", () => {
       for (const e of [...DEMO_ALPHA_GRAPH.etapes, ...DEMO_BETA_GRAPH.etapes]) {
         expect(e.nom).toContain("(fictif)");
       }
+    });
+  });
+
+  describe("tronçons de démonstration (étape E5)", () => {
+    /** Composantes connexes du graphe (listes de noms). */
+    function components(graph: DemoGraph) {
+      const edges = generateDemoEdges(graph);
+      const parent = graph.etapes.map((_, i) => i);
+      const find = (x: number): number => (parent[x] === x ? x : (parent[x] = find(parent[x]!)));
+      for (const e of edges) parent[find(e.from)] = find(e.to);
+      const groups = new Map<number, string[]>();
+      graph.etapes.forEach((e, i) => groups.set(find(i), [...(groups.get(find(i)) ?? []), e.nom]));
+      return [...groups.values()];
+    }
+
+    for (const [label, graph] of [
+      ["GT", GREEN_TREK_GRAPH],
+      ["ALP", DEMO_ALPHA_GRAPH],
+      ["BET", DEMO_BETA_GRAPH],
+    ] as const) {
+      it(`${label} — arêtes valides : pas de boucle, une seule par paire, distance estimée`, () => {
+        const edges = generateDemoEdges(graph);
+        const keys = new Set<string>();
+        for (const e of edges) {
+          expect(e.from).not.toBe(e.to);
+          expect(graph.etapes[e.from]).toBeDefined();
+          expect(graph.etapes[e.to]).toBeDefined();
+          const key = `${Math.min(e.from, e.to)}-${Math.max(e.from, e.to)}`;
+          expect(keys.has(key)).toBe(false);
+          keys.add(key);
+          expect(e.distanceKm).toBe(estimateDistanceKm(graph.etapes[e.from]!, graph.etapes[e.to]!));
+          expect(e.dureeMinutes).toBeGreaterThan(0);
+        }
+      });
+
+      it(`${label} — chaque itinéraire suit des tronçons existants`, () => {
+        const keys = new Set(
+          generateDemoEdges(graph).map(
+            (e) => `${Math.min(e.from, e.to)}-${Math.max(e.from, e.to)}`,
+          ),
+        );
+        for (const itineraire of graph.itineraires) {
+          for (let p = 1; p < itineraire.length; p += 1) {
+            const [x, y] = [itineraire[p - 1]!, itineraire[p]!];
+            expect(keys.has(`${Math.min(x, y)}-${Math.max(x, y)}`)).toBe(true);
+          }
+        }
+      });
+    }
+
+    it("Green Trek : continent connexe ; Sainte-Marie séparée (pas de tronçon à pied par la mer)", () => {
+      const groups = components(GREEN_TREK_GRAPH);
+      expect(groups).toHaveLength(2);
+      expect(groups.find((g) => g.length === ISLANDS.size)?.sort()).toEqual([...ISLANDS].sort());
+    });
+
+    it("agences fictives : graphe connexe", () => {
+      expect(components(DEMO_ALPHA_GRAPH)).toHaveLength(1);
+      expect(components(DEMO_BETA_GRAPH)).toHaveLength(1);
     });
   });
 });

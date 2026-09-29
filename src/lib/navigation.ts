@@ -30,7 +30,7 @@ const NAVIGATION: readonly NavEntry[] = [
   },
   {
     href: "/dashboard/etapes",
-    label: "Étapes et carte",
+    label: "Carte du réseau",
     icon: "route",
     permission: ["lire", "etape"],
   },

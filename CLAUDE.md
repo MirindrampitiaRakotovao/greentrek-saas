@@ -33,7 +33,7 @@ Next.js (App Router) + TypeScript strict · MySQL + Prisma · Auth.js (credentia
   - Transactions : `db.$tenantTransaction(async (tx) => …)` (pas `$transaction`).
 - Module du back-office : page serveur (`requireAgencyUser`) → formulaire client (RHF + Zod) → action serveur (`requireAgencyUser` + `assertCan` + Zod, `src/lib/actions/`) → service (`src/lib/services/`, reçoit `TenantDb`, renvoie `ServiceResult`, testé en intégration).
 - Pas de secrets dans le code : `.env` (ignoré par git) + `.env.example`.
-- Algorithmes dans `src/lib/graph/` : fonctions pures (sans UI ni base de données), testées unitairement.
+- Algorithmes dans `src/lib/graph/` : fonctions pures (sans UI ni base de données), testées unitairement. Déjà présents : `haversine.ts`, `estimation.ts` (sinuosité 1,3 ; Naismith adaptée 4 km/h + 1 h / 600 m D+), `config.ts`.
 - Palette et typographie : cahier des charges §8, tokens CSS dans `src/styles/tokens.css`.
 - Espaces connectés (back-office, console super admin, espace client) : coque commune `AppShell` (`src/components/shell/`) et briques `src/components/dashboard/widgets.tsx`, sur le modèle de tableau de bord validé par l'étudiant. Graphiques Recharts : un seul axe vertical, couleurs de séries `--gt-chart-1` / `--gt-chart-2` (validées par script), légende + tableau accessible.
 - Dates : jours et mois en heure de Madagascar (`src/lib/dates.ts`) ; comparer une colonne `@db.Date` avec `calendarDate(now)`.

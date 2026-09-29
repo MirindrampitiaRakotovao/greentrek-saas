@@ -13,6 +13,9 @@
  * les remplace par les identifiants créés en base.
  */
 
+import { estimateDistanceKm, estimateDurationMinutes } from "@/lib/graph/estimation";
+import { haversineKm } from "@/lib/graph/haversine";
+
 import { COTE_EST_OSM_PLACES, MAHAMBO_OSM_PLACES, type OsmPlace } from "./osm-mahambo";
 
 export type DemoCircuit = {
@@ -491,3 +494,86 @@ export const DEMO_BETA_CIRCUITS: DemoCircuit[] = [
     capaciteMax: 12,
   },
 ];
+
+/* ─── Tronçons de démonstration (arêtes du graphe, étape E5) ─────────────────── */
+
+export type DemoEdge = { from: number; to: number; distanceKm: number; dureeMinutes: number };
+
+/** Lieux insulaires (île Sainte-Marie) : jamais reliés au continent par un tronçon à pied. */
+export const ISLANDS: ReadonlySet<string> = new Set(["Ambodifototra", "Vohilava"]);
+
+/** Ensemble des nœuds atteignables depuis `start` avec les paires « i-j » données. */
+function component(start: number, pairs: ReadonlySet<string>): Set<number> {
+  const neighbours = new Map<number, number[]>();
+  for (const key of pairs) {
+    const [i, j] = key.split("-").map(Number) as [number, number];
+    neighbours.set(i, [...(neighbours.get(i) ?? []), j]);
+    neighbours.set(j, [...(neighbours.get(j) ?? []), i]);
+  }
+  const seen = new Set([start]);
+  const queue = [start];
+  while (queue.length > 0) {
+    for (const next of neighbours.get(queue.shift()!) ?? []) {
+      if (!seen.has(next)) {
+        seen.add(next);
+        queue.push(next);
+      }
+    }
+  }
+  return seen;
+}
+
+export const TRONCON_DEMO =
+  "TODO(données terrain) : tronçon de démonstration (plus proches voisins), sentier et distance à confirmer sur le terrain.";
+
+/**
+ * Tronçons de démonstration (décision C de l'étape E5) : chaque étape est reliée à ses `k`
+ * plus proches voisines situées à moins de `maxKm` à vol d'oiseau, plus les liens entre
+ * étapes consécutives des itinéraires. Distance et durée sont ESTIMÉES (Haversine ×
+ * sinuosité, Naismith adaptée) : aucun sentier réel n'est prétendu connu. Tronçons à double
+ * sens, une seule arête par paire. Fonction pure et déterministe.
+ */
+export function generateDemoEdges(graph: DemoGraph, k = 3, maxKm = 15): DemoEdge[] {
+  const pairs = new Set<string>();
+  const add = (i: number, j: number) => {
+    if (i !== j) pairs.add(i < j ? `${i}-${j}` : `${j}-${i}`);
+  };
+
+  graph.etapes.forEach((etape, i) => {
+    graph.etapes
+      .map((other, j) => ({ j, km: haversineKm(etape, other) }))
+      .filter(({ j, km }) => j !== i && km <= maxKm)
+      .sort((x, y) => x.km - y.km || x.j - y.j)
+      .slice(0, k)
+      .forEach(({ j }) => add(i, j));
+  });
+  for (const itineraire of graph.itineraires) {
+    for (let p = 1; p < itineraire.length; p += 1) add(itineraire[p - 1]!, itineraire[p]!);
+  }
+
+  // Connexité du continent : chaque groupe isolé (ex. l'arrière-pays de Vavatenina, à plus de
+  // `maxKm`) est relié au groupe principal par la paire de lieux la plus proche. Les îles ne
+  // sont PAS reliées à pied : pas de tronçon à travers la mer (cas « aucun chemin », §6.4).
+  const land = graph.etapes.map((_, i) => i).filter((i) => !ISLANDS.has(graph.etapes[i]!.nom));
+  for (;;) {
+    const main = component(land[0] ?? 0, pairs);
+    const outside = land.filter((i) => !main.has(i));
+    if (outside.length === 0) break;
+    let best: { i: number; j: number; km: number } | null = null;
+    for (const i of main) {
+      if (!land.includes(i)) continue;
+      for (const j of outside) {
+        const km = haversineKm(graph.etapes[i]!, graph.etapes[j]!);
+        if (!best || km < best.km) best = { i, j, km };
+      }
+    }
+    if (!best) break;
+    add(best.i, best.j);
+  }
+
+  return [...pairs].sort().map((key) => {
+    const [from, to] = key.split("-").map(Number) as [number, number];
+    const distanceKm = estimateDistanceKm(graph.etapes[from]!, graph.etapes[to]!);
+    return { from, to, distanceKm, dureeMinutes: estimateDurationMinutes(distanceKm) };
+  });
+}

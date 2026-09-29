@@ -18,6 +18,7 @@ import {
   updateCircuitEtape,
 } from "@/lib/services/circuits";
 import { createEtape, deleteEtape, updateEtape } from "@/lib/services/etapes";
+import { createTroncon, deleteTroncon, updateTroncon } from "@/lib/services/troncons";
 import { idSchema } from "@/lib/validators/backoffice";
 import {
   addCircuitEtapeSchema,
@@ -27,6 +28,7 @@ import {
   etapeSchema,
   moveCircuitEtapeSchema,
   moveEtapeSchema,
+  tronconSchema,
   updateCircuitEtapeSchema,
 } from "@/lib/validators/circuits";
 
@@ -187,4 +189,36 @@ export async function removeCircuitPartenaireAction(input: unknown): Promise<Act
   const result = await removeCircuitPartenaire(auth.db, parsed.data.id);
   if (result.ok) revalidatePath(CIRCUITS_PATH, "layout");
   return toActionResult(result);
+}
+
+/* ─── Tronçons (arêtes du graphe, étape E5) ──────────────────────────────────── */
+
+export async function createTronconAction(input: unknown): Promise<ActionResult> {
+  const auth = await authorize("creer", "troncon");
+  if (!auth.ok) return auth.result;
+  const parsed = parseInput(tronconSchema, input);
+  if (!parsed.ok) return parsed.result;
+  const result = await createTroncon(auth.db, auth.user.agenceId, parsed.data);
+  if (result.ok) revalidatePath(ETAPES_PATH);
+  return toActionResult(result, "Tronçon ajouté.");
+}
+
+export async function updateTronconAction(id: string, input: unknown): Promise<ActionResult> {
+  const auth = await authorize("modifier", "troncon");
+  if (!auth.ok) return auth.result;
+  const parsed = parseInput(tronconSchema, input);
+  if (!parsed.ok) return parsed.result;
+  const result = await updateTroncon(auth.db, id, parsed.data);
+  if (result.ok) revalidatePath(ETAPES_PATH);
+  return toActionResult(result, "Tronçon enregistré.");
+}
+
+export async function deleteTronconAction(input: unknown): Promise<ActionResult> {
+  const auth = await authorize("supprimer", "troncon");
+  if (!auth.ok) return auth.result;
+  const parsed = parseInput(idSchema, input);
+  if (!parsed.ok) return parsed.result;
+  const result = await deleteTroncon(auth.db, parsed.data.id);
+  if (result.ok) revalidatePath(ETAPES_PATH);
+  return toActionResult(result, "Tronçon supprimé.");
 }

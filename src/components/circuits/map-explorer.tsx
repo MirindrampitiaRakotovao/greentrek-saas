@@ -4,20 +4,33 @@ import Link from "next/link";
 import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
 
 import { EtapeForm, type EtapeFormValues } from "@/components/circuits/etape-form";
-import { type MapFocus, type MapMarker, MapView } from "@/components/map/map-view";
+import {
+  suggestedTroncon,
+  TronconForm,
+  type TronconValues,
+} from "@/components/circuits/troncon-form";
+import { type MapEdge, type MapFocus, type MapMarker, MapView } from "@/components/map/map-view";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { FormAlert } from "@/components/ui/form-alert";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { deleteEtapeAction, moveEtapeAction } from "@/lib/actions/circuits";
 import { haversineKm } from "@/lib/graph/haversine";
 import { satellitePreviewUrl } from "@/lib/map/tiles";
-import { TYPE_ETAPE_LABELS, TYPES_ETAPE, type TypeEtape } from "@/lib/validators/circuits";
+import {
+  DIFFICULTE_TRONCON_LABELS,
+  TYPE_ETAPE_LABELS,
+  TYPES_ETAPE,
+  type TypeEtape,
+} from "@/lib/validators/circuits";
 
 /**
- * Explorateur des étapes sur carte, au style « Google Maps » demandé par l'étudiant :
- * panneau flottant (recherche, liste des résultats, fiche du lieu), pastilles de filtre par
- * type, carte plein cadre. Fonctions de l'éditeur de graphe (§6.5) : cliquer sur la carte
- * pour placer une étape, glisser une épingle pour la déplacer, modifier, supprimer.
+ * Éditeur du graphe sur carte (§6.5), au style « Google Maps » demandé par l'étudiant :
+ * panneau flottant (recherche, listes, fiches), pastilles de filtre par type, carte plein
+ * cadre, et deux vues :
+ * - Étapes (nœuds) : cliquer sur la carte pour placer une étape, glisser une épingle pour la
+ *   déplacer, modifier, supprimer ;
+ * - Tronçons (arêtes) : cliquer sur une étape de départ puis sur une étape d'arrivée pour
+ *   créer un tronçon (distance et durée proposées), cliquer sur un tronçon pour le modifier.
  * Uniquement des données réelles : pas de photo ni de météo inventées ; l'image de la fiche
  * est une vraie vue satellite (Esri World Imagery) du lieu.
  */
@@ -34,11 +47,21 @@ export type EtapeItem = {
   circuits: { id: string; titre: string }[];
 };
 
+export type TronconItem = TronconValues & { id: string };
+
 type Mode =
   | { kind: "list" }
   | { kind: "view"; id: string }
   | { kind: "edit"; id: string }
   | { kind: "new"; lat: number; lng: number };
+
+type EdgeMode =
+  | { kind: "list" }
+  | { kind: "pick"; departId?: string }
+  | { kind: "new"; departId: string; arriveeId: string }
+  | { kind: "edit"; id: string };
+
+type View = "etapes" | "troncons";
 
 const TYPE_ICONS: Record<TypeEtape, IconName> = {
   VILLAGE: "home",
@@ -58,8 +81,17 @@ const TYPE_PLURALS: Record<TypeEtape, string> = {
   AUTRE: "Autres",
 };
 
+/** Comparaison sans accents ni majuscules (« mahambo » trouve « Mahambo »). */
 const normalize = (text: string) =>
-  text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLocaleLowerCase("fr");
+  text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase("fr");
+
+const formatKm = (km: number) => `${km.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} km`;
+
+function formatDuree(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return h > 0 ? `${h} h ${String(m).padStart(2, "0")}` : `${m} min`;
+}
 
 /** Largeur du panneau flottant sur grand écran (px), laissée libre lors des recadrages. */
 const PANEL_WIDTH = 400;
@@ -85,14 +117,22 @@ function useIsDesktop(): boolean {
 
 export function MapExplorer({
   etapes,
+  troncons,
   canEdit,
   canDelete,
+  canEditTroncons,
+  canDeleteTroncons,
 }: {
   etapes: readonly EtapeItem[];
+  troncons: readonly TronconItem[];
   canEdit: boolean;
   canDelete: boolean;
+  canEditTroncons: boolean;
+  canDeleteTroncons: boolean;
 }) {
+  const [view, setView] = useState<View>("etapes");
   const [mode, setMode] = useState<Mode>({ kind: "list" });
+  const [edgeMode, setEdgeMode] = useState<EdgeMode>({ kind: "list" });
   const [query, setQuery] = useState("");
   const [types, setTypes] = useState<ReadonlySet<TypeEtape>>(new Set());
   const [focus, setFocus] = useState<MapFocus>();
@@ -100,38 +140,101 @@ export function MapExplorer({
   const [, startTransition] = useTransition();
   const isDesktop = useIsDesktop();
 
-  const presentTypes = TYPES_ETAPE.filter((type) => etapes.some((e) => e.type === type));
-  const visible = etapes.filter(
-    (e) =>
-      (types.size === 0 || types.has(e.type)) && normalize(e.nom).includes(normalize(query.trim())),
-  );
-  const selectedId = mode.kind === "view" || mode.kind === "edit" ? mode.id : undefined;
-  const selected = etapes.find((e) => e.id === selectedId);
+  const byId = useMemo(() => new Map(etapes.map((e) => [e.id, e])), [etapes]);
+  const nom = (id: string) => byId.get(id)?.nom ?? "?";
 
-  const markers: MapMarker[] = useMemo(() => {
-    const list: MapMarker[] = visible.map((e) => ({
-      id: e.id,
-      lat: e.latitude,
-      lng: e.longitude,
-      label: e.nom,
-      tone: e.id === selectedId ? "selected" : "default",
-      draggable: canEdit,
-    }));
-    if (mode.kind === "new") {
-      list.push({
-        id: "__new__",
-        lat: mode.lat,
-        lng: mode.lng,
-        label: "Nouvelle étape",
-        tone: "new",
-      });
-    }
-    return list;
-  }, [visible, selectedId, mode, canEdit]);
+  const presentTypes = TYPES_ETAPE.filter((type) => etapes.some((e) => e.type === type));
+  const typeFiltered = etapes.filter((e) => types.size === 0 || types.has(e.type));
+  const visible =
+    view === "etapes"
+      ? typeFiltered.filter((e) => normalize(e.nom).includes(normalize(query.trim())))
+      : typeFiltered;
+  const visibleIds = new Set(visible.map((e) => e.id));
+
+  const selectedId = mode.kind === "view" || mode.kind === "edit" ? mode.id : undefined;
+  const selected = selectedId ? byId.get(selectedId) : undefined;
+  const selectedEdgeId = edgeMode.kind === "edit" ? edgeMode.id : undefined;
+  const departId =
+    edgeMode.kind === "pick" || edgeMode.kind === "new" ? edgeMode.departId : undefined;
+  const arriveeId = edgeMode.kind === "new" ? edgeMode.arriveeId : undefined;
+
+  const markers: MapMarker[] = visible.map((e) => ({
+    id: e.id,
+    lat: e.latitude,
+    lng: e.longitude,
+    label: e.nom,
+    tone:
+      view === "etapes"
+        ? e.id === selectedId
+          ? "selected"
+          : "default"
+        : e.id === departId
+          ? "selected"
+          : e.id === arriveeId
+            ? "new"
+            : "default",
+    draggable: view === "etapes" && canEdit,
+  }));
+  if (view === "etapes" && mode.kind === "new") {
+    markers.push({
+      id: "__new__",
+      lat: mode.lat,
+      lng: mode.lng,
+      label: "Nouvelle étape",
+      tone: "new",
+    });
+  }
+
+  const edges: MapEdge[] = troncons
+    .filter((t) => visibleIds.has(t.etapeDepartId) && visibleIds.has(t.etapeArriveeId))
+    .map((t) => {
+      const a = byId.get(t.etapeDepartId)!;
+      const b = byId.get(t.etapeArriveeId)!;
+      return {
+        id: t.id,
+        from: [a.latitude, a.longitude],
+        to: [b.latitude, b.longitude],
+        label: `${a.nom} ${t.bidirectionnel ? "↔" : "→"} ${b.nom} · ${formatKm(t.distanceKm)} · ${formatDuree(t.dureeMinutes)}${t.distanceEstimee ? " (estimé)" : ""}`,
+        dashed: t.distanceEstimee,
+        tone: view === "etapes" ? "muted" : t.id === selectedEdgeId ? "selected" : "default",
+      };
+    });
 
   function select(etape: EtapeItem) {
+    setView("etapes");
     setMode({ kind: "view", id: etape.id });
     setFocus({ lat: etape.latitude, lng: etape.longitude, key: `${etape.id}-${Date.now()}` });
+  }
+
+  function openTroncon(id: string) {
+    const t = troncons.find((x) => x.id === id);
+    setView("troncons");
+    setEdgeMode({ kind: "edit", id });
+    if (t) {
+      const a = byId.get(t.etapeDepartId);
+      const b = byId.get(t.etapeArriveeId);
+      if (a && b) {
+        setFocus({
+          lat: (a.latitude + b.latitude) / 2,
+          lng: (a.longitude + b.longitude) / 2,
+          key: `${id}-${Date.now()}`,
+        });
+      }
+    }
+  }
+
+  /** Vue Tronçons : 1er clic = départ, 2e clic = arrivée (puis formulaire prérempli). */
+  function pickEtape(id: string) {
+    if (!canEditTroncons) {
+      const etape = byId.get(id);
+      if (etape) select(etape);
+      return;
+    }
+    if (edgeMode.kind === "pick" && edgeMode.departId && edgeMode.departId !== id) {
+      setEdgeMode({ kind: "new", departId: edgeMode.departId, arriveeId: id });
+    } else {
+      setEdgeMode({ kind: "pick", departId: id });
+    }
   }
 
   function toggleType(type: TypeEtape) {
@@ -153,6 +256,13 @@ export function MapExplorer({
     });
   }
 
+  function switchView(next: View) {
+    setView(next);
+    setQuery("");
+    setMode({ kind: "list" });
+    setEdgeMode({ kind: "list" });
+  }
+
   const formValues: EtapeFormValues | null =
     mode.kind === "new"
       ? {
@@ -167,24 +277,38 @@ export function MapExplorer({
         ? { ...selected }
         : null;
 
+  const panelKey =
+    view === "etapes"
+      ? `e-${mode.kind}-${selectedId ?? ""}`
+      : `t-${edgeMode.kind}-${selectedEdgeId ?? departId ?? ""}-${arriveeId ?? ""}`;
+
   return (
     <div className="relative flex flex-col overflow-hidden rounded-3xl border border-gt-mist/70 bg-white lg:block lg:h-[calc(100dvh-9.5rem)] lg:min-h-[620px]">
       {/* ── Carte plein cadre ── */}
       <div className="relative h-[62vh] lg:absolute lg:inset-0 lg:h-auto">
         <MapView
           markers={markers}
+          edges={edges}
           fitKey={`${etapes.length}-${[...types].join()}-${isDesktop}`}
           fitPadding={{ left: isDesktop ? PANEL_WIDTH : 0 }}
           // Le panneau flottant couvre la gauche de la carte sur grand écran.
           leftControlsClassName="left-3 lg:left-[424px]"
           focus={focus}
           className="h-full"
-          onMapClick={canEdit ? (lat, lng) => setMode({ kind: "new", lat, lng }) : undefined}
+          onMapClick={
+            view === "etapes" && canEdit
+              ? (lat, lng) => setMode({ kind: "new", lat, lng })
+              : undefined
+          }
           onMarkerClick={(id) => {
-            const etape = etapes.find((e) => e.id === id);
-            if (etape) select(etape);
+            if (view === "troncons") pickEtape(id);
+            else {
+              const etape = byId.get(id);
+              if (etape) select(etape);
+            }
           }}
-          onMarkerDragEnd={canEdit ? onDragEnd : undefined}
+          onMarkerDragEnd={view === "etapes" && canEdit ? onDragEnd : undefined}
+          onEdgeClick={openTroncon}
         />
 
         {/* ── Pastilles de filtre (comme « Restaurants », « Hôtels »… sur la maquette) ── */}
@@ -216,12 +340,12 @@ export function MapExplorer({
       {/* ── Panneau flottant (sous la carte sur mobile) ── */}
       <aside
         className="relative z-[1001] flex flex-col bg-white lg:absolute lg:top-3 lg:bottom-3 lg:left-3 lg:w-[400px] lg:overflow-hidden lg:rounded-2xl lg:shadow-xl"
-        aria-label="Lieux"
+        aria-label="Graphe des étapes et des tronçons"
       >
-        <div className="border-b border-gt-mist/60 p-3">
+        <div className="space-y-3 border-b border-gt-mist/60 p-3">
           <div className="relative">
             <label htmlFor="map-search" className="sr-only">
-              Rechercher un lieu
+              {view === "etapes" ? "Rechercher un lieu" : "Rechercher un tronçon"}
             </label>
             <input
               id="map-search"
@@ -229,20 +353,24 @@ export function MapExplorer({
               value={query}
               onChange={(event) => {
                 setQuery(event.target.value);
-                if (mode.kind === "view") setMode({ kind: "list" });
+                if (view === "etapes" && mode.kind === "view") setMode({ kind: "list" });
+                if (view === "troncons" && edgeMode.kind === "edit") setEdgeMode({ kind: "list" });
               }}
-              placeholder="Rechercher un lieu…"
+              placeholder={
+                view === "etapes" ? "Rechercher un lieu…" : "Rechercher un tronçon (étape)…"
+              }
               autoComplete="off"
-              className="w-full rounded-full border border-gt-mist bg-white py-3 pr-20 pl-5 text-[15px] text-gt-teal-900 shadow-sm outline-none focus:border-gt-teal-600 focus:ring-2 focus:ring-gt-teal-500/20"
+              className="gt-search-no-cancel w-full rounded-full border border-gt-mist bg-white py-3 pr-20 pl-5 text-[15px] text-gt-teal-900 shadow-sm outline-none focus:border-gt-teal-600 focus:ring-2 focus:ring-gt-teal-500/20"
             />
             <span className="absolute top-1/2 right-3 flex -translate-y-1/2 items-center gap-1 text-gt-teal-900/60">
               <Icon name="search" className="size-5" />
-              {query || mode.kind !== "list" ? (
+              {query || mode.kind !== "list" || edgeMode.kind !== "list" ? (
                 <button
                   type="button"
                   onClick={() => {
                     setQuery("");
                     setMode({ kind: "list" });
+                    setEdgeMode({ kind: "list" });
                   }}
                   className="rounded-full p-1 hover:bg-gt-teal-50"
                   aria-label="Effacer et revenir à la liste"
@@ -252,24 +380,67 @@ export function MapExplorer({
               ) : null}
             </span>
           </div>
+          <div
+            role="tablist"
+            aria-label="Vue"
+            className="grid grid-cols-2 rounded-full bg-gt-teal-50 p-1"
+          >
+            {(
+              [
+                ["etapes", `Étapes (${etapes.length})`],
+                ["troncons", `Tronçons (${troncons.length})`],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={view === id}
+                onClick={() => switchView(id)}
+                className={`rounded-full py-2 text-sm font-medium transition ${
+                  view === id
+                    ? "bg-white text-gt-teal-900 shadow-sm"
+                    : "text-gt-teal-900/65 hover:text-gt-teal-900"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div
           // Nouvelle clé à chaque changement de vue : le panneau revient en haut (sinon la
           // fiche d'un lieu s'ouvrirait à la position de défilement de la liste).
-          key={`${mode.kind}-${selectedId ?? ""}`}
+          key={panelKey}
           className="max-h-[70vh] min-h-0 flex-1 overflow-y-auto lg:max-h-none"
         >
           <FormAlert message={error} />
-          {mode.kind === "view" && selected ? (
+          {view === "troncons" ? (
+            <TronconPanel
+              edgeMode={edgeMode}
+              troncons={troncons}
+              etapes={etapes}
+              query={query}
+              nom={nom}
+              canEdit={canEditTroncons}
+              canDelete={canDeleteTroncons}
+              onStartPick={() => setEdgeMode({ kind: "pick" })}
+              onOpen={openTroncon}
+              onBack={() => setEdgeMode({ kind: "list" })}
+            />
+          ) : mode.kind === "view" && selected ? (
             <PlaceCard
               etape={selected}
               etapes={etapes}
+              troncons={troncons}
+              nom={nom}
               canEdit={canEdit}
               canDelete={canDelete}
               onEdit={() => setMode({ kind: "edit", id: selected.id })}
               onCenter={() => select(selected)}
               onSelect={select}
+              onOpenTroncon={openTroncon}
               onDeleted={() => setMode({ kind: "list" })}
             />
           ) : formValues ? (
@@ -311,6 +482,200 @@ export function MapExplorer({
           )}
         </div>
       </aside>
+    </div>
+  );
+}
+
+/** Panneau de la vue Tronçons : liste, sélection départ/arrivée, formulaire. */
+function TronconPanel({
+  edgeMode,
+  troncons,
+  etapes,
+  query,
+  nom,
+  canEdit,
+  canDelete,
+  onStartPick,
+  onOpen,
+  onBack,
+}: {
+  edgeMode: EdgeMode;
+  troncons: readonly TronconItem[];
+  etapes: readonly EtapeItem[];
+  query: string;
+  nom: (id: string) => string;
+  canEdit: boolean;
+  canDelete: boolean;
+  onStartPick: () => void;
+  onOpen: (id: string) => void;
+  onBack: () => void;
+}) {
+  const back = (
+    <button
+      type="button"
+      onClick={onBack}
+      className="text-sm font-medium text-gt-teal-700 underline"
+    >
+      Retour à la liste
+    </button>
+  );
+
+  if (edgeMode.kind === "pick") {
+    return (
+      <div className="space-y-4 p-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gt-teal-900">Nouveau tronçon</h2>
+          {back}
+        </div>
+        <ol className="space-y-2 text-sm">
+          <li className="flex items-center gap-2">
+            <span className="grid size-6 place-items-center rounded-full bg-[#d93025] text-xs font-bold text-white">
+              1
+            </span>
+            {edgeMode.departId ? (
+              <span>
+                Départ : <strong>{nom(edgeMode.departId)}</strong>
+              </span>
+            ) : (
+              <span>Cliquez sur l&apos;étape de départ, sur la carte.</span>
+            )}
+          </li>
+          <li className="flex items-center gap-2 text-gt-teal-900/70">
+            <span className="grid size-6 place-items-center rounded-full bg-gt-chart-2 text-xs font-bold text-white">
+              2
+            </span>
+            Puis sur l&apos;étape d&apos;arrivée.
+          </li>
+        </ol>
+        <p className="text-xs text-gt-teal-900/60">
+          La distance (Haversine × sinuosité) et la durée (Naismith adaptée) seront proposées,
+          modifiables.
+        </p>
+      </div>
+    );
+  }
+
+  if (edgeMode.kind === "new" || edgeMode.kind === "edit") {
+    const existing =
+      edgeMode.kind === "edit" ? troncons.find((t) => t.id === edgeMode.id) : undefined;
+    const depart = etapes.find((e) => e.id === (edgeMode.kind === "new" ? edgeMode.departId : ""));
+    const arrivee = etapes.find(
+      (e) => e.id === (edgeMode.kind === "new" ? edgeMode.arriveeId : ""),
+    );
+    const values = existing ?? (depart && arrivee ? suggestedTroncon(depart, arrivee) : undefined);
+    if (!values) return <div className="p-4">{back}</div>;
+    return (
+      <div className="p-4">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold text-gt-teal-900">
+            {existing ? "Tronçon" : "Nouveau tronçon"}
+          </h2>
+          {back}
+        </div>
+        <p className="mb-4 text-sm text-gt-teal-900/75">
+          {nom(values.etapeDepartId)} {values.bidirectionnel ? "↔" : "→"}{" "}
+          {nom(values.etapeArriveeId)}
+        </p>
+        {canEdit ? (
+          <TronconForm troncon={values} etapes={etapes} canDelete={canDelete} onDone={onBack} />
+        ) : (
+          <dl className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <dt className="text-gt-teal-900/60">Distance</dt>
+              <dd className="font-medium">
+                {formatKm(values.distanceKm)}
+                {values.distanceEstimee ? " (estimée)" : ""}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-gt-teal-900/60">Durée</dt>
+              <dd className="font-medium">{formatDuree(values.dureeMinutes)}</dd>
+            </div>
+            <div>
+              <dt className="text-gt-teal-900/60">Difficulté</dt>
+              <dd className="font-medium">{DIFFICULTE_TRONCON_LABELS[values.difficulte]}</dd>
+            </div>
+            <div>
+              <dt className="text-gt-teal-900/60">Dénivelé</dt>
+              <dd className="font-medium">
+                {values.deniveleM === null ? "—" : `${values.deniveleM} m`}
+              </dd>
+            </div>
+            {values.commentaire ? (
+              <div className="col-span-2">
+                <dt className="text-gt-teal-900/60">Commentaire</dt>
+                <dd>{values.commentaire}</dd>
+              </div>
+            ) : null}
+          </dl>
+        )}
+      </div>
+    );
+  }
+
+  const q = normalize(query.trim());
+  const list = troncons
+    .filter((t) => normalize(`${nom(t.etapeDepartId)} ${nom(t.etapeArriveeId)}`).includes(q))
+    .sort((a, b) => nom(a.etapeDepartId).localeCompare(nom(b.etapeDepartId), "fr"));
+  const estimes = troncons.filter((t) => t.distanceEstimee).length;
+
+  return (
+    <div>
+      <div className="space-y-3 px-4 pt-3 pb-2">
+        {canEdit ? (
+          <button
+            type="button"
+            onClick={onStartPick}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-gt-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-gt-teal-800"
+          >
+            <Icon name="plus" className="size-4" />
+            Nouveau tronçon
+          </button>
+        ) : null}
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gt-teal-900/70">
+          <span className="flex items-center gap-1.5">
+            <span aria-hidden="true" className="h-1 w-6 rounded bg-[#1a73e8]" />
+            mesuré
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className="h-0 w-6 border-t-[3px] border-dashed border-[#1a73e8]"
+            />
+            estimé ({estimes}/{troncons.length})
+          </span>
+        </div>
+      </div>
+      {list.length === 0 ? (
+        <p className="px-4 py-6 text-sm text-gt-teal-900/60">Aucun tronçon.</p>
+      ) : (
+        <ul>
+          {list.map((t) => (
+            <li key={t.id} className="border-t border-gt-mist/50">
+              <button
+                type="button"
+                onClick={() => onOpen(t.id)}
+                className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left hover:bg-gt-teal-50"
+              >
+                <span className="min-w-0">
+                  <span className="block truncate font-medium text-gt-teal-900">
+                    {nom(t.etapeDepartId)} {t.bidirectionnel ? "↔" : "→"} {nom(t.etapeArriveeId)}
+                  </span>
+                  <span className="block text-xs text-gt-teal-900/60">
+                    {formatKm(t.distanceKm)} · {formatDuree(t.dureeMinutes)} · difficulté{" "}
+                    {t.difficulte}
+                  </span>
+                </span>
+                {t.distanceEstimee ? (
+                  <span className="shrink-0 rounded-full bg-gt-sand-200 px-2 py-0.5 text-[11px] font-semibold text-gt-teal-900">
+                    estimé
+                  </span>
+                ) : null}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -367,22 +732,31 @@ function ResultList({
 function PlaceCard({
   etape,
   etapes,
+  troncons,
+  nom,
   canEdit,
   canDelete,
   onEdit,
   onCenter,
   onSelect,
+  onOpenTroncon,
   onDeleted,
 }: {
   etape: EtapeItem;
   etapes: readonly EtapeItem[];
+  troncons: readonly TronconItem[];
+  nom: (id: string) => string;
   canEdit: boolean;
   canDelete: boolean;
   onEdit: () => void;
   onCenter: () => void;
   onSelect: (etape: EtapeItem) => void;
+  onOpenTroncon: (id: string) => void;
   onDeleted: () => void;
 }) {
+  const relies = troncons.filter(
+    (t) => t.etapeDepartId === etape.id || t.etapeArriveeId === etape.id,
+  );
   const [copied, setCopied] = useState(false);
   const coordinates = `${etape.latitude.toFixed(6)}, ${etape.longitude.toFixed(6)}`;
   const nearby = etapes
@@ -487,6 +861,39 @@ function PlaceCard({
                   </Link>
                 </li>
               ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="mt-4">
+          <h3 className="font-semibold text-gt-teal-900">Tronçons ({relies.length})</h3>
+          {relies.length === 0 ? (
+            <p className="mt-1 text-sm text-gt-teal-900/60">
+              Aucun tronçon : ce lieu n&apos;est relié à aucun autre.
+            </p>
+          ) : (
+            <ul className="mt-2 space-y-1">
+              {relies.map((t) => {
+                const autre = t.etapeDepartId === etape.id ? t.etapeArriveeId : t.etapeDepartId;
+                return (
+                  <li key={t.id}>
+                    <button
+                      type="button"
+                      onClick={() => onOpenTroncon(t.id)}
+                      className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-gt-teal-50"
+                    >
+                      <span className="flex min-w-0 items-center gap-2 text-gt-teal-900">
+                        <Icon name="route" className="size-4 shrink-0 text-gt-teal-700" />
+                        <span className="truncate">{nom(autre)}</span>
+                      </span>
+                      <span className="shrink-0 text-xs text-gt-teal-900/60">
+                        {formatKm(t.distanceKm)} · {formatDuree(t.dureeMinutes)}
+                        {t.distanceEstimee ? " · estimé" : ""}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>

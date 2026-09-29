@@ -14,8 +14,8 @@
  *   notifications. Circuits de Green Trek marqués « [DÉMO] », prix TODO(données terrain).
  *
  * - le graphe de démonstration (E4) : étapes (lieux OpenStreetMap réels pour Green Trek,
- *   lieux fictifs pour les agences de démo) et itinéraires des circuits. Les tronçons
- *   arrivent à l'étape E5.
+ *   lieux fictifs pour les agences de démo) et itinéraires des circuits ; tronçons (E5)
+ *   entre plus proches voisins, distances et durées estimées.
  * Le script vide d'abord la base : il est destiné au développement uniquement.
  */
 import "dotenv/config";
@@ -33,9 +33,11 @@ import {
   type DemoCircuit,
   type DemoGraph,
   generateAgencyDemo,
+  generateDemoEdges,
   GREEN_TREK_CIRCUITS,
   GREEN_TREK_GRAPH,
   ITINERAIRE_DEMO,
+  TRONCON_DEMO,
 } from "./demo-data";
 
 /** Mot de passe commun à tous les comptes de démonstration (documenté dans docs/AVANCEMENT.md). */
@@ -262,6 +264,21 @@ async function seedDemoActivity(refs: AgencyRefs, now: Date): Promise<void> {
     etapeIds.push(created.id);
   }
 
+  // Tronçons de démonstration : distances et durées ESTIMÉES (distanceEstimee = true, §11).
+  await db.troncon.createMany({
+    data: generateDemoEdges(demo.graph).map((edge) => ({
+      agenceId,
+      etapeDepartId: etapeIds[edge.from]!,
+      etapeArriveeId: etapeIds[edge.to]!,
+      distanceKm: edge.distanceKm,
+      dureeMinutes: edge.dureeMinutes,
+      difficulte: 2,
+      bidirectionnel: true,
+      distanceEstimee: true,
+      commentaire: TRONCON_DEMO,
+    })),
+  });
+
   const circuitIds: string[] = [];
   for (const [index, circuit] of data.circuits.entries()) {
     const created = await db.circuit.create({ data: { ...circuit, agenceId, statut: "PUBLIE" } });
@@ -458,19 +475,20 @@ async function main(): Promise<void> {
     );
   }
 
-  const [agences, utilisateurs, partenaires, etapes, circuits, departs, reservations] =
+  const [agences, utilisateurs, partenaires, etapes, troncons, circuits, departs, reservations] =
     await Promise.all([
       db.agence.count(),
       db.utilisateur.count(),
       db.partenaire.count(),
       db.etape.count(),
+      db.troncon.count(),
       db.circuit.count(),
       db.sessionDepart.count(),
       db.reservation.count(),
     ]);
   console.log(
     `Seed terminé : ${agences} agences, ${utilisateurs} utilisateurs, ${partenaires} partenaires, ` +
-      `${etapes} étapes, ${circuits} circuits, ${departs} départs, ${reservations} réservations ` +
+      `${etapes} étapes, ${troncons} tronçons, ${circuits} circuits, ${departs} départs, ${reservations} réservations ` +
       "(démonstration fictive).",
   );
 }

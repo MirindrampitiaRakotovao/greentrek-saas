@@ -5,7 +5,7 @@
 export function slugify(label: string): string {
   return label
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/\p{Diacritic}/gu, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")

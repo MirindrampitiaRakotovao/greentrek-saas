@@ -11,7 +11,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E2 Auth et multi-tenant | Fait | 2026-09-28 | Typecheck, lint, 167 tests, build et 14 scénarios de bout en bout verts ; parcours vérifiés dans le navigateur par l'étudiant (connexion admin, inscription d'agence, connexion client, super admin) |
 | E3 Fondations back-office | Fait | 2026-09-28 | Validé par l'étudiant. Complété par la refonte visuelle des tableaux de bord (voir « Refonte des tableaux de bord ») |
 | E4 Circuits et étapes | Fait | 2026-09-29 | Validé par l'étudiant, y compris la carte au style Google Maps et les 27 lieux réels de la côte Est |
-| E5 Éditeur de graphe | À faire | | |
+| E5 Éditeur de graphe | En cours | 2026-09-29 | Typecheck, lint, 333 tests, build et parcours complet dans le navigateur (création, doublon refusé, modification, suppression) verts ; en attente de vérification par l'étudiant |
 | E6 Algorithmes | À faire | | |
 | E7 Départs | À faire | | |
 | E8 Site vitrine | À faire | | |
@@ -181,6 +181,19 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
   - sur mobile, épingles repoussées hors de l'écran (marge du panneau appliquée alors que le panneau est sous la carte) : marge réservée au grand écran ;
   - fiche d'un lieu ouverte au milieu (position de défilement de la liste conservée) : retour en haut à chaque changement de vue.
 
+### E5 — Éditeur de graphe : tronçons (2026-09-29)
+
+- **Décisions validées** : sinuosité 1,3 (A) ; règle de Naismith adaptée à 4 km/h + 1 h par 600 m de dénivelé positif (B) ; tronçons de démonstration entre plus proches voisins (C) ; éditeur sur la page de la carte, avec un sélecteur Étapes / Tronçons (D).
+- **Estimations** (`src/lib/graph/config.ts`, `estimation.ts`, fonctions pures testées) :
+  - distance estimée = Haversine × 1,3, arrondie à 10 m, jamais nulle (RG 6). Justification : un sentier mesure en général 1,2 à 1,4 fois la ligne droite ; valeur médiane, à ajuster avec les relevés GPS ;
+  - durée estimée (règle de Naismith adaptée) = distance / 4 km/h + dénivelé positif / 600 m/h ; la descente n'est pas comptée ; arrondie à la minute supérieure. 4 km/h au lieu des 5 km/h d'origine : groupe de randonneurs sur sentiers tropicaux.
+  - Ces valeurs sont seulement PROPOSÉES : saisir une distance décoche automatiquement « distance estimée » (mesure de terrain).
+- **Règles** (`src/lib/services/troncons.ts`) : RG 6 (étapes distinctes, validation Zod + CHECK SQL ; même agence, helper tenant), RG 7 (un tronçon par sens, index unique + message clair), **doublon inverse** (décision E1) : si A→B existe et que A→B ou B→A est à double sens, B→A est refusé ; deux sens uniques A→B et B→A restent permis (montée et descente de durées différentes). RG 8 : supprimer le dernier tronçon d'une étape la rend de nouveau supprimable.
+- **Éditeur** (page « Carte du réseau », §6.5) : vue Tronçons avec liste filtrable, légende (trait plein = mesuré, pointillés = estimé), création par clic sur l'étape de départ puis d'arrivée (formulaire prérempli avec la distance à vol d'oiseau affichée), clic sur un tronçon (ou dans la fiche d'un lieu) pour le modifier ou le supprimer. Lecture seule pour le GUIDE. Dans la vue Étapes, les tronçons apparaissent en fond.
+- **Tronçons de démonstration** (`generateDemoEdges`, fonction pure testée) : chaque lieu relié à ses 3 plus proches voisins à moins de 15 km, plus les étapes consécutives des itinéraires, puis les groupes isolés du continent reliés par la paire la plus proche (l'arrière-pays de Vavatenina). Toutes les distances et durées sont estimées (`distanceEstimee = true`, `TODO(données terrain)`). **L'île Sainte-Marie n'est pas reliée** : pas de tronçon à pied à travers la mer. Cela servira à démontrer en E6 le cas « aucun chemin » (§6.4). Green Trek : 42 tronçons ; seed total : 57.
+- **Correctifs de qualité** : la suppression des accents dans la recherche et les slugs s'écrit désormais `\p{Diacritic}` (l'outil d'écriture avait remplacé les échappements `\u0300-\u036f` par des caractères invisibles, fonctionnels mais illisibles) ; croix native du navigateur masquée dans la recherche de la carte (deux croix).
+- **Tests** : 27 tests supplémentaires (estimations ; tronçons de démonstration : pas de boucle, une arête par paire, itinéraires couverts, continent connexe et île séparée ; service : RG 6, RG 7, doublon inverse, modification, suppression, isolation). Parcours complet dans un vrai navigateur : création Mahambo → Vavatenina (35,19 km proposés = 27,07 km × 1,3 ; 528 min), doublon refusé, réouverture, suppression.
+
 ## Captures d'écran à prendre
 
 - E0 : page d'accueil provisoire (palette) et réponse JSON de `/api/health` avec `"database": "connectée"`.
@@ -188,6 +201,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - E2a : sortie de `npm test` montrant les tests d'isolation (liste détaillée : `npx vitest run tests/integration/isolation.test.ts`).
 - E3a : back-office sur ordinateur et sur mobile (menu ouvert) ; liste de l'équipe ; refus « dernier administrateur » ; page Mon profil.
 - E3b : paramètres de l'agence ; liste des partenaires (les 4 partenaires réels de Green Trek) ; fiche d'un guide avec ses langues ; refus de suppression d'un partenaire utilisé (après E4).
+- E5 : vue Tronçons (réseau en pointillés, légende) ; création d'un tronçon (départ rouge, arrivée orange, distance proposée) ; refus d'un doublon ; fiche d'un lieu avec ses tronçons ; Sainte-Marie non reliée.
 - E4 bis : carte plein cadre (côte Est, 27 lieux réels), fiche d'un lieu avec vue satellite, calque Satellite, filtre « Embarcadères », version mobile.
 - E4 : carte des étapes (lieux OpenStreetMap autour de Mahambo) ; formulaire « Nouvelle étape » après un clic ; fiche d'un circuit avec l'itinéraire numéroté sur la carte ; liste des circuits ; refus de publication sous deux étapes.
 - Refonte : tableau de bord de l'agence (ordinateur et mobile), vue plateforme du super admin, espace voyageur, tableau de bord du guide ; comparaison avec la maquette d'inspiration.

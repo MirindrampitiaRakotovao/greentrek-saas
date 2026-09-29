@@ -89,3 +89,19 @@ body {
   background: rgb(255 255 255 / 0.85);
   font-size: 10px;
 }
+
+/* Infobulle d'un tronçon (distance, durée) : carte blanche arrondie, comme Google Maps. */
+.leaflet-tooltip.gt-edge-tooltip {
+  border: 0;
+  border-radius: 10px;
+  padding: 4px 10px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.2);
+  color: var(--gt-teal-900);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Recherche de la carte : on masque la croix native du navigateur (le champ a déjà la sienne). */
+.gt-search-no-cancel::-webkit-search-cancel-button {
+  appearance: none;
+}

@@ -18,7 +18,7 @@ const LeafletMap = dynamic(() => import("@/components/map/leaflet-map"), {
   ),
 });
 
-export type { MapFocus, MapMarker } from "@/components/map/leaflet-map";
+export type { MapEdge, MapFocus, MapMarker } from "@/components/map/leaflet-map";
 
 export function MapView(props: LeafletMapProps) {
   return <LeafletMap {...props} />;
