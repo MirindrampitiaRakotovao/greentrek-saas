@@ -11,7 +11,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E2 Auth et multi-tenant | Fait | 2026-09-28 | Typecheck, lint, 167 tests, build et 14 scénarios de bout en bout verts ; parcours vérifiés dans le navigateur par l'étudiant (connexion admin, inscription d'agence, connexion client, super admin) |
 | E3 Fondations back-office | Fait | 2026-09-28 | Validé par l'étudiant. Complété par la refonte visuelle des tableaux de bord (voir « Refonte des tableaux de bord ») |
 | E4 Circuits et étapes | Fait | 2026-09-29 | Validé par l'étudiant, y compris la carte au style Google Maps et les 27 lieux réels de la côte Est |
-| E5 Éditeur de graphe | En cours | 2026-09-29 | Typecheck, lint, 333 tests, build et parcours complet dans le navigateur (création, doublon refusé, modification, suppression) verts ; en attente de vérification par l'étudiant |
+| E5 Éditeur de graphe | Fait | 2026-09-29 | Validé par l'étudiant (333 tests, parcours complet dans le navigateur) |
 | E6 Algorithmes | À faire | | |
 | E7 Départs | À faire | | |
 | E8 Site vitrine | À faire | | |
