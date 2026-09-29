@@ -46,37 +46,46 @@ body {
   }
 }
 
-/* Marqueurs de carte (Leaflet divIcon) : pastille ronde avec le rang de l'étape. */
-.gt-marker-wrapper {
+/* ─── Carte (style inspiré de Google Maps, demandé par l'étudiant) ─────────────── */
+
+.gt-map {
+  background: #aad3df; /* couleur de la mer pendant le chargement des tuiles */
+  font-family: var(--font-poppins), sans-serif;
+}
+
+/* Épingles (Leaflet divIcon) : SVG en goutte, légère ombre portée. */
+.gt-pin {
   background: transparent;
   border: 0;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.3));
 }
 
-.gt-marker {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 9999px;
-  border: 3px solid var(--gt-white);
-  background: var(--gt-teal-700);
-  color: var(--gt-white);
-  font:
-    600 12px/1 var(--font-poppins),
-    sans-serif;
-  box-shadow: 0 2px 6px rgb(15 65 77 / 0.35);
-}
-
-.gt-marker--selected {
-  background: var(--gt-chart-2);
-  transform: scale(1.15);
-}
-
-.gt-marker--muted {
-  background: var(--gt-sky);
-}
-
-.gt-marker--new {
-  background: var(--gt-sand-300);
+/* Nom du lieu à côté de l'épingle : texte sans cadre, avec un halo blanc pour rester lisible. */
+.leaflet-tooltip.gt-pin-label {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
   color: var(--gt-teal-900);
+  font-size: 13px;
+  font-weight: 600;
+  text-shadow:
+    0 0 3px #fff,
+    0 0 3px #fff,
+    0 0 3px #fff;
+}
+
+.leaflet-tooltip.gt-pin-label::before {
+  display: none;
+}
+
+.leaflet-tooltip.gt-pin-label--selected {
+  color: #d93025;
+  font-size: 15px;
+}
+
+.gt-map .leaflet-control-attribution {
+  border-radius: 6px 0 0 0;
+  background: rgb(255 255 255 / 0.85);
+  font-size: 10px;
 }

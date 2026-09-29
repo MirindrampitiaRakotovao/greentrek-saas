@@ -9,7 +9,7 @@ import {
   GREEN_TREK_CIRCUITS,
   GREEN_TREK_GRAPH,
 } from "../../prisma/demo-data";
-import { MAHAMBO_OSM_PLACES } from "../../prisma/osm-mahambo";
+import { COTE_EST_OSM_PLACES, MAHAMBO_OSM_PLACES } from "../../prisma/osm-mahambo";
 
 /**
  * Les données de démonstration doivent respecter les règles de gestion : sinon, les
@@ -137,8 +137,19 @@ describe("données de démonstration", () => {
     }
 
     it("Green Trek : uniquement des lieux OpenStreetMap, source citée, aucune coordonnée inventée", () => {
+      // Tous dans la bande côtière Est de Madagascar (Analanjirofo, Atsinanana, Sainte-Marie).
+      for (const e of GREEN_TREK_GRAPH.etapes) {
+        expect(e.latitude).toBeGreaterThan(-18.2);
+        expect(e.latitude).toBeLessThan(-16.8);
+        expect(e.longitude).toBeGreaterThan(49.1);
+        expect(e.longitude).toBeLessThan(49.9);
+      }
       expect(GREEN_TREK_GRAPH.etapes.map((e) => [e.nom, e.latitude, e.longitude])).toEqual(
-        MAHAMBO_OSM_PLACES.map((p) => [p.nom, p.latitude, p.longitude]),
+        [...MAHAMBO_OSM_PLACES, ...COTE_EST_OSM_PLACES].map((p) => [
+          p.nom,
+          p.latitude,
+          p.longitude,
+        ]),
       );
       for (const e of GREEN_TREK_GRAPH.etapes) expect(e.description).toContain("OpenStreetMap");
       // Ambodiforaha n'existe pas dans OpenStreetMap : il ne doit pas être créé.

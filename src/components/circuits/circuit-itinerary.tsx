@@ -216,12 +216,14 @@ export function CircuitItinerary({
       </div>
 
       <div className="min-w-0">
-        <MapView
-          markers={markers}
-          path={path}
-          fitKey={steps.map((s) => s.id).join()}
-          className="h-[400px]"
-        />
+        <div className="overflow-hidden rounded-2xl">
+          <MapView
+            markers={markers}
+            path={path}
+            fitKey={steps.map((s) => s.id).join()}
+            className="h-[400px]"
+          />
+        </div>
         <p className="mt-2 text-xs text-gt-teal-900/55">
           Tracé indicatif en ligne droite entre les étapes (chemins réels : étapes E5 et E6). Fond
           de carte © contributeurs OpenStreetMap.

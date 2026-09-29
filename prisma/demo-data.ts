@@ -13,7 +13,7 @@
  * les remplace par les identifiants créés en base.
  */
 
-import { MAHAMBO_OSM_PLACES } from "./osm-mahambo";
+import { COTE_EST_OSM_PLACES, MAHAMBO_OSM_PLACES, type OsmPlace } from "./osm-mahambo";
 
 export type DemoCircuit = {
   titre: string;
@@ -259,16 +259,23 @@ export type DemoGraph = { etapes: DemoEtape[]; itineraires: number[][] };
 const ITINERAIRE_DEMO = "TODO(données terrain) : itinéraire de démonstration.";
 
 /** Green Trek Mada : lieux RÉELS d'OpenStreetMap (voir prisma/osm-mahambo.ts). */
-export const GREEN_TREK_GRAPH: DemoGraph = {
-  etapes: MAHAMBO_OSM_PLACES.map((place) => ({
+function fromOsm(place: OsmPlace): DemoEtape {
+  return {
     nom: place.nom,
-    type: "VILLAGE",
+    // Soanierana Ivongo est le port d'embarquement vers l'île Sainte-Marie.
+    type: place.nom === "Soanierana Ivongo" ? "EMBARCADERE" : "VILLAGE",
     latitude: place.latitude,
     longitude: place.longitude,
     description:
       `Lieu OpenStreetMap (nœud ${place.osmId}, « ${place.osmPlace} ») ; © contributeurs OpenStreetMap, ODbL. ` +
       "TODO(données terrain) : vérifier que ce lieu est sur les sentiers de l'agence.",
-  })),
+  };
+}
+
+export const GREEN_TREK_GRAPH: DemoGraph = {
+  // Les lieux autour de Mahambo d'abord (index 0 à 7, utilisés par les itinéraires),
+  // puis les villes et villages de la côte Est (réalisme de la carte).
+  etapes: [...MAHAMBO_OSM_PLACES, ...COTE_EST_OSM_PLACES].map(fromOsm),
   // 0 Mahambo, 1 Mahambo Doany, 2 Morafeno, 3 Agnalambany, 4 Antsikafoka,
   // 5 Ambinany Iazafo, 6 Tanambao Sahorana, 7 Namahoaka
   itineraires: [

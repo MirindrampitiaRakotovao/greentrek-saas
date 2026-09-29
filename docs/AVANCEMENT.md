@@ -10,7 +10,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E1 Schéma Prisma | Fait | 2026-09-28 | 19 tables et 18 CHECK migrés, seed OK, ERD rédigé ; typecheck, lint et build verts ; `npm test` 23/23 (3 unitaires, 20 d'intégration) chez l'étudiant |
 | E2 Auth et multi-tenant | Fait | 2026-09-28 | Typecheck, lint, 167 tests, build et 14 scénarios de bout en bout verts ; parcours vérifiés dans le navigateur par l'étudiant (connexion admin, inscription d'agence, connexion client, super admin) |
 | E3 Fondations back-office | Fait | 2026-09-28 | Validé par l'étudiant. Complété par la refonte visuelle des tableaux de bord (voir « Refonte des tableaux de bord ») |
-| E4 Circuits et étapes | En cours | 2026-09-29 | Typecheck, lint, 297 tests, build et contrôles dans le navigateur (carte, clic, lecture seule du guide, mobile) verts ; en attente de vérification par l'étudiant |
+| E4 Circuits et étapes | En cours | 2026-09-29 | Complété par la carte au style Google Maps et 19 lieux réels de la côte Est (demande de l'étudiant) ; typecheck, lint, tests, build et contrôles dans le navigateur verts ; en attente de vérification par l'étudiant |
 | E5 Éditeur de graphe | À faire | | |
 | E6 Algorithmes | À faire | | |
 | E7 Départs | À faire | | |
@@ -164,6 +164,23 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - **Seed** : 17 étapes (8 réelles pour Green Trek, 9 fictives), itinéraires de 2 à 4 étapes pour les 10 circuits (le défaut noté lors de la refonte, circuits publiés sans étapes, est corrigé), 4 prestations des partenaires réels de Green Trek (prix TODO(données terrain)).
 - **Tests** : 26 tests supplémentaires (règles des étapes et des circuits, rangs, isolation en intégration ; graphes de démonstration en unitaire, dont « aucune coordonnée inventée pour Green Trek »). Contrôle dans un vrai navigateur : clic sur la carte → formulaire « Nouvelle étape » ; guide en lecture seule ; guide renvoyé depuis la création de circuit ; aucun débordement sur mobile.
 
+### E4 bis — Carte au style Google Maps et lieux de la côte Est (2026-09-29, demande de l'étudiant)
+
+- **Demande** : une carte au design de Google Maps (capture fournie) et davantage de lieux réels de l'Est de Madagascar pour une démonstration réaliste.
+- **19 lieux réels ajoutés** (OpenStreetMap, requête Overpass à 70 km de Mahambo, identifiants de nœuds cités) : 5 villes (Fenoarivo Atsinanana, Mahavelona/Foulpointe, Vavatenina, Soanierana Ivongo, Ambodifototra sur Sainte-Marie) et 14 villages de la côte et de l'arrière-pays. Le graphe de Green Trek compte 27 lieux réels. Test : toutes les coordonnées viennent de la liste OpenStreetMap et se trouvent dans la bande côtière Est.
+- **Fonds de carte** (`src/lib/map/tiles.ts`), tous gratuits et sans carte bancaire :
+  - Plan : Stadia Maps « OSM Bright » (rendu proche de Google Maps ; sans clé en développement local, compte gratuit requis en ligne) ;
+  - Satellite : Esri World Imagery ; Relief : OpenTopoMap ; OSM : tuiles standard.
+  - **Écart avec le §9** (tuiles OSM standard par défaut) : seul le style change, les données restent OpenStreetMap. Google Maps est exclu (licence de l'API, clé et facturation). **CARTO, essayé d'abord, exige désormais une clé** : ses tuiles affichaient « API KEY REQUIRED ». La première vérification ne regardait que le code HTTP 200 ; les tuiles sont désormais contrôlées sur les images elles-mêmes.
+- **Interface** (`src/components/circuits/map-explorer.tsx`, `src/components/map/leaflet-map.tsx`) : carte plein cadre ; panneau flottant avec recherche (insensible aux accents), liste des résultats et fiche du lieu ; pastilles de filtre par type ; épingles en goutte (rouge et nom affiché pour le lieu sélectionné) ; recentrer et zoom en bas à droite ; « Calques » en bas à gauche avec de vraies vignettes. Sur mobile, le panneau passe sous la carte.
+- **Fiche d'un lieu, uniquement des données réelles** : vue satellite réelle du lieu (tuile Esri calculée depuis ses coordonnées) à la place d'une photo, pas de météo inventée ; actions Centrer, Modifier, Copier les coordonnées, Ouvrir dans OpenStreetMap ; circuits passant par le lieu ; « À proximité » : les 4 étapes les plus proches à vol d'oiseau.
+- **Haversine** (`src/lib/graph/haversine.ts`) : fonction pure, testée (distance de référence Paris–Londres, 1° de latitude, Mahambo–Fénérive ≈ 12,7 km, symétrie). Elle servira aux distances estimées des tronçons (E5) et à l'heuristique de A* (E6).
+- **Défauts trouvés par les tests et les captures, puis corrigés** :
+  - vignettes des calques pointant sur une tuile du canal du Mozambique (coordonnées de tuile erronées) : test ajouté qui vérifie que chaque vignette montre Mahambo ;
+  - bouton « Calques » caché sous le panneau flottant (inaccessible) : commandes de gauche décalées sur grand écran ;
+  - sur mobile, épingles repoussées hors de l'écran (marge du panneau appliquée alors que le panneau est sous la carte) : marge réservée au grand écran ;
+  - fiche d'un lieu ouverte au milieu (position de défilement de la liste conservée) : retour en haut à chaque changement de vue.
+
 ## Captures d'écran à prendre
 
 - E0 : page d'accueil provisoire (palette) et réponse JSON de `/api/health` avec `"database": "connectée"`.
@@ -171,6 +188,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - E2a : sortie de `npm test` montrant les tests d'isolation (liste détaillée : `npx vitest run tests/integration/isolation.test.ts`).
 - E3a : back-office sur ordinateur et sur mobile (menu ouvert) ; liste de l'équipe ; refus « dernier administrateur » ; page Mon profil.
 - E3b : paramètres de l'agence ; liste des partenaires (les 4 partenaires réels de Green Trek) ; fiche d'un guide avec ses langues ; refus de suppression d'un partenaire utilisé (après E4).
+- E4 bis : carte plein cadre (côte Est, 27 lieux réels), fiche d'un lieu avec vue satellite, calque Satellite, filtre « Embarcadères », version mobile.
 - E4 : carte des étapes (lieux OpenStreetMap autour de Mahambo) ; formulaire « Nouvelle étape » après un clic ; fiche d'un circuit avec l'itinéraire numéroté sur la carte ; liste des circuits ; refus de publication sous deux étapes.
 - Refonte : tableau de bord de l'agence (ordinateur et mobile), vue plateforme du super admin, espace voyageur, tableau de bord du guide ; comparaison avec la maquette d'inspiration.
 - E2b : page `/connexion` ; formulaire `/inscription-agence` avec erreurs de validation ; `/dashboard` après inscription d'une nouvelle agence ; `/admin` (super admin) ; message d'erreur après une connexion refusée.

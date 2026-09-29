@@ -12,13 +12,13 @@ import type { LeafletMapProps } from "@/components/map/leaflet-map";
 const LeafletMap = dynamic(() => import("@/components/map/leaflet-map"), {
   ssr: false,
   loading: () => (
-    <div className="grid h-[420px] w-full place-items-center rounded-2xl bg-gt-teal-100 text-sm text-gt-teal-900/60">
+    <div className="grid h-full min-h-[320px] w-full place-items-center bg-[#aad3df] text-sm text-gt-teal-900/70">
       Chargement de la carte…
     </div>
   ),
 });
 
-export type { MapMarker } from "@/components/map/leaflet-map";
+export type { MapFocus, MapMarker } from "@/components/map/leaflet-map";
 
 export function MapView(props: LeafletMapProps) {
   return <LeafletMap {...props} />;

@@ -18,6 +18,11 @@ const etapeSelect = {
   latitude: true,
   longitude: true,
   altitudeM: true,
+  // Circuits qui passent par ce lieu (fiche du lieu sur la carte).
+  circuits: {
+    select: { circuit: { select: { id: true, titre: true } } },
+    orderBy: { circuit: { titre: "asc" } },
+  },
   _count: {
     select: {
       tronconsDepart: true,

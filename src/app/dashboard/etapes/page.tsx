@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { EtapesEditor } from "@/components/circuits/etapes-editor";
+import { MapExplorer } from "@/components/circuits/map-explorer";
 import { requireAgencyUser } from "@/lib/auth/session";
 import { can } from "@/lib/permissions";
 import { listEtapes } from "@/lib/services/etapes";
@@ -13,7 +13,7 @@ export default async function EtapesPage() {
   const etapes = await listEtapes(db);
 
   return (
-    <EtapesEditor
+    <MapExplorer
       etapes={etapes.map((e) => ({
         id: e.id,
         nom: e.nom,
@@ -27,6 +27,7 @@ export default async function EtapesPage() {
           e._count.tronconsArrivee +
           e._count.circuits +
           e._count.circuitPartenaires,
+        circuits: [...new Map(e.circuits.map((c) => [c.circuit.id, c.circuit])).values()],
       }))}
       canEdit={can(user.role, "modifier", "etape")}
       canDelete={can(user.role, "supprimer", "etape")}
