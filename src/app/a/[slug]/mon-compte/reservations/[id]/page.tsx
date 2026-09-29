@@ -3,11 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Card, StatusPill } from "@/components/dashboard/widgets";
+import { InvoicePanel } from "@/components/facture/invoice-panel";
 import { Icon } from "@/components/ui/icon";
 import { CancelReservationButton } from "@/components/vitrine/cancel-reservation-button";
 import { requireClient } from "@/lib/auth/session";
 import { formatDateRange, formatDateTime, formatMoney } from "@/lib/format";
+import { invoiceLink } from "@/lib/invoice-link";
 import { getVitrineAgency } from "@/lib/public-agency";
+import { getInvoice } from "@/lib/services/factures";
 import { getClientReservation } from "@/lib/services/reservations";
 import { METHODE_PAIEMENT_LABELS, STATUT_PAIEMENT_LABELS } from "@/lib/validators/reservations";
 
@@ -30,6 +33,10 @@ export default async function ReservationPage({
   ]);
   if (!reservation) notFound();
   const devise = agence?.devise ?? "MGA";
+  const [invoice, link] = await Promise.all([
+    getInvoice(db, user.agenceId, reservation.id),
+    invoiceLink(slug, user.agenceId, reservation.id),
+  ]);
   const justPaid = (await searchParams).paye === "1";
   const paiementEnAttente = reservation.paiements.some((p) => p.statut === "EN_ATTENTE");
 
@@ -154,6 +161,8 @@ export default async function ReservationPage({
           <p className="text-sm whitespace-pre-line text-gt-teal-900/80">{reservation.remarques}</p>
         </Card>
       ) : null}
+
+      {invoice ? <InvoicePanel invoice={invoice} link={link} /> : null}
 
       {reservation.peutAnnuler ? (
         <Card title="Annulation">

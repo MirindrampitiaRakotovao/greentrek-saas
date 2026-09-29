@@ -45,12 +45,17 @@ async function lockSession(tx: TenantTx, sessionId: string): Promise<boolean> {
 }
 
 /** Même principe pour une réservation (paiement, annulation) : une opération à la fois. */
-async function lockReservation(tx: TenantTx, reservationId: string, clientId?: string) {
+export async function lockReservation(tx: TenantTx, reservationId: string, clientId?: string) {
   const locked = await tx.reservation.updateMany({
     where: { id: reservationId, ...(clientId ? { clientId } : {}) },
     data: { nombrePersonnes: { increment: 0 } },
   });
   return locked.count === 1;
+}
+
+/** Somme des paiements VALIDÉS (RG 16 : ne dépasse jamais le montant total). */
+export function montantPaye(paiements: readonly { montant: number; statut: StatutPaiement }[]) {
+  return paiements.filter((p) => p.statut === "VALIDE").reduce((total, p) => total + p.montant, 0);
 }
 
 function isUniqueViolation(error: unknown): boolean {

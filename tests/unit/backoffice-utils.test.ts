@@ -35,6 +35,13 @@ describe("navigationFor : menu selon le rôle", () => {
     expect(hrefs("STAFF")).toContain("/dashboard/performances");
   });
 
+  it("réservations, paiements et clients : ADMIN_AGENCE et STAFF, pas le GUIDE (E10)", () => {
+    const gestion = ["/dashboard/reservations", "/dashboard/paiements", "/dashboard/clients"];
+    expect(hrefs("ADMIN_AGENCE")).toEqual(expect.arrayContaining(gestion));
+    expect(hrefs("STAFF")).toEqual(expect.arrayContaining(gestion));
+    for (const href of gestion) expect(hrefs("GUIDE")).not.toContain(href);
+  });
+
   it("GUIDE ne voit pas l'équipe, mais voit son profil", () => {
     expect(hrefs("GUIDE")).not.toContain("/dashboard/equipe");
     expect(hrefs("GUIDE")).toContain("/dashboard/profil");

@@ -2,6 +2,8 @@ import bcrypt from "bcryptjs";
 
 import { Prisma, type PrismaClient } from "@/generated/prisma/client";
 import { getAdminDb } from "@/lib/admin-db";
+import { type Paginated, pageArgs, pageCount } from "@/lib/pagination";
+import type { TenantDb } from "@/lib/tenant";
 import type { ClientRegistrationInput } from "@/lib/validators/auth";
 
 const BCRYPT_COST = 10;
@@ -54,4 +56,111 @@ export async function registerClient(
     }
     throw error;
   }
+}
+
+/* ─── Clients vus par l'agence (§7.3, lecture seule : décision E de l'étape E10) ─── */
+
+export type ClientRow = {
+  id: string;
+  prenom: string;
+  nom: string;
+  email: string;
+  telephone: string | null;
+  createdAt: Date;
+  reservations: number;
+  /** Montant des réservations non annulées. */
+  totalReserve: number;
+  derniereReservation: Date | null;
+};
+
+export async function listClients(
+  db: TenantDb,
+  q: string | undefined,
+  page: number,
+): Promise<Paginated<ClientRow>> {
+  const search = q?.trim();
+  const where: Prisma.UtilisateurWhereInput = {
+    role: "CLIENT",
+    ...(search
+      ? {
+          OR: [
+            { nom: { contains: search } },
+            { prenom: { contains: search } },
+            { email: { contains: search } },
+          ],
+        }
+      : {}),
+  };
+  const [clients, total] = await Promise.all([
+    db.utilisateur.findMany({
+      where,
+      orderBy: [{ nom: "asc" }, { prenom: "asc" }],
+      select: {
+        id: true,
+        prenom: true,
+        nom: true,
+        email: true,
+        telephone: true,
+        createdAt: true,
+      },
+      ...pageArgs(page),
+    }),
+    db.utilisateur.count({ where }),
+  ]);
+  // Totaux calculés par la base (un groupBy pour la page), pas en mémoire.
+  const ids = clients.map((c) => c.id);
+  const [actives, toutes] = await Promise.all([
+    db.reservation.groupBy({
+      by: ["clientId"],
+      where: { clientId: { in: ids }, statut: { not: "ANNULEE" } },
+      _sum: { montantTotal: true },
+    }),
+    db.reservation.groupBy({
+      by: ["clientId"],
+      where: { clientId: { in: ids } },
+      _count: { _all: true },
+      _max: { createdAt: true },
+    }),
+  ]);
+  const items = clients.map((c) => {
+    const a = actives.find((g) => g.clientId === c.id);
+    const t = toutes.find((g) => g.clientId === c.id);
+    return {
+      ...c,
+      reservations: t?._count._all ?? 0,
+      totalReserve: a?._sum.montantTotal ?? 0,
+      derniereReservation: t?._max.createdAt ?? null,
+    };
+  });
+  return { items, total, page, pageCount: pageCount(total) };
+}
+
+/** Fiche d'un client de l'agence avec l'historique de ses réservations. */
+export function getClientDetail(db: TenantDb, id: string) {
+  return db.utilisateur.findFirst({
+    where: { id, role: "CLIENT" },
+    select: {
+      id: true,
+      prenom: true,
+      nom: true,
+      email: true,
+      telephone: true,
+      createdAt: true,
+      dernierLoginAt: true,
+      reservations: {
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          reference: true,
+          statut: true,
+          nombrePersonnes: true,
+          montantTotal: true,
+          createdAt: true,
+          session: {
+            select: { dateDebut: true, dateFin: true, circuit: { select: { titre: true } } },
+          },
+        },
+      },
+    },
+  });
 }

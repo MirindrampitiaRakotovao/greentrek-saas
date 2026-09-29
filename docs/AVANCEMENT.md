@@ -16,7 +16,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E7 Départs | Fait | 2026-09-29 | Validé par l'étudiant : typecheck, lint, 415 tests, build et parcours dans le navigateur verts (création, statut automatique, annulation en cascade, vue du guide, isolation) |
 | E8 Site vitrine | Fait | 2026-09-29 | Validé par l'étudiant : E8a (données publiques, recherche, détail d'un circuit), E8b (accueil d'après la maquette), E8c (photos sous licence libre avec crédits, partenaires illustrés, titre script, cercles flous) ; typecheck, lint, 436 tests, build et parcours dans le navigateur verts |
 | E9 Réservation client | Fait | 2026-09-29 | Validé par l'étudiant : inscription, tunnel, anti-surbooking testé en simultané, paiement simulé, annulation ; typecheck, lint, 459 tests, build et parcours dans le navigateur verts |
-| E10 Back-office opérationnel | En partie | 2026-09-28 | Tableau de bord et KPIs avancés à la demande de l'étudiant (refonte des tableaux de bord). Reste : gestion des réservations, clients, paiements |
+| E10 Back-office opérationnel | En cours | 2026-09-29 | Implémenté (réservations, paiements, clients, à traiter, export CSV, facture avec QR code) : typecheck, lint, 479 tests, build et parcours dans le navigateur verts ; en attente de la validation de l'étudiant |
 | E11 Super admin, plans | À faire | | |
 | E12 Finition | À faire | | |
 
@@ -294,7 +294,28 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - **Défaut trouvé et corrigé pendant le parcours dans le navigateur** : cliquer « Continuer » à l'étape Participants envoyait la réservation sans confirmation (React réutilisait le même bouton en passant son type à « submit » pendant le clic). Correction : clés distinctes sur les boutons, et garde qui ignore tout envoi avant la dernière étape (touche Entrée).
 - **Tests** : 18 tests d'intégration (création, montant figé, places, départ fermé, deux tests de simultanéité, paiements, refus simulé, virement, paiements simultanés, annulation avant et le jour du départ, confidentialité entre clients, isolation entre agences, inscription), tests unitaires de la référence, du premier jour réservable et de l'adresse de retour. Parcours complet dans le navigateur (serveur de production) ; données de test supprimées ensuite de la base de dev.
 
+### E10 — Back-office opérationnel : réservations, paiements, clients, facture (2026-09-29)
+
+- **Réservations** (`/dashboard/reservations`, ADMIN_AGENCE et STAFF) : bandeau « À traiter » (réservations en attente, paiements à valider, à régulariser, à rembourser, repris sur le tableau de bord), liste paginée avec filtres dans l'URL (période, statut, circuit, recherche par référence ou client), fiche avec client, départ, participants, paiements et actions.
+- **Actions**, toutes sous le verrou de ligne d'E9 (une action de l'agence et une action du client ne se croisent pas ; test : paiement du client et encaissement de l'agence simultanés → jamais plus que le montant) :
+  - confirmer une réservation en attente (décision A : même non entièrement payée, reste affiché) ;
+  - annuler (RG 15 : départ pas commencé ; places libérées, statut du départ recalculé, paiement en attente abandonné) ;
+  - enregistrer un paiement reçu à l'agence, acompte possible, jamais au-delà du reste (RG 16) ; confirmation automatique une fois tout payé ;
+  - valider ou refuser un paiement en attente (virement, espèces) ;
+  - rembourser (simulé) un paiement validé d'une réservation annulée (décision C).
+- **Décision B** : une réservation confirmée passe TERMINEE quand son départ est terminé (à l'affichage, comme les départs en E7) ; une réservation encore en attente après le début du départ apparaît « à régulariser ».
+- **Décision D (écart à la matrice §3)** : pas de suppression d'une réservation, seulement l'annulation, pour garder la trace des réservations et des paiements. **Décision E** : clients en lecture seule.
+- **Paiements** (`/dashboard/paiements`) : liste filtrable (statut, moyen), validation et refus directement dans la liste. **Clients** (`/dashboard/clients`) : recherche, nombre de réservations, total réservé hors annulations (calculé par la base, `groupBy`), dernière réservation ; fiche avec l'historique.
+- **Export CSV (P2, décision F)** des réservations filtrées : séparateur « ; » et BOM UTF-8 pour Excel en français, neutralisation des formules de tableur (injection CSV : une cellule commençant par = + - @ est préfixée), même contrôle d'accès que la liste (403 pour le guide).
+- **Facture avec QR code (ajout demandé par l'étudiant, hors cahier des charges)** : page imprimable (« Imprimer / Enregistrer en PDF »), « acquittée », « pro forma » ou « annulée » selon les paiements, mention « document sans valeur fiscale », NIF et STAT de l'agence non inventés (`TODO(données terrain)`). Aperçu réduit et QR code dans la fiche réservation (back-office et espace client). Le QR code ouvre la facture sans connexion, grâce à une adresse signée (HMAC-SHA256 avec le secret du serveur, comparaison en temps constant) : impossible de deviner ou de fabriquer l'adresse d'une autre facture (signature modifiée ou absente → 404, page non indexée). QR généré sur le serveur par la bibliothèque `qrcode` (MIT), sans service externe. Pour scanner avec un téléphone pendant la démo : `PUBLIC_BASE_URL` = adresse de l'ordinateur sur le Wi-Fi (`.env.example`).
+- **Tableau de bord cohérent avec les données** (définition de « terminé » d'E10) : test qui crée une réservation, encaisse puis annule par les vrais services et vérifie chaque indicateur.
+- **Permissions** : liens Réservations, Paiements, Clients pour ADMIN_AGENCE et STAFF ; le GUIDE n'y a pas accès (redirigé) et voit toujours ses participants dans « Départs ».
+- **Dépendances** : ajout de `qrcode`. `npm audit` signale 6 vulnérabilités préexistantes dans la chaîne Prisma / pilote MariaDB (sans lien avec cet ajout), non corrigées car Prisma 7.10 est fixé ; sans impact pour une démo locale.
+- **Tests** : 14 tests d'intégration (actions et refus, terminée, remboursement, simultanéité, filtres, à traiter, clients, tableau de bord, facture, isolation entre agences), tests unitaires de la signature des factures et du CSV, test des liens par rôle. Parcours dans le navigateur (serveur de production) : tableau de bord, liste, recherche, validation d'un virement → confirmée et facture acquittée, facture ouverte sans connexion (200), signature modifiée ou absente (404), export CSV, paiements, clients, annulation puis remboursement, mobile, guide sans accès (CSV 403), administrateur d'une autre agence (404), facture dans l'espace client ; données de test supprimées ensuite.
+
 ## Captures d'écran à prendre
+
+- E10 : tableau de bord avec le bandeau « À traiter » ; liste des réservations filtrée ; fiche d'une réservation (paiement à valider, puis confirmée) ; facture acquittée avec le QR code ; facture ouverte sur un téléphone après scan ; export CSV ouvert dans Excel ; page Paiements ; fiche d'un client.
 
 - E9 : invitation à se connecter dans le tunnel ; inscription ; étapes Voyageurs, Participants (avec erreurs), Récapitulatif ; paiement simulé ; refus avec un numéro finissant par 0000 ; confirmation avec la référence ; « Mes réservations » ; réservation annulée ; sortie de `npx vitest run tests/integration/reservations.test.ts` (tests de simultanéité).
 

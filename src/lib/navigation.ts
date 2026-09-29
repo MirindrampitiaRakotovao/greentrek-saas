@@ -35,6 +35,26 @@ const NAVIGATION: readonly NavEntry[] = [
     permission: ["lire", "sessionDepart"],
   },
   {
+    href: "/dashboard/reservations",
+    label: "Réservations",
+    icon: "ticket",
+    // Gestion des réservations : ADMIN_AGENCE et STAFF (le GUIDE voit ses participants
+    // depuis « Départs »).
+    permission: ["modifier", "reservation"],
+  },
+  {
+    href: "/dashboard/paiements",
+    label: "Paiements",
+    icon: "wallet",
+    permission: ["modifier", "paiement"],
+  },
+  {
+    href: "/dashboard/clients",
+    label: "Clients",
+    icon: "user",
+    permission: ["modifier", "reservation"],
+  },
+  {
     href: "/dashboard/etapes",
     label: "Carte du réseau",
     icon: "route",

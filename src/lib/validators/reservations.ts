@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { optionalInt, optionalText, requiredText } from "@/lib/validators/common";
+import { optionalInt, optionalText, requiredInt, requiredText } from "@/lib/validators/common";
 
 /*
  * Réservation d'un client (§7.2, tunnel) et paiement simulé (§5.2 tables 8, 12 et 13).
@@ -82,3 +82,45 @@ export const paiementSchema = z
     },
   );
 export type PaiementInput = z.infer<typeof paiementSchema>;
+
+/* ─── Back-office (étape E10) ────────────────────────────────────────────────── */
+
+export const STATUTS_RESERVATION = ["EN_ATTENTE", "CONFIRMEE", "ANNULEE", "TERMINEE"] as const;
+export const STATUT_RESERVATION_LABELS: Record<(typeof STATUTS_RESERVATION)[number], string> = {
+  EN_ATTENTE: "En attente",
+  CONFIRMEE: "Confirmée",
+  ANNULEE: "Annulée",
+  TERMINEE: "Terminée",
+};
+export const STATUTS_PAIEMENT = ["EN_ATTENTE", "VALIDE", "ECHOUE", "REMBOURSE"] as const;
+
+/** Paiement reçu à l'agence : montant libre (acompte possible), plafonné par le service. */
+export const encaissementSchema = z.object({
+  reservationId: z.string().min(1),
+  montant: requiredInt(1, 1_000_000_000, "Le montant"),
+  methode: z.enum(METHODES_PAIEMENT, { error: "Choisissez un moyen de paiement." }),
+});
+export type EncaissementInput = z.infer<typeof encaissementSchema>;
+
+/** Filtres de la liste des réservations (paramètres d'URL, valeurs invalides ignorées). */
+export const reservationFiltersSchema = z.object({
+  periode: z.enum(["a-venir", "passes", "tous"]).catch("a-venir"),
+  statut: z.enum(STATUTS_RESERVATION).optional().catch(undefined),
+  circuitId: z
+    .string()
+    .optional()
+    .catch(undefined)
+    .transform((v) => v || undefined),
+  q: z
+    .string()
+    .trim()
+    .max(100)
+    .optional()
+    .catch(undefined)
+    .transform((v) => v || undefined),
+});
+
+export const paiementFiltersSchema = z.object({
+  statut: z.enum(STATUTS_PAIEMENT).optional().catch(undefined),
+  methode: z.enum(METHODES_PAIEMENT).optional().catch(undefined),
+});
