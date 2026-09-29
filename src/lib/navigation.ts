@@ -23,6 +23,18 @@ const NAVIGATION: readonly NavEntry[] = [
     permission: ["lire", "utilisateur"],
   },
   {
+    href: "/dashboard/circuits",
+    label: "Circuits",
+    icon: "mountain",
+    permission: ["lire", "circuit"],
+  },
+  {
+    href: "/dashboard/etapes",
+    label: "Étapes et carte",
+    icon: "route",
+    permission: ["lire", "etape"],
+  },
+  {
     href: "/dashboard/guides",
     label: "Guides",
     icon: "compass",

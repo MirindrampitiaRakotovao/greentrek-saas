@@ -10,7 +10,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E1 Schéma Prisma | Fait | 2026-09-28 | 19 tables et 18 CHECK migrés, seed OK, ERD rédigé ; typecheck, lint et build verts ; `npm test` 23/23 (3 unitaires, 20 d'intégration) chez l'étudiant |
 | E2 Auth et multi-tenant | Fait | 2026-09-28 | Typecheck, lint, 167 tests, build et 14 scénarios de bout en bout verts ; parcours vérifiés dans le navigateur par l'étudiant (connexion admin, inscription d'agence, connexion client, super admin) |
 | E3 Fondations back-office | Fait | 2026-09-28 | Validé par l'étudiant. Complété par la refonte visuelle des tableaux de bord (voir « Refonte des tableaux de bord ») |
-| E4 Circuits et étapes | À faire | | |
+| E4 Circuits et étapes | En cours | 2026-09-29 | Typecheck, lint, 297 tests, build et contrôles dans le navigateur (carte, clic, lecture seule du guide, mobile) verts ; en attente de vérification par l'étudiant |
 | E5 Éditeur de graphe | À faire | | |
 | E6 Algorithmes | À faire | | |
 | E7 Départs | À faire | | |
@@ -148,6 +148,22 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
   - les libellés `sr-only` d'un tableau défilant débordaient de la page (conteneurs défilants en `position: relative`).
 - **Tests** : 36 tests supplémentaires (générateur de démonstration, calendrier, séries des graphiques en unitaire ; indicateurs des quatre tableaux de bord calculés à la main et isolation entre agences en intégration).
 
+### E4 — Circuits et étapes sur carte (2026-09-29)
+
+- **Décisions validées** : coordonnées issues d'OpenStreetMap avec source citée (A) ; réordonnancement par boutons ↑ ↓ (B) ; image de circuit par adresse web (C).
+- **Coordonnées réelles, rien d'inventé** : les étapes de Green Trek viennent d'une requête OpenStreetMap (Nominatim et Overpass, 2026-09-29) sur les lieux nommés à moins de 12 km de Mahambo : Mahambo, Mahambo Doany, Morafeno, Agnalambany, Antsikafoka, Ambinany Iazafo, Tanambao Sahorana, Namahoaka (`prisma/osm-mahambo.ts`, identifiant de nœud OSM et licence ODbL cités). **Ambodiforaha n'existe pas dans OpenStreetMap** : il n'est pas créé ; l'agence le placera sur la carte à partir d'un relevé GPS. TODO(données terrain) : vérifier que ces lieux sont sur les sentiers de l'agence. Les étapes des agences fictives sont marquées « (fictif) ».
+- **Carte Leaflet + tuiles OpenStreetMap** (§9) : `react-leaflet` 5 (compatible React 19), module chargé uniquement dans le navigateur (import dynamique sans rendu serveur : Leaflet a besoin de `window`). Marqueurs HTML (`divIcon`) numérotés aux couleurs Green Trek (les images de marqueur par défaut de Leaflet se chargent mal avec les bundlers). Attribution OpenStreetMap affichée. Rappel §12 : les tuiles exigent Internet.
+- **Étapes** (`/dashboard/etapes`, nœuds du graphe) : clic sur la carte pour placer une étape (formulaire prérempli), glisser un marqueur pour corriger sa position (enregistré aussitôt), liste filtrable. RG 8 : suppression refusée avec un message indiquant ce qui utilise l'étape (tronçons, circuits, prestations), en plus des clés étrangères RESTRICT. Lecture seule pour le GUIDE.
+- **Circuits** (`/dashboard/circuits`) : liste en cartes (statut, difficulté, durée, étapes, départs, « à partir de X Ar / pers. »), création (en brouillon, puis redirection vers la fiche pour ajouter les étapes), fiche avec publication, itinéraire, partenaires inclus et informations.
+  - **RG 4** : publication refusée sous deux étapes ; un circuit publié ne peut pas descendre sous deux étapes. Rangs toujours 1..n sans trou : ajout en fin, échange avec la voisine pour monter ou descendre (en passant par un rang temporaire libre, car l'index unique (circuit, rang) interdit deux étapes au même rang même un instant), renumérotation après un retrait. La même étape ne peut pas se suivre deux fois, mais une boucle (retour au départ) est permise.
+  - **RG 9** : seul un circuit publié sera visible sur le site vitrine (E8).
+  - Suppression d'un circuit seulement s'il n'a aucun départ ; sinon archivage.
+  - Slug unique par agence (vérifié, puis garanti par l'index unique).
+  - Tracé indicatif en ligne droite entre les étapes : les chemins réels arrivent avec les tronçons (E5) et les algorithmes (E6).
+- **Partenaires inclus** (`CircuitPartenaire`) : prestation, étape facultative, prix unitaire facultatif, inclus ou en option. Le helper tenant refuse un partenaire ou une étape d'une autre agence.
+- **Seed** : 17 étapes (8 réelles pour Green Trek, 9 fictives), itinéraires de 2 à 4 étapes pour les 10 circuits (le défaut noté lors de la refonte, circuits publiés sans étapes, est corrigé), 4 prestations des partenaires réels de Green Trek (prix TODO(données terrain)).
+- **Tests** : 26 tests supplémentaires (règles des étapes et des circuits, rangs, isolation en intégration ; graphes de démonstration en unitaire, dont « aucune coordonnée inventée pour Green Trek »). Contrôle dans un vrai navigateur : clic sur la carte → formulaire « Nouvelle étape » ; guide en lecture seule ; guide renvoyé depuis la création de circuit ; aucun débordement sur mobile.
+
 ## Captures d'écran à prendre
 
 - E0 : page d'accueil provisoire (palette) et réponse JSON de `/api/health` avec `"database": "connectée"`.
@@ -155,6 +171,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - E2a : sortie de `npm test` montrant les tests d'isolation (liste détaillée : `npx vitest run tests/integration/isolation.test.ts`).
 - E3a : back-office sur ordinateur et sur mobile (menu ouvert) ; liste de l'équipe ; refus « dernier administrateur » ; page Mon profil.
 - E3b : paramètres de l'agence ; liste des partenaires (les 4 partenaires réels de Green Trek) ; fiche d'un guide avec ses langues ; refus de suppression d'un partenaire utilisé (après E4).
+- E4 : carte des étapes (lieux OpenStreetMap autour de Mahambo) ; formulaire « Nouvelle étape » après un clic ; fiche d'un circuit avec l'itinéraire numéroté sur la carte ; liste des circuits ; refus de publication sous deux étapes.
 - Refonte : tableau de bord de l'agence (ordinateur et mobile), vue plateforme du super admin, espace voyageur, tableau de bord du guide ; comparaison avec la maquette d'inspiration.
 - E2b : page `/connexion` ; formulaire `/inscription-agence` avec erreurs de validation ; `/dashboard` après inscription d'une nouvelle agence ; `/admin` (super admin) ; message d'erreur après une connexion refusée.
 

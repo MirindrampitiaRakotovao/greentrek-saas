@@ -103,3 +103,32 @@ export function checkboxGroup<const T extends readonly [string, ...string[]]>(va
     z.array(z.enum(values, { error: "Valeur invalide." })),
   );
 }
+
+/** Nombre obligatoire, bornes incluses (saisie texte convertie, virgule acceptée). */
+export function requiredNumber(min: number, max: number, label = "La valeur") {
+  return z.preprocess(
+    (value) => {
+      const converted = toOptionalNumber(value);
+      return converted === null ? undefined : converted;
+    },
+    z
+      .number({ error: `${label} est requise.` })
+      .min(min, { error: `${label} doit être au moins ${min}.` })
+      .max(max, { error: `${label} doit être au plus ${max}.` }),
+  );
+}
+
+/** Entier obligatoire, bornes incluses. */
+export function requiredInt(min: number, max: number, label = "La valeur") {
+  return z.preprocess(
+    (value) => {
+      const converted = toOptionalNumber(value);
+      return converted === null ? undefined : converted;
+    },
+    z
+      .number({ error: `${label} est requise.` })
+      .int({ error: "Nombre entier attendu." })
+      .min(min, { error: `${label} doit être au moins ${min}.` })
+      .max(max, { error: `${label} doit être au plus ${max}.` }),
+  );
+}

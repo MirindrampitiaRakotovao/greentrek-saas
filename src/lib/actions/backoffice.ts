@@ -3,10 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { forbiddenToResult, parseInput, toActionResult } from "@/lib/actions/helpers";
+import { authorize, parseInput, toActionResult } from "@/lib/actions/helpers";
 import type { ActionResult } from "@/lib/actions/types";
-import { requireAgencyUser } from "@/lib/auth/session";
-import { type Action, assertCan, type Resource } from "@/lib/permissions";
 import { updateAgencySettings } from "@/lib/services/agency-settings";
 import { createGuide, deleteGuide, updateGuide } from "@/lib/services/guides";
 import { createPartenaire, deletePartenaire, updatePartenaire } from "@/lib/services/partenaires";
@@ -21,17 +19,6 @@ import {
  * Actions serveur des paramètres, partenaires et guides. Même schéma que l'équipe (E3a) :
  * session relue en base + client confiné → permission du rôle → validation Zod → service.
  */
-
-/** Session + client confiné + permission ; `null` si le rôle n'a pas le droit. */
-async function authorize(action: Action, resource: Resource) {
-  const { user, db } = await requireAgencyUser();
-  try {
-    assertCan(user.role, action, resource);
-    return { ok: true as const, user, db };
-  } catch (error: unknown) {
-    return { ok: false as const, result: forbiddenToResult(error) };
-  }
-}
 
 /* ─── Paramètres ─────────────────────────────────────────────────────────────── */
 

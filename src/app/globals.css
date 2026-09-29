@@ -45,3 +45,38 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Marqueurs de carte (Leaflet divIcon) : pastille ronde avec le rang de l'étape. */
+.gt-marker-wrapper {
+  background: transparent;
+  border: 0;
+}
+
+.gt-marker {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9999px;
+  border: 3px solid var(--gt-white);
+  background: var(--gt-teal-700);
+  color: var(--gt-white);
+  font:
+    600 12px/1 var(--font-poppins),
+    sans-serif;
+  box-shadow: 0 2px 6px rgb(15 65 77 / 0.35);
+}
+
+.gt-marker--selected {
+  background: var(--gt-chart-2);
+  transform: scale(1.15);
+}
+
+.gt-marker--muted {
+  background: var(--gt-sky);
+}
+
+.gt-marker--new {
+  background: var(--gt-sand-300);
+  color: var(--gt-teal-900);
+}

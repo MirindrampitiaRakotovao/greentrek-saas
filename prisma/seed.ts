@@ -13,7 +13,9 @@
  *   sans compte, circuits, départs, réservations, participants, paiements simulés et
  *   notifications. Circuits de Green Trek marqués « [DÉMO] », prix TODO(données terrain).
  *
- * Le graphe (étapes, tronçons) est ajouté aux étapes E4 et E5.
+ * - le graphe de démonstration (E4) : étapes (lieux OpenStreetMap réels pour Green Trek,
+ *   lieux fictifs pour les agences de démo) et itinéraires des circuits. Les tronçons
+ *   arrivent à l'étape E5.
  * Le script vide d'abord la base : il est destiné au développement uniquement.
  */
 import "dotenv/config";
@@ -25,10 +27,15 @@ import { db } from "@/lib/db";
 
 import {
   DEMO_ALPHA_CIRCUITS,
+  DEMO_ALPHA_GRAPH,
   DEMO_BETA_CIRCUITS,
+  DEMO_BETA_GRAPH,
   type DemoCircuit,
+  type DemoGraph,
   generateAgencyDemo,
   GREEN_TREK_CIRCUITS,
+  GREEN_TREK_GRAPH,
+  ITINERAIRE_DEMO,
 } from "./demo-data";
 
 /** Mot de passe commun à tous les comptes de démonstration (documenté dans docs/AVANCEMENT.md). */
@@ -148,11 +155,50 @@ const AGENCES: readonly AgenceSeed[] = [
 ];
 
 /** Paramètres de la démonstration de chaque agence (préfixe des références, circuits, graine). */
-const DEMO_BY_SLUG: Record<string, { prefix: string; circuits: DemoCircuit[]; seed: number }> = {
-  "green-trek-mada": { prefix: "GT", circuits: GREEN_TREK_CIRCUITS, seed: 1 },
-  "demo-alpha": { prefix: "ALP", circuits: DEMO_ALPHA_CIRCUITS, seed: 2 },
-  "demo-beta": { prefix: "BET", circuits: DEMO_BETA_CIRCUITS, seed: 3 },
+const DEMO_BY_SLUG: Record<
+  string,
+  { prefix: string; circuits: DemoCircuit[]; graph: DemoGraph; seed: number }
+> = {
+  "green-trek-mada": {
+    prefix: "GT",
+    circuits: GREEN_TREK_CIRCUITS,
+    graph: GREEN_TREK_GRAPH,
+    seed: 1,
+  },
+  "demo-alpha": { prefix: "ALP", circuits: DEMO_ALPHA_CIRCUITS, graph: DEMO_ALPHA_GRAPH, seed: 2 },
+  "demo-beta": { prefix: "BET", circuits: DEMO_BETA_CIRCUITS, graph: DEMO_BETA_GRAPH, seed: 3 },
 };
+
+/**
+ * Prestations des partenaires réels de Green Trek dans les circuits de démonstration
+ * (index du circuit, nom du partenaire). Prix : TODO(données terrain).
+ */
+const GREEN_TREK_PRESTATIONS: readonly {
+  circuit: number;
+  partenaire: string;
+  prestation: string;
+  inclusDansPrix: boolean;
+}[] = [
+  {
+    circuit: 1,
+    partenaire: "Piroguiers Mahambo",
+    prestation: "Retour en pirogue",
+    inclusDansPrix: true,
+  },
+  {
+    circuit: 1,
+    partenaire: "Surf Dah Mahambo",
+    prestation: "Initiation au surf",
+    inclusDansPrix: false,
+  },
+  {
+    circuit: 2,
+    partenaire: "La Pirogue Hôtel",
+    prestation: "Hébergement (nuitées)",
+    inclusDansPrix: true,
+  },
+  { circuit: 3, partenaire: "Vanilla Café", prestation: "Déjeuner", inclusDansPrix: true },
+];
 
 const VOYAGEURS = 8;
 
@@ -209,10 +255,43 @@ async function seedDemoActivity(refs: AgencyRefs, now: Date): Promise<void> {
     now,
   );
 
+  // Graphe : étapes de l'agence (réelles pour Green Trek, fictives pour les agences de démo).
+  const etapeIds: string[] = [];
+  for (const etape of demo.graph.etapes) {
+    const created = await db.etape.create({ data: { ...etape, agenceId } });
+    etapeIds.push(created.id);
+  }
+
   const circuitIds: string[] = [];
-  for (const circuit of data.circuits) {
+  for (const [index, circuit] of data.circuits.entries()) {
     const created = await db.circuit.create({ data: { ...circuit, agenceId, statut: "PUBLIE" } });
     circuitIds.push(created.id);
+    // Étapes ordonnées du circuit (RG 4 : au moins deux, rangs 1..n).
+    await db.circuitEtape.createMany({
+      data: (demo.graph.itineraires[index] ?? []).map((etapeIndex, position) => ({
+        circuitId: created.id,
+        etapeId: etapeIds[etapeIndex]!,
+        ordre: position + 1,
+        jour: circuit.dureeJours > 1 ? Math.min(circuit.dureeJours, position + 1) : 1,
+        notes: ITINERAIRE_DEMO,
+      })),
+    });
+  }
+
+  if (refs.slug === "green-trek-mada") {
+    const partenaires = await db.partenaire.findMany({ where: { agenceId } });
+    for (const p of GREEN_TREK_PRESTATIONS) {
+      const partenaire = partenaires.find((x) => x.nom === p.partenaire);
+      if (!partenaire) continue;
+      await db.circuitPartenaire.create({
+        data: {
+          circuitId: circuitIds[p.circuit]!,
+          partenaireId: partenaire.id,
+          prestation: p.prestation,
+          inclusDansPrix: p.inclusDansPrix,
+        },
+      });
+    }
   }
 
   const sessionIds: string[] = [];
@@ -379,17 +458,20 @@ async function main(): Promise<void> {
     );
   }
 
-  const [agences, utilisateurs, partenaires, circuits, departs, reservations] = await Promise.all([
-    db.agence.count(),
-    db.utilisateur.count(),
-    db.partenaire.count(),
-    db.circuit.count(),
-    db.sessionDepart.count(),
-    db.reservation.count(),
-  ]);
+  const [agences, utilisateurs, partenaires, etapes, circuits, departs, reservations] =
+    await Promise.all([
+      db.agence.count(),
+      db.utilisateur.count(),
+      db.partenaire.count(),
+      db.etape.count(),
+      db.circuit.count(),
+      db.sessionDepart.count(),
+      db.reservation.count(),
+    ]);
   console.log(
     `Seed terminé : ${agences} agences, ${utilisateurs} utilisateurs, ${partenaires} partenaires, ` +
-      `${circuits} circuits, ${departs} départs, ${reservations} réservations (démonstration fictive).`,
+      `${etapes} étapes, ${circuits} circuits, ${departs} départs, ${reservations} réservations ` +
+      "(démonstration fictive).",
   );
 }
 

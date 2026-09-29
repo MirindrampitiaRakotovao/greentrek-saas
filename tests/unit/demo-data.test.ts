@@ -2,10 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   DEMO_ALPHA_CIRCUITS,
+  DEMO_ALPHA_GRAPH,
   DEMO_BETA_CIRCUITS,
+  DEMO_BETA_GRAPH,
   generateAgencyDemo,
   GREEN_TREK_CIRCUITS,
+  GREEN_TREK_GRAPH,
 } from "../../prisma/demo-data";
+import { MAHAMBO_OSM_PLACES } from "../../prisma/osm-mahambo";
 
 /**
  * Les données de démonstration doivent respecter les règles de gestion : sinon, les
@@ -103,5 +107,48 @@ describe("données de démonstration", () => {
     );
     expect(thisMonth.length).toBeGreaterThan(0);
     expect(lastMonth.length).toBeGreaterThan(0);
+  });
+
+  describe("graphes de démonstration (étapes et itinéraires)", () => {
+    const graphs = [
+      ["GT", GREEN_TREK_GRAPH, GREEN_TREK_CIRCUITS],
+      ["ALP", DEMO_ALPHA_GRAPH, DEMO_ALPHA_CIRCUITS],
+      ["BET", DEMO_BETA_GRAPH, DEMO_BETA_CIRCUITS],
+    ] as const;
+
+    for (const [label, graph, circuits] of graphs) {
+      it(`${label} — un itinéraire par circuit, au moins 2 étapes (RG 4), index valides`, () => {
+        expect(graph.itineraires).toHaveLength(circuits.length);
+        for (const itineraire of graph.itineraires) {
+          expect(itineraire.length).toBeGreaterThanOrEqual(2);
+          itineraire.forEach((index, position) => {
+            expect(graph.etapes[index]).toBeDefined();
+            if (position > 0) expect(index).not.toBe(itineraire[position - 1]);
+          });
+        }
+      });
+
+      it(`${label} — coordonnées valides`, () => {
+        for (const e of graph.etapes) {
+          expect(Math.abs(e.latitude)).toBeLessThanOrEqual(90);
+          expect(Math.abs(e.longitude)).toBeLessThanOrEqual(180);
+        }
+      });
+    }
+
+    it("Green Trek : uniquement des lieux OpenStreetMap, source citée, aucune coordonnée inventée", () => {
+      expect(GREEN_TREK_GRAPH.etapes.map((e) => [e.nom, e.latitude, e.longitude])).toEqual(
+        MAHAMBO_OSM_PLACES.map((p) => [p.nom, p.latitude, p.longitude]),
+      );
+      for (const e of GREEN_TREK_GRAPH.etapes) expect(e.description).toContain("OpenStreetMap");
+      // Ambodiforaha n'existe pas dans OpenStreetMap : il ne doit pas être créé.
+      expect(GREEN_TREK_GRAPH.etapes.some((e) => e.nom.includes("Ambodiforaha"))).toBe(false);
+    });
+
+    it("agences fictives : toutes les étapes sont marquées (fictif)", () => {
+      for (const e of [...DEMO_ALPHA_GRAPH.etapes, ...DEMO_BETA_GRAPH.etapes]) {
+        expect(e.nom).toContain("(fictif)");
+      }
+    });
   });
 });

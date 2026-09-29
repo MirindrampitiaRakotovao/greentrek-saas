@@ -21,8 +21,14 @@ describe("navigationFor : menu selon le rôle", () => {
     );
   });
 
-  it("GUIDE ne voit ni l'équipe, ni les guides, ni les partenaires", () => {
-    expect(hrefs("GUIDE")).toEqual(["/dashboard", "/dashboard/profil"]);
+  it("GUIDE ne voit ni l'équipe, ni les guides, ni les partenaires, ni les paramètres", () => {
+    // Le guide consulte les circuits et les étapes (lecture seule, matrice §3).
+    expect(hrefs("GUIDE")).toEqual([
+      "/dashboard",
+      "/dashboard/circuits",
+      "/dashboard/etapes",
+      "/dashboard/profil",
+    ]);
   });
 
   it("GUIDE ne voit pas l'équipe, mais voit son profil", () => {

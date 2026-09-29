@@ -13,6 +13,8 @@
  * les remplace par les identifiants créés en base.
  */
 
+import { MAHAMBO_OSM_PLACES } from "./osm-mahambo";
+
 export type DemoCircuit = {
   titre: string;
   slug: string;
@@ -237,6 +239,133 @@ export function generateAgencyDemo(spec: AgencySpec, now: Date): DemoAgencyData 
   return { circuits: spec.circuits, sessions, reservations };
 }
 
+/* ─── Étapes (nœuds du graphe) et itinéraires de démonstration ───────────────── */
+
+export type DemoEtape = {
+  nom: string;
+  type: "VILLAGE" | "POINT_INTERET" | "HEBERGEMENT" | "RESTAURATION" | "EMBARCADERE" | "AUTRE";
+  latitude: number;
+  longitude: number;
+  description: string;
+};
+
+/**
+ * Graphe de démonstration d'une agence : ses étapes, et pour chaque circuit (même index que
+ * la liste des circuits) la suite ordonnée des étapes (index dans `etapes`). RG 4 : au moins
+ * deux étapes par circuit (les circuits de démonstration sont publiés).
+ */
+export type DemoGraph = { etapes: DemoEtape[]; itineraires: number[][] };
+
+const ITINERAIRE_DEMO = "TODO(données terrain) : itinéraire de démonstration.";
+
+/** Green Trek Mada : lieux RÉELS d'OpenStreetMap (voir prisma/osm-mahambo.ts). */
+export const GREEN_TREK_GRAPH: DemoGraph = {
+  etapes: MAHAMBO_OSM_PLACES.map((place) => ({
+    nom: place.nom,
+    type: "VILLAGE",
+    latitude: place.latitude,
+    longitude: place.longitude,
+    description:
+      `Lieu OpenStreetMap (nœud ${place.osmId}, « ${place.osmPlace} ») ; © contributeurs OpenStreetMap, ODbL. ` +
+      "TODO(données terrain) : vérifier que ce lieu est sur les sentiers de l'agence.",
+  })),
+  // 0 Mahambo, 1 Mahambo Doany, 2 Morafeno, 3 Agnalambany, 4 Antsikafoka,
+  // 5 Ambinany Iazafo, 6 Tanambao Sahorana, 7 Namahoaka
+  itineraires: [
+    [1, 0], // Sentier Mahambo Doany – Ambodiforaha (Ambodiforaha reste à placer)
+    [0, 2, 3, 7], // Randonnée côtière et pirogue
+    [0, 4, 5, 6], // Immersion au village
+    [1, 0, 2], // Journée découverte
+  ],
+};
+
+const LIEU_FICTIF = "Lieu FICTIF de l'agence de démonstration (coordonnées fictives).";
+
+export const DEMO_ALPHA_GRAPH: DemoGraph = {
+  etapes: [
+    {
+      nom: "Col des Brumes (fictif)",
+      type: "POINT_INTERET",
+      latitude: -19.82,
+      longitude: 47.05,
+      description: LIEU_FICTIF,
+    },
+    {
+      nom: "Lac Bleu (fictif)",
+      type: "POINT_INTERET",
+      latitude: -19.86,
+      longitude: 47.09,
+      description: LIEU_FICTIF,
+    },
+    {
+      nom: "Village du Plateau (fictif)",
+      type: "VILLAGE",
+      latitude: -19.9,
+      longitude: 47.03,
+      description: LIEU_FICTIF,
+    },
+    {
+      nom: "Camp du Volcan (fictif)",
+      type: "HEBERGEMENT",
+      latitude: -19.94,
+      longitude: 47.07,
+      description: LIEU_FICTIF,
+    },
+    {
+      nom: "Cascade Haute (fictif)",
+      type: "POINT_INTERET",
+      latitude: -19.84,
+      longitude: 46.99,
+      description: LIEU_FICTIF,
+    },
+  ],
+  itineraires: [
+    [0, 1, 2, 3],
+    [1, 4, 2],
+    [2, 0],
+  ],
+};
+
+export const DEMO_BETA_GRAPH: DemoGraph = {
+  etapes: [
+    {
+      nom: "Entrée du Canyon (fictif)",
+      type: "POINT_INTERET",
+      latitude: -22.52,
+      longitude: 45.38,
+      description: LIEU_FICTIF,
+    },
+    {
+      nom: "Piscine naturelle (fictif)",
+      type: "POINT_INTERET",
+      latitude: -22.55,
+      longitude: 45.41,
+      description: LIEU_FICTIF,
+    },
+    {
+      nom: "Embarcadère de la rivière (fictif)",
+      type: "EMBARCADERE",
+      latitude: -22.58,
+      longitude: 45.36,
+      description: LIEU_FICTIF,
+    },
+    {
+      nom: "Village des Orchidées (fictif)",
+      type: "VILLAGE",
+      latitude: -22.5,
+      longitude: 45.44,
+      description: LIEU_FICTIF,
+    },
+  ],
+  itineraires: [
+    [0, 1, 3],
+    [3, 2],
+    [2, 1, 0],
+  ],
+};
+
+export { ITINERAIRE_DEMO };
+
 /* ─── Circuits de démonstration par agence ───────────────────────────────────── */
 
 const TODO_TERRAIN =
@@ -248,7 +377,9 @@ export const GREEN_TREK_CIRCUITS: DemoCircuit[] = [
     titre: "[DÉMO] Sentier Mahambo Doany – Ambodiforaha",
     slug: "demo-mahambo-doany-ambodiforaha",
     resume: "Le sentier emblématique de l'agence, entre villages et littoral.",
-    description: TODO_TERRAIN,
+    description:
+      `${TODO_TERRAIN} Itinéraire incomplet : Ambodiforaha, extrémité du sentier, est absent ` +
+      "d'OpenStreetMap et reste à placer sur la carte à partir d'un relevé de terrain.",
     difficulte: "MOYENNE",
     dureeJours: 2,
     prixParPersonne: 180_000,

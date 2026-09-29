@@ -3,7 +3,8 @@ import "server-only";
 import type { ZodType } from "zod";
 
 import type { ActionResult } from "@/lib/actions/types";
-import { ForbiddenError } from "@/lib/permissions";
+import { requireAgencyUser } from "@/lib/auth/session";
+import { type Action, assertCan, ForbiddenError, type Resource } from "@/lib/permissions";
 import type { ServiceResult } from "@/lib/services/result";
 
 /** Première erreur de chaque champ, à partir d'une validation Zod échouée. */
@@ -46,4 +47,18 @@ export function forbiddenToResult(error: unknown): ActionResult {
     return { error: "Vous n'avez pas les droits nécessaires pour cette action." };
   }
   throw error;
+}
+
+/**
+ * Contrôle commun des actions du back-office : session relue en base + client confiné à
+ * l'agence (`requireAgencyUser`), puis permission du rôle (matrice §3).
+ */
+export async function authorize(action: Action, resource: Resource) {
+  const { user, db } = await requireAgencyUser();
+  try {
+    assertCan(user.role, action, resource);
+    return { ok: true as const, user, db };
+  } catch (error: unknown) {
+    return { ok: false as const, result: forbiddenToResult(error) };
+  }
 }
