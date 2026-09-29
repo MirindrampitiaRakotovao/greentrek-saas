@@ -10,7 +10,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E1 Schéma Prisma | Fait | 2026-09-28 | 19 tables et 18 CHECK migrés, seed OK, ERD rédigé ; typecheck, lint et build verts ; `npm test` 23/23 (3 unitaires, 20 d'intégration) chez l'étudiant |
 | E2 Auth et multi-tenant | Fait | 2026-09-28 | Typecheck, lint, 167 tests, build et 14 scénarios de bout en bout verts ; parcours vérifiés dans le navigateur par l'étudiant (connexion admin, inscription d'agence, connexion client, super admin) |
 | E3 Fondations back-office | Fait | 2026-09-28 | Validé par l'étudiant. Complété par la refonte visuelle des tableaux de bord (voir « Refonte des tableaux de bord ») |
-| E4 Circuits et étapes | En cours | 2026-09-29 | Complété par la carte au style Google Maps et 19 lieux réels de la côte Est (demande de l'étudiant) ; typecheck, lint, tests, build et contrôles dans le navigateur verts ; en attente de vérification par l'étudiant |
+| E4 Circuits et étapes | Fait | 2026-09-29 | Validé par l'étudiant, y compris la carte au style Google Maps et les 27 lieux réels de la côte Est |
 | E5 Éditeur de graphe | À faire | | |
 | E6 Algorithmes | À faire | | |
 | E7 Départs | À faire | | |
