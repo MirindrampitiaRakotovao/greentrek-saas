@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Card, EmptyState, KpiCard, ProgressBar } from "@/components/dashboard/widgets";
 import { Icon } from "@/components/ui/icon";
 import type { GuideDashboard } from "@/lib/dashboard/guide";
@@ -53,7 +55,12 @@ export function GuideDashboardView({ data }: { data: GuideDashboard | null }) {
               {data.departs.map((d) => (
                 <li key={d.id} className="grid gap-3 py-4 first:pt-0 sm:grid-cols-[1fr_200px]">
                   <div>
-                    <p className="font-semibold text-gt-teal-900">{d.circuit}</p>
+                    <Link
+                      href={`/dashboard/departs/${d.id}`}
+                      className="font-semibold text-gt-teal-900 underline-offset-2 hover:underline"
+                    >
+                      {d.circuit}
+                    </Link>
                     <p className="text-sm text-gt-teal-900/65">
                       {longDate.format(d.dateDebut)}
                       {d.dateFin.getTime() !== d.dateDebut.getTime()

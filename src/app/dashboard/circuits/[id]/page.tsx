@@ -6,13 +6,15 @@ import { CircuitForm } from "@/components/circuits/circuit-form";
 import { CircuitItinerary } from "@/components/circuits/circuit-itinerary";
 import { CircuitPartenaires } from "@/components/circuits/circuit-partenaires";
 import { CircuitStatusActions } from "@/components/circuits/circuit-status-actions";
+import { DepartList } from "@/components/departs/depart-list";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Card } from "@/components/dashboard/widgets";
+import { Card, EmptyState } from "@/components/dashboard/widgets";
 import { requireAgencyUser } from "@/lib/auth/session";
 import { formatMoney } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { getAgencySettings } from "@/lib/services/agency-settings";
 import { getCircuit, MIN_ETAPES_PUBLICATION } from "@/lib/services/circuits";
+import { listCircuitDeparts } from "@/lib/services/departs";
 import { latestCircuitTrace } from "@/lib/services/itineraires";
 import { DIFFICULTE_LABELS, STATUT_CIRCUIT_LABELS } from "@/lib/validators/circuits";
 
@@ -23,7 +25,7 @@ export default async function CircuitPage({ params }: PageProps<"/dashboard/circ
   const { user, db } = await requireAgencyUser();
   const { id } = await params;
   // Client confiné : un circuit d'une autre agence donne une page 404.
-  const [circuit, settings, etapes, partenaires, trace] = await Promise.all([
+  const [circuit, settings, etapes, partenaires, trace, departs] = await Promise.all([
     getCircuit(db, id),
     getAgencySettings(db, user.agenceId),
     db.etape.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true, type: true } }),
@@ -33,6 +35,8 @@ export default async function CircuitPage({ params }: PageProps<"/dashboard/circ
       select: { id: true, nom: true },
     }),
     latestCircuitTrace(db, id),
+    // Un GUIDE ne voit que ses propres départs : il les consulte depuis « Départs ».
+    user.role === "GUIDE" ? Promise.resolve([]) : listCircuitDeparts(db, id),
   ]);
   if (!circuit) notFound();
 
@@ -81,6 +85,39 @@ export default async function CircuitPage({ params }: PageProps<"/dashboard/circ
           trace={trace}
         />
       </Card>
+
+      {user.role === "GUIDE" ? null : (
+        <Card title={`Prochains départs (${departs.length})`}>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-gt-teal-900/70">
+              {circuit.statut === "BROUILLON"
+                ? "Circuit en brouillon : ses départs ne seront visibles publiquement qu'après publication."
+                : "Les départs ouverts d'un circuit publié sont proposés sur le site vitrine."}
+            </p>
+            <div className="flex gap-2">
+              <Link
+                href={`/dashboard/departs?periode=tous&circuit=${circuit.id}`}
+                className="rounded-full border border-gt-teal-700 px-4 py-2 text-sm font-medium text-gt-teal-700 hover:bg-gt-teal-50"
+              >
+                Tous les départs
+              </Link>
+              {can(user.role, "creer", "sessionDepart") && circuit.statut !== "ARCHIVE" ? (
+                <Link
+                  href={`/dashboard/departs/nouveau?circuit=${circuit.id}`}
+                  className="rounded-full bg-gt-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-gt-teal-800"
+                >
+                  Programmer un départ
+                </Link>
+              ) : null}
+            </div>
+          </div>
+          {departs.length === 0 ? (
+            <EmptyState>Aucun départ à venir pour ce circuit.</EmptyState>
+          ) : (
+            <DepartList departs={departs} devise={settings.devise} showCircuit={false} />
+          )}
+        </Card>
+      )}
 
       <div className="grid gap-5 xl:grid-cols-2">
         <Card title="Partenaires inclus" className="min-w-0">

@@ -9,6 +9,7 @@ import {
   updateMemberSchema,
   updateProfileSchema,
 } from "@/lib/validators/team";
+import { departSchema, updateDepartSchema } from "@/lib/validators/departs";
 
 /**
  * Non-régression : chaque formulaire est validé dans le navigateur PUIS sur le serveur, et le
@@ -99,6 +100,31 @@ const cases: [string, ZodType, Record<string, unknown>][] = [
       utilisateurId: "",
     },
   ],
+  [
+    "départ (prix, guide et notes vides)",
+    departSchema,
+    {
+      circuitId: "c1",
+      dateDebut: "2026-10-10",
+      dateFin: "2026-10-12",
+      placesTotal: "8",
+      prixParPersonne: "",
+      guideId: "",
+      notes: "",
+    },
+  ],
+  [
+    "modification d'un départ",
+    updateDepartSchema,
+    {
+      dateDebut: "2026-10-10",
+      dateFin: "2026-10-10",
+      placesTotal: 8,
+      prixParPersonne: "120000",
+      guideId: "g1",
+      notes: "Départ matinal",
+    },
+  ],
 ];
 
 describe("schémas de formulaire : validation idempotente (navigateur puis serveur)", () => {
@@ -108,6 +134,15 @@ describe("schémas de formulaire : validation idempotente (navigateur puis serve
     const second = schema.safeParse(first.data);
     expect(second.success, JSON.stringify(second.error?.issues)).toBe(true);
     expect(second.data).toEqual(first.data);
+  });
+});
+
+describe("départs : dates (RG 10)", () => {
+  const base = cases.find(([name]) => name.startsWith("départ"))![2];
+  it("refuse une date de fin antérieure au début, et une date inexistante", () => {
+    expect(departSchema.safeParse({ ...base, dateFin: "2026-10-09" }).success).toBe(false);
+    expect(departSchema.safeParse({ ...base, dateDebut: "2026-02-30" }).success).toBe(false);
+    expect(departSchema.safeParse({ ...base, dateDebut: "" }).success).toBe(false);
   });
 });
 

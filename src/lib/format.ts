@@ -35,3 +35,42 @@ export function formatMoney(amount: number | null | undefined, devise: string, f
     maximumFractionDigits: 0,
   }).format(amount);
 }
+
+/*
+ * Dates calendaires des colonnes SQL `DATE` (départs) : Prisma les lit à minuit UTC, on les
+ * formate donc en UTC pour ne jamais décaler d'un jour.
+ */
+const dayMonthFormat = new Intl.DateTimeFormat("fr-FR", {
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+});
+const dayMonthYearFormat = new Intl.DateTimeFormat("fr-FR", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+const monthYearFormat = new Intl.DateTimeFormat("fr-FR", {
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+/** « 10 oct. 2026 », « 10 – 12 oct. 2026 » ou « 30 oct. – 2 nov. 2026 ». */
+export function formatDateRange(debut: Date, fin: Date): string {
+  if (debut.getTime() === fin.getTime()) return dayMonthYearFormat.format(debut);
+  const sameMonth =
+    debut.getUTCFullYear() === fin.getUTCFullYear() && debut.getUTCMonth() === fin.getUTCMonth();
+  if (sameMonth) return `${debut.getUTCDate()} – ${dayMonthYearFormat.format(fin)}`;
+  const start =
+    debut.getUTCFullYear() === fin.getUTCFullYear()
+      ? dayMonthFormat.format(debut)
+      : dayMonthYearFormat.format(debut);
+  return `${start} – ${dayMonthYearFormat.format(fin)}`;
+}
+
+/** « octobre 2026 » (en-têtes de groupes de la liste des départs). */
+export function formatMonthYear(date: Date): string {
+  return monthYearFormat.format(date);
+}

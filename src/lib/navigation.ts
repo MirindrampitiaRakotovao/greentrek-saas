@@ -29,6 +29,12 @@ const NAVIGATION: readonly NavEntry[] = [
     permission: ["lire", "circuit"],
   },
   {
+    href: "/dashboard/departs",
+    label: "Départs",
+    icon: "calendar",
+    permission: ["lire", "sessionDepart"],
+  },
+  {
     href: "/dashboard/etapes",
     label: "Carte du réseau",
     icon: "route",

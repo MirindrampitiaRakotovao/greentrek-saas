@@ -13,7 +13,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E4 Circuits et étapes | Fait | 2026-09-29 | Validé par l'étudiant, y compris la carte au style Google Maps et les 27 lieux réels de la côte Est |
 | E5 Éditeur de graphe | Fait | 2026-09-29 | Validé par l'étudiant (333 tests, parcours complet dans le navigateur) |
 | E6 Algorithmes | Fait | 2026-09-29 | Validé par l'étudiant : algorithmes (45 tests), calcul d'itinéraire, comparaison Dijkstra / A*, performances, tracé réel des circuits |
-| E7 Départs | À faire | | |
+| E7 Départs | En cours | 2026-09-29 | Implémenté ; typecheck, lint, 415 tests, build et parcours dans le navigateur verts. En attente de la validation de l'étudiant |
 | E8 Site vitrine | À faire | | |
 | E9 Réservation client | À faire | | |
 | E10 Back-office opérationnel | En partie | 2026-09-28 | Tableau de bord et KPIs avancés à la demande de l'étudiant (refonte des tableaux de bord). Reste : gestion des réservations, clients, paiements |
@@ -229,6 +229,25 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - **Mesures sur les données réelles de Green Trek** (27 lieux, 42 tronçons estimés) : Fénérive-Est → Foulpointe, 45,51 km, même coût pour les deux algorithmes, 19 nœuds explorés par Dijkstra contre 8 par A* (−58 %). Vers Sainte-Marie : « Aucun chemin entre Fenoarivo Atsinanana et Ambodifototra » (île non reliée à pied).
 - **Tests** : 8 tests d'intégration du service sur le graphe de référence chargé en base (résultats calculés à la main pour chaque critère, enregistrement de l'historique, comparaison, critère personnalisé, ordre libre, aucun chemin sans enregistrement, isolation, tracé de circuit). Parcours complet dans un vrai navigateur : comparaison, nœuds explorés, aucun chemin, ordre libre avec « Plus facile », historique, banc d'essai, tracé réel d'un circuit ; aucune erreur.
 
+### E7 — Départs et disponibilités (2026-09-29)
+
+- **Règles pures** (`src/lib/departs.ts`, testées unitairement) : places réservées (toutes les réservations sauf les annulées), statut automatique, date de fin proposée, chevauchement de deux périodes.
+- **Statut automatique (RG 11)** : `ANNULEE` reste annulé (décision de l'agence) ; sinon `TERMINEE` si la date de fin est passée ; sinon `COMPLETE` si réservées ≥ places ; sinon `OUVERTE`. Il est recalculé dans la transaction de chaque changement (`refreshSessionStatut`, réutilisé à l'étape E9 pour les réservations). Le passage à `TERMINEE` se fait à l'affichage (`syncTermines`), faute de tâche planifiée dans une démo locale. Un départ complet redevient ouvert si une annulation ou une hausse du nombre de places libère de la place.
+- **RG 10** : date de fin ≥ date de début, vérifiée par Zod (formulaire et serveur) puis par la contrainte CHECK en base. La date de fin est proposée d'après la durée du circuit (début + durée − 1 jour) tant qu'elle n'a pas été modifiée à la main. Pas de date de début passée à la création.
+- **RG 13** : le nombre de places ne peut pas descendre sous le nombre de places déjà réservées. L'anti-surbooking des réservations simultanées sera traité à l'étape E9 (transaction).
+- **Décisions validées par l'étudiant** :
+  - A : départs possibles pour un circuit publié ou brouillon, pas archivé ; seuls les départs des circuits publiés seront visibles sur le site vitrine (E8) ;
+  - B : places ≤ capacité maximale du circuit ;
+  - C : un guide n'encadre pas deux départs non annulés dont les dates se chevauchent (jours inclus : finir le 12 et recommencer le 12 est refusé) ; guide actif obligatoire ;
+  - D : l'annulation d'un départ, après confirmation, annule dans la même transaction ses réservations actives (`annuleeAt` renseigné) ; les remboursements relèvent de l'étape E10. Suppression définitive seulement si le départ n'a jamais reçu de réservation ;
+  - E : liste groupée par mois (le calendrier reste un bonus non réalisé).
+- **Prix** : le prix du départ, s'il est renseigné, remplace celui du circuit ; sinon le prix du circuit s'applique.
+- **Dates** : colonnes SQL `DATE` lues à minuit UTC, donc formatées en UTC (`formatDateRange`) pour ne jamais décaler d'un jour ; « aujourd'hui » reste calculé dans le fuseau de Madagascar (`calendarDate`).
+- **Pages** : `/dashboard/departs` (groupée par mois, filtres période, circuit et statut dans l'URL, pagination qui conserve les filtres), `/dashboard/departs/nouveau` (circuit présélectionné depuis la fiche circuit), `/dashboard/departs/[id]` (remplissage, encadrement, réservations, participants, modification, annulation). Section « Prochains départs » sur la fiche d'un circuit, lien « Départs » dans le menu.
+- **GUIDE** : voit uniquement les départs qu'il encadre (liste et fiche, 404 sinon), en lecture seule, avec ses participants ; son tableau de bord renvoie vers la fiche de chaque départ.
+- **Tests** : 17 tests d'intégration (création, prix, date passée, RG 10 par la contrainte CHECK, décisions A à D, RG 11, RG 13, passage à TERMINEE, annulation en cascade, suppression, filtres, vue du guide, isolation entre agences), 9 tests unitaires des règles et des dates, idempotence des deux schémas de formulaire. Seed vérifié : 39 départs, aucun écart de statut, aucun dépassement de capacité ni surbooking.
+- **Parcours dans le navigateur** (serveur de production) : liste, départs passés, fiche avec réservations et participants, création (date de fin proposée, refus au-delà de la capacité, redirection vers la fiche), suppression, section de la fiche circuit, version mobile, guide limité à ses 14 départs sans bouton de création, 404 pour un départ d'un autre guide et pour l'administrateur d'une autre agence ; aucune erreur.
+
 ## Captures d'écran à prendre
 
 - E0 : page d'accueil provisoire (palette) et réponse JSON de `/api/health` avec `"database": "connectée"`.
@@ -236,6 +255,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - E2a : sortie de `npm test` montrant les tests d'isolation (liste détaillée : `npx vitest run tests/integration/isolation.test.ts`).
 - E3a : back-office sur ordinateur et sur mobile (menu ouvert) ; liste de l'équipe ; refus « dernier administrateur » ; page Mon profil.
 - E3b : paramètres de l'agence ; liste des partenaires (les 4 partenaires réels de Green Trek) ; fiche d'un guide avec ses langues ; refus de suppression d'un partenaire utilisé (après E4).
+- E7 : liste des départs groupée par mois (ordinateur et mobile) ; formulaire « Programmer un départ » avec la date de fin proposée ; refus « capacité du circuit » ; fiche d'un départ (remplissage, réservations, participants) ; confirmation d'annulation ; vue « Mes départs » du guide ; section « Prochains départs » d'une fiche circuit.
 - E6 : comparaison Dijkstra / A* (tableau et nœuds explorés de chacun sur la carte) ; message « aucun chemin » vers Sainte-Marie ; étapes imposées en ordre libre ; historique des calculs ; page Performances (graphiques et tableau) ; tracé réel d'un circuit ; sortie de `npx vitest run tests/unit/graph`.
 - E5 : vue Tronçons (réseau en pointillés, légende) ; création d'un tronçon (départ rouge, arrivée orange, distance proposée) ; refus d'un doublon ; fiche d'un lieu avec ses tronçons ; Sainte-Marie non reliée.
 - E4 bis : carte plein cadre (côte Est, 27 lieux réels), fiche d'un lieu avec vue satellite, calque Satellite, filtre « Embarcadères », version mobile.
