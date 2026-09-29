@@ -12,7 +12,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E3 Fondations back-office | Fait | 2026-09-28 | Validé par l'étudiant. Complété par la refonte visuelle des tableaux de bord (voir « Refonte des tableaux de bord ») |
 | E4 Circuits et étapes | Fait | 2026-09-29 | Validé par l'étudiant, y compris la carte au style Google Maps et les 27 lieux réels de la côte Est |
 | E5 Éditeur de graphe | Fait | 2026-09-29 | Validé par l'étudiant (333 tests, parcours complet dans le navigateur) |
-| E6 Algorithmes | En cours | 2026-09-29 | **E6a** : validé par l'étudiant (45 tests d'algorithmes). **E6b** (service, calcul d'itinéraire, comparaison, performances, tracé réel des circuits) : typecheck, lint, 386 tests, build et parcours complet dans le navigateur verts ; en attente de vérification |
+| E6 Algorithmes | Fait | 2026-09-29 | Validé par l'étudiant : algorithmes (45 tests), calcul d'itinéraire, comparaison Dijkstra / A*, performances, tracé réel des circuits |
 | E7 Départs | À faire | | |
 | E8 Site vitrine | À faire | | |
 | E9 Réservation client | À faire | | |
