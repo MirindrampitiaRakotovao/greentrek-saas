@@ -14,7 +14,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E5 Éditeur de graphe | Fait | 2026-09-29 | Validé par l'étudiant (333 tests, parcours complet dans le navigateur) |
 | E6 Algorithmes | Fait | 2026-09-29 | Validé par l'étudiant : algorithmes (45 tests), calcul d'itinéraire, comparaison Dijkstra / A*, performances, tracé réel des circuits |
 | E7 Départs | Fait | 2026-09-29 | Validé par l'étudiant : typecheck, lint, 415 tests, build et parcours dans le navigateur verts (création, statut automatique, annulation en cascade, vue du guide, isolation) |
-| E8 Site vitrine | En cours | 2026-09-29 | E8a (données publiques, recherche, détail d'un circuit), E8b (accueil d'après la maquette) et E8c (photos réelles des circuits sous licence libre, photos des partenaires, titre du hero en script, cercles flous) implémentées : typecheck, lint, 436 tests, build et parcours dans le navigateur verts ; en attente de la validation de l'étudiant |
+| E8 Site vitrine | Fait | 2026-09-29 | Validé par l'étudiant : E8a (données publiques, recherche, détail d'un circuit), E8b (accueil d'après la maquette), E8c (photos sous licence libre avec crédits, partenaires illustrés, titre script, cercles flous) ; typecheck, lint, 436 tests, build et parcours dans le navigateur verts |
 | E9 Réservation client | À faire | | |
 | E10 Back-office opérationnel | En partie | 2026-09-28 | Tableau de bord et KPIs avancés à la demande de l'étudiant (refonte des tableaux de bord). Reste : gestion des réservations, clients, paiements |
 | E11 Super admin, plans | À faire | | |
