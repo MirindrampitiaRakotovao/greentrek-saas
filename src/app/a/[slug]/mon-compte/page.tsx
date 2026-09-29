@@ -19,7 +19,7 @@ const longDate = new Intl.DateTimeFormat("fr-FR", {
 });
 const shortDate = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeZone: "UTC" });
 
-/** Tableau de bord du voyageur : uniquement SES réservations (§7.2). La gestion arrive en E9. */
+/** Tableau de bord du voyageur : uniquement SES réservations (§7.2), gérées dans « Mes réservations ». */
 export default async function MonComptePage({ params }: PageProps<"/a/[slug]/mon-compte">) {
   const { slug } = await params;
   const user = await requireUser({ roles: ["CLIENT"], agenceSlug: slug });

@@ -26,7 +26,11 @@ export default async function MonCompteLayout({
     getShellNotifications(db, user.id),
   ]);
 
-  const nav: NavItem[] = [{ href: `/a/${slug}/mon-compte`, label: "Mon espace", icon: "home" }];
+  const nav: NavItem[] = [
+    { href: `/a/${slug}/mon-compte`, label: "Mon espace", icon: "home" },
+    { href: `/a/${slug}/mon-compte/reservations`, label: "Mes réservations", icon: "ticket" },
+    { href: `/a/${slug}/circuits`, label: "Réserver un circuit", icon: "mountain" },
+  ];
   const contact = [agence.telephone, agence.email].filter(Boolean).join(" · ");
 
   return (

@@ -38,7 +38,7 @@ Next.js (App Router) + TypeScript strict · MySQL + Prisma · Auth.js (credentia
 - Photos livrées dans `public/images/` : toute nouvelle photo est créditée dans `src/lib/photo-credits.ts` (licences libres, attribution ; test unitaire).
 - Espaces connectés (back-office, console super admin, espace client) : coque commune `AppShell` (`src/components/shell/`) et briques `src/components/dashboard/widgets.tsx`, sur le modèle de tableau de bord validé par l'étudiant. Graphiques Recharts : un seul axe vertical, couleurs de séries `--gt-chart-1` / `--gt-chart-2` (validées par script), légende + tableau accessible.
 - Dates : jours et mois en heure de Madagascar (`src/lib/dates.ts`) ; comparer une colonne `@db.Date` avec `calendarDate(now)` ; afficher une colonne `@db.Date` avec `formatDateRange` (formatée en UTC).
-- Départs : tout changement de places ou de réservations appelle `refreshSessionStatut(tx, sessionId)` dans la même transaction (RG 11, `src/lib/services/departs.ts`) ; places réservées = réservations non annulées (`placesReservees`).
+- Départs : tout changement de places ou de réservations appelle `refreshSessionStatut(tx, sessionId)` dans la même transaction (RG 11, `src/lib/services/departs.ts`) ; places réservées = réservations non annulées (`placesReservees`). Toute écriture concurrente sur un départ ou une réservation commence par le verrou de ligne (`lockSession` / `lockReservation` dans `src/lib/services/reservations.ts`). Un départ se réserve jusqu'à la veille (`firstBookableDate`).
 - Tableaux défilants : conteneur `relative overflow-x-auto` (sinon les libellés `sr-only` débordent) ; `min-w-0` sur les colonnes de grille qui en contiennent.
 - Commits petits, messages en français à l'impératif.
 

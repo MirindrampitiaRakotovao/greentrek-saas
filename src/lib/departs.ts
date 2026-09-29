@@ -42,6 +42,15 @@ export function defaultDateFin(dateDebut: Date, dureeJours: number): Date {
   return new Date(dateDebut.getTime() + Math.max(0, dureeJours - 1) * 86_400_000);
 }
 
+/**
+ * Premier jour de départ encore réservable : demain. Un départ du jour a commencé ; on ne
+ * le réserve plus, comme on ne l'annule plus (RG 15, décision D de l'étape E9 : jusqu'à la
+ * veille). `today` est une date calendaire (minuit UTC, voir `calendarDate`).
+ */
+export function firstBookableDate(today: Date): Date {
+  return new Date(today.getTime() + 86_400_000);
+}
+
 /** Deux périodes [début, fin] (jours inclus) se chevauchent-elles ? */
 export function periodsOverlap(
   a: { dateDebut: Date; dateFin: Date },

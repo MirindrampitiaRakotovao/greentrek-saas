@@ -12,10 +12,11 @@ import { loginSchema } from "@/lib/validators/auth";
 
 /**
  * Formulaire de connexion. `agenceSlug` n'est fourni que sur le site d'une agence
- * (connexion client). La validation Zod s'exécute ici pour un retour immédiat, puis de
+ * (connexion client), avec `retour` quand le client vient du tunnel de réservation (adresse
+ * vérifiée côté serveur). La validation Zod s'exécute ici pour un retour immédiat, puis de
  * nouveau côté serveur (qui fait foi).
  */
-export function LoginForm({ agenceSlug }: { agenceSlug?: string }) {
+export function LoginForm({ agenceSlug, retour }: { agenceSlug?: string; retour?: string }) {
   const [serverError, setServerError] = useState<string>();
   const [pending, startTransition] = useTransition();
   const {
@@ -24,7 +25,7 @@ export function LoginForm({ agenceSlug }: { agenceSlug?: string }) {
     formState: { errors },
   } = useForm({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "", agenceSlug },
+    defaultValues: { email: "", password: "", agenceSlug, retour },
   });
 
   const onSubmit = handleSubmit((values) => {

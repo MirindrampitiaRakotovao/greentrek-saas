@@ -1,6 +1,6 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { calendarDate } from "@/lib/dates";
-import { parseIsoDate, placesReservees } from "@/lib/departs";
+import { firstBookableDate, parseIsoDate, placesReservees } from "@/lib/departs";
 import { type CircuitTrace, latestCircuitTrace } from "@/lib/services/itineraires";
 import type { TenantDb } from "@/lib/tenant";
 import type { VitrineSearch } from "@/lib/validators/vitrine";
@@ -11,7 +11,8 @@ import type { VitrineSearch } from "@/lib/validators/vitrine";
  *
  * Toutes les règles de visibilité sont regroupées dans ce fichier :
  * - RG 9 : seuls les circuits PUBLIE sont visibles ;
- * - un départ est proposé s'il est OUVERT, pas encore commencé, sur un circuit publié, et
+ * - un départ est proposé s'il est OUVERT, pas encore commencé (au plus tard la veille, voir
+ *   `firstBookableDate`), sur un circuit publié, et
  *   qu'il lui reste des places ;
  * - seuls des champs publics sont sélectionnés (jamais les notes internes, les clients,
  *   les coûts des prestations partenaires).
@@ -111,9 +112,9 @@ export async function searchCircuits(
   search: VitrineSearch,
   now: Date = new Date(),
 ): Promise<PublicCircuitCard[]> {
-  const today = calendarDate(now);
-  const requested = search.date ? parseIsoDate(search.date) : today;
-  const from = requested > today ? requested : today;
+  const first = firstBookableDate(calendarDate(now));
+  const requested = search.date ? parseIsoDate(search.date) : first;
+  const from = requested > first ? requested : first;
   const voyageurs = search.voyageurs ?? 1;
 
   const circuits = await db.circuit.findMany({
@@ -156,7 +157,7 @@ export async function listUpcomingDeparts(
   limit = 6,
   now: Date = new Date(),
 ): Promise<UpcomingDepart[]> {
-  const departs = (await bookableDeparts(db, calendarDate(now))).slice(0, limit);
+  const departs = (await bookableDeparts(db, firstBookableDate(calendarDate(now)))).slice(0, limit);
   if (departs.length === 0) return [];
   const circuits = await db.circuit.findMany({
     where: { ...PUBLIE, id: { in: departs.map((d) => d.circuitId) } },
@@ -231,7 +232,7 @@ export async function getPublicCircuit(
   });
   if (!circuit) return null;
   const [departs, trace] = await Promise.all([
-    bookableDeparts(db, calendarDate(now), { circuitId: circuit.id }),
+    bookableDeparts(db, firstBookableDate(calendarDate(now)), { circuitId: circuit.id }),
     latestCircuitTrace(db, circuit.id),
   ]);
   const { prixMin } = toCard(circuit, departs);
@@ -239,7 +240,7 @@ export async function getPublicCircuit(
 }
 
 export type PublicDepartDetail = PublicDepart & {
-  circuit: { titre: string; slug: string; dureeJours: number };
+  circuit: { titre: string; slug: string; dureeJours: number; imagePrincipaleUrl: string | null };
 };
 
 /** Départ réservable (page de réservation) : null s'il n'est plus proposé au public. */
@@ -248,11 +249,13 @@ export async function getBookableDepart(
   sessionId: string,
   now: Date = new Date(),
 ): Promise<PublicDepartDetail | null> {
-  const [depart] = await bookableDeparts(db, calendarDate(now), { id: sessionId });
+  const [depart] = await bookableDeparts(db, firstBookableDate(calendarDate(now)), {
+    id: sessionId,
+  });
   if (!depart) return null;
   const circuit = await db.circuit.findFirst({
     where: { ...PUBLIE, id: depart.circuitId },
-    select: { titre: true, slug: true, dureeJours: true },
+    select: { titre: true, slug: true, dureeJours: true, imagePrincipaleUrl: true },
   });
   return circuit ? { ...depart, circuit } : null;
 }

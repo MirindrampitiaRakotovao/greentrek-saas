@@ -165,6 +165,7 @@ describe("départs proposés au public", () => {
     await makeDepart(agenceA.id, c.id, "2026-10-12", { statut: "ANNULEE" });
     await makeDepart(agenceA.id, c.id, "2026-10-14", { statut: "COMPLETE" });
     await makeDepart(agenceA.id, c.id, "2026-09-28"); // déjà commencé
+    await makeDepart(agenceA.id, c.id, "2026-09-29"); // commence aujourd'hui : plus réservable
     const plein = await makeDepart(agenceA.id, c.id, "2026-10-20", { places: 3 });
     await reserve(plein.id, 3);
     const partiel = await makeDepart(agenceA.id, c.id, "2026-10-22", { places: 5 });

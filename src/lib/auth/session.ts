@@ -72,3 +72,35 @@ export async function requireAgencyUser(
   if (!user.agenceId) redirect(homePathFor(user));
   return { user: { ...user, agenceId: user.agenceId }, db: getTenantDb(user.agenceId) };
 }
+
+/**
+ * Exige un CLIENT de l'agence du site (tunnel de réservation, pages de paiement). Sans session,
+ * renvoie vers la connexion de l'agence avec l'adresse de retour (voir `safeReturnPath`).
+ * Le client confiné est construit avec l'agence du COMPTE, jamais avec celle de l'URL.
+ */
+export async function requireClient(
+  agenceSlug: string,
+  retour: string,
+): Promise<{ user: AuthUser & { agenceId: string }; db: TenantDb }> {
+  const user = await getCurrentUser();
+  if (!user) {
+    redirect(`/a/${agenceSlug}/connexion?retour=${encodeURIComponent(retour)}`);
+  }
+  if (user.role !== "CLIENT" || user.agenceSlug !== agenceSlug || !user.agenceId) {
+    redirect(homePathFor(user));
+  }
+  return { user: { ...user, agenceId: user.agenceId }, db: getTenantDb(user.agenceId) };
+}
+
+/** Variante pour les actions serveur : `null` si l'appelant n'est pas un client connecté. */
+export async function getClientContext(): Promise<{
+  user: AuthUser & { agenceId: string; agenceSlug: string };
+  db: TenantDb;
+} | null> {
+  const user = await getCurrentUser();
+  if (user?.role !== "CLIENT" || !user.agenceId || !user.agenceSlug) return null;
+  return {
+    user: { ...user, agenceId: user.agenceId, agenceSlug: user.agenceSlug },
+    db: getTenantDb(user.agenceId),
+  };
+}

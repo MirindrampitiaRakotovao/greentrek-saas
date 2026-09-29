@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { optionalPhone } from "@/lib/validators/common";
+
 /**
  * Schémas Zod de l'authentification et de l'onboarding. Partagés entre le formulaire
  * (validation immédiate côté navigateur) et le serveur (validation qui fait foi).
@@ -16,6 +18,8 @@ export const loginSchema = z.object({
   password: z.string().min(1, { error: "Mot de passe requis." }),
   /** Présent uniquement sur la page de connexion d'une agence (clients). */
   agenceSlug: z.string().trim().min(1).optional(),
+  /** Page où revenir après la connexion (vérifiée par `safeReturnPath`). */
+  retour: z.string().max(300).optional(),
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
@@ -60,3 +64,21 @@ export const agencyRegistrationSchema = z
     path: ["confirmPassword"],
   });
 export type AgencyRegistrationInput = z.infer<typeof agencyRegistrationSchema>;
+
+/** Inscription d'un voyageur sur le site d'une agence (§7.2). */
+export const clientRegistrationSchema = z
+  .object({
+    agenceSlug: z.string().trim().min(1),
+    prenom: z.string().trim().min(1, { error: "Prénom requis." }).max(100),
+    nom: z.string().trim().min(1, { error: "Nom requis." }).max(100),
+    email,
+    telephone: optionalPhone,
+    password: passwordSchema,
+    confirmPassword: z.string(),
+    retour: z.string().max(300).optional(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    error: "Les mots de passe ne correspondent pas.",
+    path: ["confirmPassword"],
+  });
+export type ClientRegistrationInput = z.infer<typeof clientRegistrationSchema>;
