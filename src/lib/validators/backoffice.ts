@@ -8,6 +8,7 @@ import {
   optionalNumber,
   optionalPhone,
   optionalText,
+  optionalImageUrl,
   optionalUrl,
   requiredText,
 } from "@/lib/validators/common";
@@ -60,6 +61,7 @@ export const partenaireSchema = z
     latitude: optionalNumber(-90, 90, "La latitude"),
     longitude: optionalNumber(-180, 180, "La longitude"),
     tarifIndicatif: optionalInt(0, 100_000_000, "Le tarif"),
+    imageUrl: optionalImageUrl,
     actif: checkbox,
   })
   .refine(bothOrNone, {

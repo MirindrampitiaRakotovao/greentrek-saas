@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { Icon, type IconName } from "@/components/ui/icon";
+import { BlurBlobs } from "@/components/vitrine/blur-blobs";
 import { BrushEdge } from "@/components/vitrine/brush-edge";
 
 /*
@@ -57,8 +58,9 @@ export function ExperiencesSection({ agenceSlug }: { agenceSlug: string }) {
     <section
       id="experiences"
       aria-labelledby="titre-experiences"
-      className="mx-auto grid max-w-6xl scroll-mt-20 items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:py-24"
+      className="relative isolate mx-auto grid max-w-6xl scroll-mt-20 items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:py-24"
     >
+      <BlurBlobs preset="both" />
       <div>
         <p className="text-sm font-semibold tracking-wide text-gt-teal-600 uppercase">
           Écotourisme

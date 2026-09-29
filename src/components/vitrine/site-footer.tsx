@@ -78,6 +78,11 @@ export function SiteFooter({
                 Espace voyageur
               </Link>
             </li>
+            <li>
+              <Link href={`${base}/credits-photos`} className="hover:underline">
+                Crédits photos
+              </Link>
+            </li>
           </ul>
         </div>
       </div>

@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 /**
  * Visuel dessiné d'un circuit, affiché tant que l'agence n'a pas fourni de photo.
  * TODO(photos Green Trek) : remplacer par des photos de l'agence (décision A de l'étape E8) ;
@@ -21,13 +23,32 @@ export function CircuitVisual({
   imageUrl,
   landscapeKey,
   landscape,
+  sizes = "(min-width: 1024px) 400px, 90vw",
+  priority = false,
   className = "",
 }: {
   imageUrl?: string | null;
   landscapeKey?: string;
   landscape?: Landscape;
+  /** Largeur d'affichage, pour que `next/image` serve une version adaptée. */
+  sizes?: string;
+  priority?: boolean;
   className?: string;
 }) {
+  if (imageUrl?.startsWith("/images/")) {
+    // Photo livrée avec l'application : optimisée par Next.js (formats modernes, tailles).
+    // Le parent doit être positionné (`relative` ou `absolute`).
+    return (
+      <Image
+        src={imageUrl}
+        alt=""
+        fill
+        sizes={sizes}
+        priority={priority}
+        className={`object-cover ${className}`}
+      />
+    );
+  }
   if (imageUrl) {
     // Adresse saisie par l'agence : image externe non optimisée par Next.js.
     // eslint-disable-next-line @next/next/no-img-element

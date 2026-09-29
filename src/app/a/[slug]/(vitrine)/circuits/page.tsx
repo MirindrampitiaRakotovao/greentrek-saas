@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { BlurBlobs } from "@/components/vitrine/blur-blobs";
 import { CircuitCard } from "@/components/vitrine/circuit-card";
 import { SearchBar } from "@/components/vitrine/search-bar";
 import { formatDate } from "@/lib/format";
@@ -43,7 +44,8 @@ export default async function CircuitsPage({
           </h1>
         </div>
       </section>
-      <div className="mx-auto -mt-16 max-w-6xl px-4 pb-16 sm:px-6">
+      <div className="relative isolate mx-auto -mt-16 max-w-6xl px-4 pb-16 sm:px-6">
+        <BlurBlobs preset="corners" />
         <SearchBar agenceSlug={agence.slug} search={search} today={today} />
 
         <div

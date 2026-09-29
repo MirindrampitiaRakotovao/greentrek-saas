@@ -34,6 +34,7 @@ const FIELDS = [
   "latitude",
   "longitude",
   "tarifIndicatif",
+  "imageUrl",
   "actif",
 ] as const;
 
@@ -48,6 +49,7 @@ type Partenaire = {
   latitude: number | null;
   longitude: number | null;
   tarifIndicatif: number | null;
+  imageUrl: string | null;
   actif: boolean;
 };
 
@@ -79,6 +81,7 @@ export function PartenaireForm({
       latitude: partenaire?.latitude?.toString() ?? "",
       longitude: partenaire?.longitude?.toString() ?? "",
       tarifIndicatif: partenaire?.tarifIndicatif?.toString() ?? "",
+      imageUrl: partenaire?.imageUrl ?? "",
       actif: partenaire?.actif ?? true,
     },
   });
@@ -163,6 +166,13 @@ export function PartenaireForm({
         inputMode="numeric"
         error={errors.tarifIndicatif?.message}
         {...register("tarifIndicatif")}
+      />
+      <TextField
+        label="Photo pour le site vitrine (facultatif)"
+        placeholder="https://… ou /images/partenaires/…"
+        hint="Photo propre ou libre de droits (§8.1), avec attribution si nécessaire."
+        error={errors.imageUrl?.message}
+        {...register("imageUrl")}
       />
       <CheckboxField label="Partenaire actif" {...register("actif")} />
       <Button type="submit" disabled={pending}>

@@ -61,6 +61,32 @@ export const optionalUrl = z
       .nullable(),
   );
 
+/**
+ * Image facultative : adresse web (http ou https) ou image locale du dossier `public/images/`
+ * (ex. « /images/circuits/mon-circuit.jpg », photos livrées avec l'application, disponibles
+ * hors ligne) ; vide → null.
+ */
+export const optionalImageUrl = z
+  .string()
+  .trim()
+  .max(500, { error: "500 caractères au maximum." })
+  .nullable()
+  .transform((value) => (value ? value : null))
+  .refine(
+    (value) => {
+      if (value === null) return true;
+      if (/^\/images\/[\w./-]+\.(jpe?g|png|webp|avif)$/i.test(value) && !value.includes("..")) {
+        return true;
+      }
+      try {
+        return ["http:", "https:"].includes(new URL(value).protocol);
+      } catch {
+        return false;
+      }
+    },
+    { error: "Adresse web (http:// ou https://) ou image locale (/images/…) attendue." },
+  );
+
 /** Convertit une saisie numérique : "" / null → null ; "12,5" → 12.5 ; nombre inchangé. */
 function toOptionalNumber(value: unknown): unknown {
   if (value === "" || value === null || value === undefined) return null;

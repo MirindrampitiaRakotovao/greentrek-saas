@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
+import { Dancing_Script, Poppins } from "next/font/google";
 import localFont from "next/font/local";
 
 import "./globals.css";
@@ -15,6 +15,13 @@ const poppins = Poppins({
 // Nohemi (titres) : police absente de Google Fonts, fichiers locaux dans `src/fonts/`
 // (licence : `src/fonts/Nohemi-LICENCE.txt`). Choix de l'étudiant à la place de la police
 // manuscrite indicative du §8.3. Poppins reste la police du texte et de l'interface.
+// Police script réservée au grand titre du hero du site vitrine (demande de l'étudiant).
+const dancingScript = Dancing_Script({
+  variable: "--font-dancing",
+  subsets: ["latin"],
+  weight: ["600", "700"],
+});
+
 const nohemi = localFont({
   variable: "--font-nohemi",
   src: [
@@ -37,7 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     // à <html> avant React (avertissement sans conséquence). Ne s'applique qu'à cette balise.
     <html
       lang="fr"
-      className={`${poppins.variable} ${nohemi.variable} h-full antialiased`}
+      className={`${poppins.variable} ${nohemi.variable} ${dancingScript.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col font-sans">{children}</body>

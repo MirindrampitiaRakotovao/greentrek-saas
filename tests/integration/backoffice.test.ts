@@ -49,6 +49,7 @@ const partenaire: PartenaireInput = {
   latitude: null,
   longitude: null,
   tarifIndicatif: 30_000,
+  imageUrl: null,
   actif: true,
 };
 

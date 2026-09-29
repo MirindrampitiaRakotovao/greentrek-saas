@@ -4,8 +4,8 @@ import { SLUG_PATTERN } from "@/lib/validators/auth";
 import {
   checkbox,
   optionalInt,
+  optionalImageUrl,
   optionalText,
-  optionalUrl,
   requiredInt,
   requiredNumber,
   requiredText,
@@ -78,7 +78,7 @@ export const circuitSchema = z.object({
   dureeJours: requiredInt(1, 60, "La durée"),
   prixParPersonne: requiredInt(0, 100_000_000, "Le prix"),
   capaciteMax: requiredInt(1, 200, "La capacité"),
-  imagePrincipaleUrl: optionalUrl,
+  imagePrincipaleUrl: optionalImageUrl,
 });
 export type CircuitInput = z.infer<typeof circuitSchema>;
 

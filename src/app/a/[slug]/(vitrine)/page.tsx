@@ -4,8 +4,10 @@ import Link from "next/link";
 
 import { CircuitCard } from "@/components/vitrine/circuit-card";
 import { SearchBar } from "@/components/vitrine/search-bar";
+import { BlurBlobs } from "@/components/vitrine/blur-blobs";
 import { BrushEdge } from "@/components/vitrine/brush-edge";
 import { Carousel } from "@/components/vitrine/carousel";
+import { CircuitVisual } from "@/components/vitrine/circuit-visual";
 import {
   AdventureSection,
   ExperiencesSection,
@@ -67,7 +69,7 @@ export default async function VitrineHomePage({ params }: PageProps<"/a/[slug]">
           <p className="inline-block rounded-full bg-gt-sand-200 px-4 py-1.5 text-sm font-semibold text-gt-teal-900">
             Écotourisme · Randonnée · Pirogue
           </p>
-          <h1 className="mt-5 text-5xl font-medium text-gt-cream drop-shadow sm:text-7xl">
+          <h1 className="mt-4 font-script text-6xl leading-tight font-bold text-gt-cream drop-shadow-lg sm:text-8xl">
             {agence.nom}
           </h1>
           {agence.description ? (
@@ -89,7 +91,11 @@ export default async function VitrineHomePage({ params }: PageProps<"/a/[slug]">
         <SearchBar agenceSlug={agence.slug} today={today} />
       </div>
 
-      <section aria-labelledby="titre-circuits" className="mx-auto max-w-6xl px-4 pt-16 sm:px-6">
+      <section
+        aria-labelledby="titre-circuits"
+        className="relative isolate mx-auto max-w-6xl px-4 pt-16 sm:px-6"
+      >
+        <BlurBlobs preset="right" />
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <h2 id="titre-circuits" className={titre}>
             Nos circuits
@@ -123,8 +129,9 @@ export default async function VitrineHomePage({ params }: PageProps<"/a/[slug]">
       <section
         id="departs"
         aria-labelledby="titre-departs"
-        className="scroll-mt-20 bg-gt-teal-50/70 py-16"
+        className="relative isolate scroll-mt-20 overflow-hidden bg-gt-teal-50/70 py-16"
       >
+        <BlurBlobs preset="corners" />
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <h2 id="titre-departs" className={`${titre} mb-6`}>
             Prochains départs
@@ -147,21 +154,34 @@ export default async function VitrineHomePage({ params }: PageProps<"/a/[slug]">
         <section
           id="partenaires"
           aria-labelledby="titre-partenaires"
-          className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6"
+          className="relative isolate mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6"
         >
+          <BlurBlobs preset="left" />
           <h2 id="titre-partenaires" className={titre}>
             Nos partenaires locaux
           </h2>
-          <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {partenaires.map((p) => (
-              <li key={p.id} className="rounded-3xl border border-gt-mist/70 p-5">
-                <p className="text-xs font-semibold tracking-wide text-gt-teal-600 uppercase">
-                  {TYPE_PARTENAIRE_LABELS[p.type]}
-                </p>
-                <p className="mt-1 font-semibold text-gt-teal-900">{p.nom}</p>
-                {p.description ? (
-                  <p className="mt-2 line-clamp-3 text-sm text-gt-teal-900/70">{p.description}</p>
-                ) : null}
+              <li
+                key={p.id}
+                className="group overflow-hidden rounded-3xl bg-white shadow-md shadow-gt-teal-900/10 transition hover:-translate-y-1 hover:shadow-xl motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+              >
+                <div className="relative aspect-[4/3] bg-gt-teal-100">
+                  {p.imageUrl ? (
+                    <PartnerPhoto src={p.imageUrl} alt={`${p.nom}`} />
+                  ) : (
+                    <CircuitVisual landscapeKey={p.nom} className="size-full" />
+                  )}
+                  <span className="absolute top-3 left-3 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-gt-teal-800 backdrop-blur">
+                    {TYPE_PARTENAIRE_LABELS[p.type]}
+                  </span>
+                </div>
+                <div className="p-5">
+                  <p className="font-display text-lg font-medium text-gt-teal-900">{p.nom}</p>
+                  {p.description ? (
+                    <p className="mt-2 line-clamp-3 text-sm text-gt-teal-900/70">{p.description}</p>
+                  ) : null}
+                </div>
               </li>
             ))}
           </ul>
@@ -169,4 +189,22 @@ export default async function VitrineHomePage({ params }: PageProps<"/a/[slug]">
       ) : null}
     </>
   );
+}
+
+/** Photo d'un partenaire : optimisée si livrée avec l'application, sinon adresse externe. */
+function PartnerPhoto({ src, alt }: { src: string; alt: string }) {
+  if (src.startsWith("/images/")) {
+    return (
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        sizes="(min-width: 1024px) 270px, (min-width: 640px) 50vw, 100vw"
+        className="object-cover transition duration-500 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+      />
+    );
+  }
+  // Adresse saisie par l'agence : image externe non optimisée par Next.js.
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt={alt} className="size-full object-cover" />;
 }

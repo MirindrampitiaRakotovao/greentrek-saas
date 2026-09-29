@@ -21,6 +21,7 @@ const partenaireSelect = {
   latitude: true,
   longitude: true,
   tarifIndicatif: true,
+  imageUrl: true,
   actif: true,
   _count: { select: { circuits: true } },
 } satisfies Prisma.PartenaireSelect;

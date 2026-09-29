@@ -21,10 +21,11 @@ export function UpcomingDepartCard({
       href={`/a/${agenceSlug}/circuits/${d.circuit.slug}#departs`}
       className="group flex h-full gap-4 rounded-3xl bg-white p-3 shadow-md shadow-gt-teal-900/10 transition hover:-translate-y-1 hover:shadow-xl motion-reduce:transition-none motion-reduce:hover:translate-y-0"
     >
-      <div className="size-24 shrink-0 overflow-hidden rounded-2xl">
+      <div className="relative size-24 shrink-0 overflow-hidden rounded-2xl">
         <CircuitVisual
           imageUrl={d.circuit.imagePrincipaleUrl}
           landscapeKey={d.circuit.slug}
+          sizes="96px"
           className="size-full"
         />
       </div>

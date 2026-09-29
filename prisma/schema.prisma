@@ -359,6 +359,7 @@ model Partenaire {
   adresse        String?        @db.VarChar(255)
   latitude       Float?
   longitude      Float?
+  imageUrl       String?        @db.VarChar(500) // photo du site vitrine (ajout E8, hors §5.2)
   tarifIndicatif Int?
   actif          Boolean        @default(true)
 

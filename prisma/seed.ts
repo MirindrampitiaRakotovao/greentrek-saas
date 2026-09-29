@@ -24,6 +24,7 @@ import bcrypt from "bcryptjs";
 
 import type { Role } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
+import { PHOTO_CREDITS } from "@/lib/photo-credits";
 
 import {
   DEMO_ALPHA_CIRCUITS,
@@ -281,7 +282,17 @@ async function seedDemoActivity(refs: AgencyRefs, now: Date): Promise<void> {
 
   const circuitIds: string[] = [];
   for (const [index, circuit] of data.circuits.entries()) {
-    const created = await db.circuit.create({ data: { ...circuit, agenceId, statut: "PUBLIE" } });
+    // Photo libre de droits (Wikimedia Commons) livrée dans public/images/circuits/, avec
+    // crédits dans src/lib/photo-credits.ts ; aucune si le circuit n'en a pas.
+    const photo = `/images/circuits/${circuit.slug}.jpg`;
+    const created = await db.circuit.create({
+      data: {
+        ...circuit,
+        agenceId,
+        statut: "PUBLIE",
+        imagePrincipaleUrl: PHOTO_CREDITS[photo] ? photo : null,
+      },
+    });
     circuitIds.push(created.id);
     // Étapes ordonnées du circuit (RG 4 : au moins deux, rangs 1..n).
     await db.circuitEtape.createMany({
@@ -452,10 +463,31 @@ async function main(): Promise<void> {
       // TODO(données terrain) : description, téléphone, e-mail, adresse, coordonnées GPS, tarifs.
       await db.partenaire.createMany({
         data: [
-          { agenceId: agence.id, nom: "Vanilla Café", type: "RESTAURATION" },
-          { agenceId: agence.id, nom: "La Pirogue Hôtel", type: "HEBERGEMENT" },
-          { agenceId: agence.id, nom: "Surf Dah Mahambo", type: "ACTIVITE" },
-          { agenceId: agence.id, nom: "Piroguiers Mahambo", type: "TRANSPORT" },
+          // Photos fournies par l'étudiant (TODO(photos Green Trek) : source et licence).
+          {
+            agenceId: agence.id,
+            nom: "Vanilla Café",
+            type: "RESTAURATION",
+            imageUrl: "/images/partenaires/vanilla-cafe.jpg",
+          },
+          {
+            agenceId: agence.id,
+            nom: "La Pirogue Hôtel",
+            type: "HEBERGEMENT",
+            imageUrl: "/images/partenaires/la-pirogue-hotel.jpg",
+          },
+          {
+            agenceId: agence.id,
+            nom: "Surf Dah Mahambo",
+            type: "ACTIVITE",
+            imageUrl: "/images/partenaires/surf-dah-mahambo.jpg",
+          },
+          {
+            agenceId: agence.id,
+            nom: "Piroguiers Mahambo",
+            type: "TRANSPORT",
+            imageUrl: "/images/partenaires/piroguiers-mahambo.jpg",
+          },
         ],
       });
     }

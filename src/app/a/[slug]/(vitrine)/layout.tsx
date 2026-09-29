@@ -22,7 +22,7 @@ export default async function VitrineLayout({ children, params }: LayoutProps<"/
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <SiteHeader agence={agence} />
-      <main id="contenu" className="flex-1">
+      <main id="contenu" className="flex-1 overflow-x-clip">
         {children}
       </main>
       <SiteFooter agence={agence} circuits={circuits} />

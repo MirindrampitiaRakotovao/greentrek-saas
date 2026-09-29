@@ -4,9 +4,11 @@ import { notFound } from "next/navigation";
 
 import { Icon, type IconName } from "@/components/ui/icon";
 import { formatDuree, formatKm } from "@/components/vitrine/circuit-card";
+import { BlurBlobs } from "@/components/vitrine/blur-blobs";
 import { CircuitMap } from "@/components/vitrine/circuit-map";
 import { CircuitVisual } from "@/components/vitrine/circuit-visual";
 import { formatDateRange, formatMoney } from "@/lib/format";
+import { creditFor } from "@/lib/photo-credits";
 import { getVitrineAgency } from "@/lib/public-agency";
 import { getPublicCircuit, type PublicCircuitDetail } from "@/lib/services/vitrine";
 import { getTenantDb } from "@/lib/tenant";
@@ -57,16 +59,21 @@ export default async function PublicCircuitPage({ params }: Props) {
     ? circuit.trace.path.map((p) => [p.latitude, p.longitude] as [number, number])
     : null;
 
+  const credit = creditFor(circuit.imagePrincipaleUrl);
+
   return (
     <article>
       <header className="relative overflow-hidden bg-gt-teal-900 text-white">
         <CircuitVisual
           imageUrl={circuit.imagePrincipaleUrl}
           landscapeKey={circuit.slug}
-          className="absolute inset-0 size-full opacity-40"
+          sizes="100vw"
+          priority
+          className={`absolute inset-0 size-full ${circuit.imagePrincipaleUrl ? "opacity-90" : "opacity-40"}`}
         />
-        <div className="absolute inset-0 bg-linear-to-t from-gt-teal-900 via-gt-teal-900/60 to-transparent" />
-        <div className="relative mx-auto max-w-6xl px-4 pt-20 pb-10 sm:px-6 sm:pt-28">
+        {/* Dégradé sombre : garde le texte blanc lisible quelle que soit la photo. */}
+        <div className="absolute inset-0 bg-linear-to-t from-gt-teal-900 via-gt-teal-900/60 to-gt-teal-900/10" />
+        <div className="relative mx-auto max-w-6xl px-4 pt-24 pb-10 sm:px-6 sm:pt-40">
           <Link href={`${base}/circuits`} className="text-sm font-medium text-white/85 underline">
             ← Tous les circuits
           </Link>
@@ -91,10 +98,25 @@ export default async function PublicCircuitPage({ params }: Props) {
           >
             Voir les départs ({circuit.departs.length})
           </a>
+          {credit ? (
+            <p className="mt-6 text-xs text-white/70">
+              Photo : {credit.sujet} · {credit.auteur}, {credit.licence}
+              {credit.source ? (
+                <>
+                  {" "}
+                  ·{" "}
+                  <a href={credit.source} className="underline" rel="noreferrer" target="_blank">
+                    Wikimedia Commons
+                  </a>
+                </>
+              ) : null}
+            </p>
+          ) : null}
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="relative isolate mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <BlurBlobs preset="both" />
         <div className="min-w-0 space-y-10">
           {circuit.description ? (
             <section aria-labelledby="titre-description">

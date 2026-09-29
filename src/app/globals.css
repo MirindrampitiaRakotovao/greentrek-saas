@@ -29,6 +29,7 @@
 
   --font-sans: var(--font-poppins);
   --font-display: var(--font-nohemi), var(--font-poppins), sans-serif;
+  --font-script: var(--font-dancing), cursive;
 }
 
 body {
@@ -36,11 +37,14 @@ body {
   color: var(--gt-teal-900);
 }
 
-/* Titres en Nohemi (choix de l'étudiant), texte et interface en Poppins. */
-h1,
-h2,
-h3 {
-  font-family: var(--font-display);
+/* Titres en Nohemi (choix de l'étudiant), texte et interface en Poppins. Dans la couche
+   « base » : une classe utilitaire (ex. `font-script`) peut encore la remplacer. */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -83,6 +83,7 @@ const cases: [string, ZodType, Record<string, unknown>][] = [
       latitude: "-17,5",
       longitude: "49.4",
       tarifIndicatif: "25000",
+      imageUrl: "",
       actif: true,
     },
   ],
@@ -134,6 +135,22 @@ describe("schémas de formulaire : validation idempotente (navigateur puis serve
     const second = schema.safeParse(first.data);
     expect(second.success, JSON.stringify(second.error?.issues)).toBe(true);
     expect(second.data).toEqual(first.data);
+  });
+});
+
+describe("images (circuits, partenaires)", () => {
+  const base = cases.find(([name]) => name.startsWith("partenaire"))![2];
+  const parse = (imageUrl: string) => partenaireSchema.safeParse({ ...base, imageUrl });
+  it("accepte une adresse web ou une image locale de public/images", () => {
+    expect(parse("https://exemple.test/photo.jpg").success).toBe(true);
+    expect(parse("/images/partenaires/vanilla-cafe.jpg").success).toBe(true);
+    expect(parse("").success).toBe(true);
+  });
+  it("refuse les autres chemins et protocoles", () => {
+    expect(parse("/images/../.env").success).toBe(false);
+    expect(parse("/etc/passwd").success).toBe(false);
+    expect(parse("javascript:alert(1)").success).toBe(false);
+    expect(parse("/images/photo.svg").success).toBe(false);
   });
 });
 

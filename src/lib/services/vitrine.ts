@@ -257,11 +257,11 @@ export async function getBookableDepart(
   return circuit ? { ...depart, circuit } : null;
 }
 
-/** Partenaires actifs présentés sur le site (nom, type, description). */
+/** Partenaires actifs présentés sur le site (nom, type, description, photo). */
 export function listPublicPartenaires(db: TenantDb) {
   return db.partenaire.findMany({
     where: { actif: true },
     orderBy: { nom: "asc" },
-    select: { id: true, nom: true, type: true, description: true },
+    select: { id: true, nom: true, type: true, description: true, imageUrl: true },
   });
 }
