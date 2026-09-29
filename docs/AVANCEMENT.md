@@ -13,7 +13,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E4 Circuits et étapes | Fait | 2026-09-29 | Validé par l'étudiant, y compris la carte au style Google Maps et les 27 lieux réels de la côte Est |
 | E5 Éditeur de graphe | Fait | 2026-09-29 | Validé par l'étudiant (333 tests, parcours complet dans le navigateur) |
 | E6 Algorithmes | Fait | 2026-09-29 | Validé par l'étudiant : algorithmes (45 tests), calcul d'itinéraire, comparaison Dijkstra / A*, performances, tracé réel des circuits |
-| E7 Départs | En cours | 2026-09-29 | Implémenté ; typecheck, lint, 415 tests, build et parcours dans le navigateur verts. En attente de la validation de l'étudiant |
+| E7 Départs | Fait | 2026-09-29 | Validé par l'étudiant : typecheck, lint, 415 tests, build et parcours dans le navigateur verts (création, statut automatique, annulation en cascade, vue du guide, isolation) |
 | E8 Site vitrine | À faire | | |
 | E9 Réservation client | À faire | | |
 | E10 Back-office opérationnel | En partie | 2026-09-28 | Tableau de bord et KPIs avancés à la demande de l'étudiant (refonte des tableaux de bord). Reste : gestion des réservations, clients, paiements |
