@@ -83,7 +83,10 @@ const TYPE_PLURALS: Record<TypeEtape, string> = {
 
 /** Comparaison sans accents ni majuscules (« mahambo » trouve « Mahambo »). */
 const normalize = (text: string) =>
-  text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase("fr");
+  text
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLocaleLowerCase("fr");
 
 const formatKm = (km: number) => `${km.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} km`;
 
