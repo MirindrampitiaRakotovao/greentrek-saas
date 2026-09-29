@@ -12,7 +12,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E3 Fondations back-office | Fait | 2026-09-28 | Validé par l'étudiant. Complété par la refonte visuelle des tableaux de bord (voir « Refonte des tableaux de bord ») |
 | E4 Circuits et étapes | Fait | 2026-09-29 | Validé par l'étudiant, y compris la carte au style Google Maps et les 27 lieux réels de la côte Est |
 | E5 Éditeur de graphe | Fait | 2026-09-29 | Validé par l'étudiant (333 tests, parcours complet dans le navigateur) |
-| E6 Algorithmes | À faire | | |
+| E6 Algorithmes | En cours | 2026-09-29 | **E6a** (algorithmes purs, tests, benchmark) : typecheck, lint, 378 tests et build verts ; en attente de vérification. **E6b** (service, pages de calcul et de performances) : à faire |
 | E7 Départs | À faire | | |
 | E8 Site vitrine | À faire | | |
 | E9 Réservation client | À faire | | |
@@ -193,6 +193,31 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - **Tronçons de démonstration** (`generateDemoEdges`, fonction pure testée) : chaque lieu relié à ses 3 plus proches voisins à moins de 15 km, plus les étapes consécutives des itinéraires, puis les groupes isolés du continent reliés par la paire la plus proche (l'arrière-pays de Vavatenina). Toutes les distances et durées sont estimées (`distanceEstimee = true`, `TODO(données terrain)`). **L'île Sainte-Marie n'est pas reliée** : pas de tronçon à pied à travers la mer. Cela servira à démontrer en E6 le cas « aucun chemin » (§6.4). Green Trek : 42 tronçons ; seed total : 57.
 - **Correctifs de qualité** : la suppression des accents dans la recherche et les slugs s'écrit désormais `\p{Diacritic}` (l'outil d'écriture avait remplacé les échappements `\u0300-\u036f` par des caractères invisibles, fonctionnels mais illisibles) ; croix native du navigateur masquée dans la recherche de la carte (deux croix).
 - **Tests** : 27 tests supplémentaires (estimations ; tronçons de démonstration : pas de boucle, une arête par paire, itinéraires couverts, continent connexe et île séparée ; service : RG 6, RG 7, doublon inverse, modification, suppression, isolation). Parcours complet dans un vrai navigateur : création Mahambo → Vavatenina (35,19 km proposés = 27,07 km × 1,3 ; 528 min), doublon refusé, réouverture, suppression.
+
+### E6a — Algorithmes de plus court chemin (2026-09-29)
+
+- **Décisions validées** : pénalité de difficulté (A), heuristique calibrée sur les données (B), Held-Karp pour l'ordre libre (C), benchmark médian avec export CSV (D).
+- **Module pur** `src/lib/graph/` (aucune dépendance à la base ni à l'interface) :
+  - `build.ts` : liste d'adjacence ; un tronçon à double sens donne deux arcs orientés ; refus clair d'un tronçon vers une étape inexistante (étape supprimée), d'une boucle ou d'un poids invalide (§6.4) ; un tronçon dupliqué est géré naturellement (l'arc le moins coûteux l'emporte).
+  - `weights.ts` : w(e) = α·distance + β·durée (h) + γ·pénalité, avec pénalité = (difficulté − 1) × distance. Préréglages : Plus court (1, 0, 0), Plus rapide (0, 1, 0), Plus facile (1, 0, 2). α, β, γ ≥ 0 et α + β > 0, ce qui garantit w > 0.
+  - `priority-queue.ts` : tas binaire écrit à la main (O(log n)), avec « entrées périmées » plutôt qu'une diminution de clé.
+  - `search.ts` : **un seul moteur pour Dijkstra et A*** (f = g + h, avec h = 0 pour Dijkstra), pour une comparaison équitable ; arrêt dès que l'arrivée est traitée ; sorties du §6.3 (chemin, coût, distance, durée, difficulté cumulée et moyenne, nœuds explorés et leur ordre, temps).
+  - `heuristic.ts` : h(n) = α·ρ·H(n, but) + β·H(n, but)/v, avec ρ = min(distance / vol d'oiseau) et v = max(vitesse à vol d'oiseau) calculés **sur les données**. Preuve de cohérence dans le code (inégalité triangulaire) : h(u) ≤ w(u,v) + h(v), donc h est admissible.
+  - `waypoints.ts` : étapes imposées, ordre fixé (enchaînement) ou libre (Held-Karp, O(k²·2^k), limité à 8 étapes) ; indication du tronçon sans chemin.
+  - `benchmark.ts` : graphes géométriques aléatoires reproductibles (graine), connexes, densité constante ; médiane des temps, moyenne des nœuds explorés, vérification des coûts identiques, export CSV (« ; » et virgule décimale).
+- **Graphe de référence** (`tests/unit/graph/reference-graph.ts`, §11) : 8 nœuds, résultats calculés à la main et documentés. Les trois critères donnent **trois chemins optimaux différents** : Plus court A-B-D-F (11 km), Plus rapide A-C-E-F (2,5 h), Plus facile A-G-F (coût 12). Deux tronçons y sont volontairement plus courts que la ligne droite.
+- **Contre-épreuve** : avec une heuristique « Haversine brute » (ρ = 1), A* renvoie un chemin **non optimal** sur le graphe de référence et 3 tests échouent. Cela justifie le calibrage sur les données.
+- **Mesures (et une optimisation expliquée)** : A* explorait 56 à 72 % de nœuds en moins mais était 2 fois plus LENT que Dijkstra. Cause trouvée par la mesure : le calibrage de l'heuristique (un calcul de Haversine par arc du graphe) était refait à chaque recherche. Il est désormais calculé une fois par graphe et mémorisé (prétraitement, mesuré à part). Résultats (médiane sur 20 paires, graphes aléatoires, critère Plus court) :
+
+| Nœuds | Dijkstra | A* | Nœuds explorés (Dijkstra → A*) | Calibrage A* (une fois) |
+|---|---|---|---|---|
+| 50 | 0,074 ms | 0,043 ms | 25 → 11 (−57 %) | 0,27 ms |
+| 200 | 0,130 ms | 0,073 ms | 100 → 43 (−56 %) | 0,49 ms |
+| 1 000 | 0,601 ms | 0,203 ms | 511 → 166 (−68 %) | 1,85 ms |
+| 5 000 | 3,060 ms | 1,301 ms | 2 668 → 759 (−72 %) | 7,21 ms |
+
+  Le calibrage est amorti dès la 4e recherche sur 5 000 nœuds. Pour « Plus facile », le gain est faible (≈ −20 % de nœuds) : l'heuristique ne peut pas anticiper la pénalité de difficulté (terme γ minoré par 0). Les coûts de Dijkstra et d'A* sont identiques sur toutes les paires, pour tous les critères. Mesures sur la machine de développement : les temps absolus varient d'une machine à l'autre, les rapports restent.
+- **Tests** (45 pour le module) : graphe de référence (chemins et coûts à la main, sens inverse, cas limites §6.4 : aucun chemin, départ = arrivée, graphe à un nœud, étape inconnue, poids invalides, tronçon dupliqué, sens unique) ; propriétés sur des centaines de graphes aléatoires (même coût Dijkstra / A*, chemin continu fait d'arcs existants, coût recalculé = coût annoncé, A* explore moins) ; heuristique admissible et cohérente vérifiée nœud par nœud et arc par arc ; Held-Karp = force brute sur 30 cas ; benchmark reproductible, connexe et CSV.
 
 ## Captures d'écran à prendre
 
