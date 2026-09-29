@@ -4,7 +4,14 @@ import Link from "next/link";
 
 import { CircuitCard } from "@/components/vitrine/circuit-card";
 import { SearchBar } from "@/components/vitrine/search-bar";
-import { UpcomingDeparts } from "@/components/vitrine/upcoming-departs";
+import { BrushEdge } from "@/components/vitrine/brush-edge";
+import { Carousel } from "@/components/vitrine/carousel";
+import {
+  AdventureSection,
+  ExperiencesSection,
+  ThemeTiles,
+} from "@/components/vitrine/home-sections";
+import { UpcomingDepartCard } from "@/components/vitrine/upcoming-departs";
 import { getVitrineAgency } from "@/lib/public-agency";
 import { listPublicPartenaires, listUpcomingDeparts, searchCircuits } from "@/lib/services/vitrine";
 import { TYPE_PARTENAIRE_LABELS } from "@/lib/validators/backoffice";
@@ -19,16 +26,20 @@ export async function generateMetadata({ params }: PageProps<"/a/[slug]">): Prom
 }
 
 /**
- * Accueil du site vitrine (§7.1). Version E8a : hero, recherche, circuits, prochains départs,
- * partenaires. Les sections de présentation de la maquette (§8.4) arrivent à l'étape E8b.
+ * Accueil du site vitrine (§7.1), d'après la structure de la maquette (§8.4) : hero photo à
+ * bord « coup de pinceau », recherche flottante, carrousel des circuits, « Vivre Madagascar
+ * autrement », « Le meilleur pour votre aventure », tuiles thématiques, carrousel des
+ * prochains départs, partenaires, pied de page. Pas de galerie « Suivez-nous » (comptes de
+ * réseaux sociaux inconnus) ni d'avis (P2) : décisions B et C de l'étape E8.
  */
 export default async function VitrineHomePage({ params }: PageProps<"/a/[slug]">) {
   const { agence, db, today } = await loadVitrine((await params).slug);
   const [circuits, departs, partenaires] = await Promise.all([
     searchCircuits(db, {}),
-    listUpcomingDeparts(db),
+    listUpcomingDeparts(db, 9),
     listPublicPartenaires(db),
   ]);
+  const titre = "text-3xl font-medium text-gt-teal-800 sm:text-4xl";
 
   return (
     <>
@@ -52,8 +63,11 @@ export default async function VitrineHomePage({ params }: PageProps<"/a/[slug]">
           aria-hidden="true"
           className="absolute inset-0 -z-10 bg-linear-to-r from-gt-teal-900/85 via-gt-teal-900/55 to-gt-teal-900/10"
         />
-        <div className="mx-auto max-w-6xl px-4 pt-20 pb-36 sm:px-6 sm:pt-32 sm:pb-44">
-          <h1 className="font-script text-5xl text-gt-cream drop-shadow sm:text-7xl">
+        <div className="mx-auto max-w-6xl px-4 pt-20 pb-40 sm:px-6 sm:pt-32 sm:pb-48">
+          <p className="inline-block rounded-full bg-gt-sand-200 px-4 py-1.5 text-sm font-semibold text-gt-teal-900">
+            Écotourisme · Randonnée · Pirogue
+          </p>
+          <h1 className="mt-5 text-5xl font-medium text-gt-cream drop-shadow sm:text-7xl">
             {agence.nom}
           </h1>
           {agence.description ? (
@@ -68,15 +82,16 @@ export default async function VitrineHomePage({ params }: PageProps<"/a/[slug]">
             Découvrir nos circuits
           </Link>
         </div>
+        <BrushEdge />
       </section>
 
-      <div className="relative mx-auto -mt-20 max-w-6xl px-4 sm:px-6">
+      <div className="relative mx-auto -mt-24 max-w-6xl px-4 sm:px-6">
         <SearchBar agenceSlug={agence.slug} today={today} />
       </div>
 
-      <section aria-labelledby="titre-circuits" className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <h2 id="titre-circuits" className="font-script text-3xl text-gt-teal-700 sm:text-4xl">
+      <section aria-labelledby="titre-circuits" className="mx-auto max-w-6xl px-4 pt-16 sm:px-6">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+          <h2 id="titre-circuits" className={titre}>
             Nos circuits
           </h2>
           <Link
@@ -87,37 +102,43 @@ export default async function VitrineHomePage({ params }: PageProps<"/a/[slug]">
           </Link>
         </div>
         {circuits.length === 0 ? (
-          <p className="mt-6 text-sm text-gt-teal-900/70">
-            Aucun circuit publié pour l&apos;instant.
-          </p>
+          <p className="text-sm text-gt-teal-900/70">Aucun circuit publié pour l&apos;instant.</p>
         ) : (
-          <ul className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {circuits.slice(0, 6).map((c) => (
+          <Carousel label="Nos circuits">
+            {circuits.map((c) => (
               <li key={c.id}>
                 <CircuitCard circuit={c} agenceSlug={agence.slug} devise={agence.devise} />
               </li>
             ))}
-          </ul>
+          </Carousel>
         )}
       </section>
+
+      <ExperiencesSection agenceSlug={agence.slug} />
+
+      <AdventureSection />
+
+      <ThemeTiles agenceSlug={agence.slug} />
 
       <section
         id="departs"
         aria-labelledby="titre-departs"
-        className="scroll-mt-20 bg-gt-teal-50/70 px-4 py-14 sm:px-6"
+        className="scroll-mt-20 bg-gt-teal-50/70 py-16"
       >
-        <div className="mx-auto max-w-6xl">
-          <h2 id="titre-departs" className="font-script text-3xl text-gt-teal-700 sm:text-4xl">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <h2 id="titre-departs" className={`${titre} mb-6`}>
             Prochains départs
           </h2>
           {departs.length === 0 ? (
-            <p className="mt-6 text-sm text-gt-teal-900/70">
-              Aucun départ ouvert pour l&apos;instant.
-            </p>
+            <p className="text-sm text-gt-teal-900/70">Aucun départ ouvert pour l&apos;instant.</p>
           ) : (
-            <div className="mt-6">
-              <UpcomingDeparts departs={departs} agenceSlug={agence.slug} devise={agence.devise} />
-            </div>
+            <Carousel label="Prochains départs">
+              {departs.map((d) => (
+                <li key={d.id}>
+                  <UpcomingDepartCard depart={d} agenceSlug={agence.slug} devise={agence.devise} />
+                </li>
+              ))}
+            </Carousel>
           )}
         </div>
       </section>
@@ -126,9 +147,9 @@ export default async function VitrineHomePage({ params }: PageProps<"/a/[slug]">
         <section
           id="partenaires"
           aria-labelledby="titre-partenaires"
-          className="mx-auto max-w-6xl scroll-mt-20 px-4 py-14 sm:px-6"
+          className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6"
         >
-          <h2 id="titre-partenaires" className="font-script text-3xl text-gt-teal-700 sm:text-4xl">
+          <h2 id="titre-partenaires" className={titre}>
             Nos partenaires locaux
           </h2>
           <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

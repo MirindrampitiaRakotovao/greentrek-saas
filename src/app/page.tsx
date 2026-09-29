@@ -22,7 +22,7 @@ export default function HomePage() {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-4 py-12">
       <header className="rounded-2xl bg-gt-teal-500 px-6 py-10">
-        <h1 className="font-script text-4xl text-gt-cream sm:text-5xl">Green Trek</h1>
+        <h1 className="font-display text-4xl text-gt-cream sm:text-5xl">Green Trek</h1>
         <p className="mt-3 inline-block rounded-full bg-gt-sand-200 px-4 py-1 text-sm font-medium text-gt-teal-900">
           Initialisation du projet (étape E0)
         </p>

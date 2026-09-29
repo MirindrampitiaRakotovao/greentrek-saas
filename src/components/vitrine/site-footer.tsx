@@ -19,7 +19,7 @@ export function SiteFooter({
     <footer id="contact" className="mt-auto scroll-mt-20 bg-gt-teal-800 text-white">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
         <div className="lg:col-span-2">
-          <p className="font-script text-3xl text-gt-cream">{agence.nom}</p>
+          <p className="font-display text-3xl text-gt-cream">{agence.nom}</p>
           {agence.description ? (
             <p className="mt-3 max-w-md text-sm leading-relaxed text-white/80">
               {agence.description}

@@ -24,7 +24,7 @@ export default async function ReserverPage({
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-14 sm:px-6">
-      <p className="font-script text-3xl text-gt-teal-700">Réserver</p>
+      <p className="font-display text-3xl text-gt-teal-700">Réserver</p>
       <h1 className="mt-2 text-2xl font-semibold text-gt-teal-900">{depart.circuit.titre}</h1>
       <dl className="mt-6 grid gap-4 rounded-3xl border border-gt-mist/70 p-6 sm:grid-cols-3">
         <div>

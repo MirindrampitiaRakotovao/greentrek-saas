@@ -128,7 +128,7 @@ export default async function PublicCircuitPage({ params }: Props) {
               {groupByJour(circuit.etapes).map((group, index) => (
                 <li key={`${group.jour ?? "x"}-${index}`}>
                   {group.jour !== null ? (
-                    <p className="font-script text-2xl text-gt-teal-700">Jour {group.jour}</p>
+                    <p className="font-display text-2xl text-gt-teal-700">Jour {group.jour}</p>
                   ) : null}
                   <ol className="mt-2 space-y-3 border-l-2 border-gt-teal-200 pl-5">
                     {group.etapes.map((s) => (

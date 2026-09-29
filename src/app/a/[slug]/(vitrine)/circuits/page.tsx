@@ -37,7 +37,7 @@ export default async function CircuitsPage({
     <div className="bg-gt-teal-50/60">
       <section className="bg-gt-teal-700 px-4 pt-10 pb-24 text-white sm:px-6">
         <div className="mx-auto max-w-6xl">
-          <p className="font-script text-3xl text-gt-cream sm:text-4xl">Nos circuits</p>
+          <p className="font-display text-3xl text-gt-cream sm:text-4xl">Nos circuits</p>
           <h1 className="mt-2 text-2xl font-semibold sm:text-3xl">
             Randonnées et découvertes avec {agence.nom}
           </h1>

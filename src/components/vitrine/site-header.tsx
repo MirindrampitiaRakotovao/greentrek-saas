@@ -2,11 +2,12 @@ import Link from "next/link";
 
 import { Icon } from "@/components/ui/icon";
 import { getCurrentUser } from "@/lib/auth/session";
+import { ShrinkingHeader } from "@/components/vitrine/shrinking-header";
 import type { VitrineAgency } from "@/lib/public-agency";
 
 /**
  * En-tête du site vitrine (§8.4, section 1) : logo et nom de l'agence, liens, accès au
- * compte. Sur mobile, le menu est un `<details>` natif : il fonctionne sans JavaScript et
+ * compte ; il se réduit au défilement (§8.5). Sur mobile, le menu est un `<details>` natif : il fonctionne sans JavaScript et
  * au clavier. Pas de lien « Avis » tant que les avis (P2) ne sont pas réalisés.
  */
 export async function SiteHeader({ agence }: { agence: VitrineAgency }) {
@@ -25,19 +26,25 @@ export async function SiteHeader({ agence }: { agence: VitrineAgency }) {
     : { href: `${base}/connexion`, label: "Connexion" };
 
   return (
-    <header className="sticky top-0 z-[1100] border-b border-gt-mist/60 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+    <ShrinkingHeader>
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 transition-[padding] group-data-[scrolled=true]/header:py-2 sm:px-6 sm:py-4">
         <Link href={base} className="flex min-w-0 items-center gap-2.5">
           {agence.logoUrl ? (
             // Logo saisi par l'agence (adresse externe).
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={agence.logoUrl} alt="" className="size-10 rounded-xl object-cover" />
+            <img
+              src={agence.logoUrl}
+              alt=""
+              className="size-10 rounded-xl object-cover transition-[width,height] group-data-[scrolled=true]/header:size-8"
+            />
           ) : (
-            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-gt-teal-700 text-white">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-gt-teal-700 text-white transition-[width,height] group-data-[scrolled=true]/header:size-8">
               <Icon name="leaf" className="size-5" />
             </span>
           )}
-          <span className="truncate font-semibold text-gt-teal-900">{agence.nom}</span>
+          <span className="truncate font-display text-lg font-medium text-gt-teal-900">
+            {agence.nom}
+          </span>
         </Link>
 
         <nav aria-label="Navigation principale" className="hidden items-center gap-6 lg:flex">
@@ -86,6 +93,6 @@ export async function SiteHeader({ agence }: { agence: VitrineAgency }) {
           </nav>
         </details>
       </div>
-    </header>
+    </ShrinkingHeader>
   );
 }

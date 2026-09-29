@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Kaushan_Script, Poppins } from "next/font/google";
+import { Poppins } from "next/font/google";
+import localFont from "next/font/local";
 
 import "./globals.css";
 
@@ -11,10 +12,17 @@ const poppins = Poppins({
   weight: ["400", "500", "600", "700"],
 });
 
-const kaushan = Kaushan_Script({
-  variable: "--font-kaushan",
-  subsets: ["latin"],
-  weight: "400",
+// Nohemi (titres) : police absente de Google Fonts, fichiers locaux dans `src/fonts/`
+// (licence : `src/fonts/Nohemi-LICENCE.txt`). Choix de l'étudiant à la place de la police
+// manuscrite indicative du §8.3. Poppins reste la police du texte et de l'interface.
+const nohemi = localFont({
+  variable: "--font-nohemi",
+  src: [
+    { path: "../fonts/Nohemi-Regular.ttf", weight: "400", style: "normal" },
+    { path: "../fonts/Nohemi-Medium.ttf", weight: "500", style: "normal" },
+    { path: "../fonts/Nohemi-Bold.ttf", weight: "700", style: "normal" },
+  ],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -29,7 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     // à <html> avant React (avertissement sans conséquence). Ne s'applique qu'à cette balise.
     <html
       lang="fr"
-      className={`${poppins.variable} ${kaushan.variable} h-full antialiased`}
+      className={`${poppins.variable} ${nohemi.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col font-sans">{children}</body>

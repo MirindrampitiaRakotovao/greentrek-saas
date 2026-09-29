@@ -28,12 +28,19 @@
   --color-gt-chart-2: var(--gt-chart-2);
 
   --font-sans: var(--font-poppins);
-  --font-script: var(--font-kaushan);
+  --font-display: var(--font-nohemi), var(--font-poppins), sans-serif;
 }
 
 body {
   background: var(--gt-white);
   color: var(--gt-teal-900);
+}
+
+/* Titres en Nohemi (choix de l'étudiant), texte et interface en Poppins. */
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
 }
 
 @media (prefers-reduced-motion: reduce) {
