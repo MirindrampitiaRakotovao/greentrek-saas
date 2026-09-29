@@ -16,7 +16,18 @@ export const authConfig = {
     // Un mot de passe erroné est un événement normal, pas une panne : on n'affiche pas de
     // trace d'erreur (et aucune donnée saisie n'est journalisée). Les vraies erreurs restent.
     error(error) {
-      if (error.name === "CredentialsSignin") return;
+      // On lit `type` (fourni par Auth.js) et non `name` : le build de production minifie
+      // les noms de classes (`name` y vaut par exemple « z »).
+      const type = "type" in error && typeof error.type === "string" ? error.type : error.name;
+      if (type === "CredentialsSignin") return;
+      // Cookie de session illisible (chiffré avec un autre AUTH_SECRET, par exemple après un
+      // changement de secret ou venant d'une autre application sur localhost) : Auth.js
+      // l'ignore et traite la requête comme celle d'un visiteur. Événement attendu, pas une
+      // panne : un avertissement suffit (le site public lit la session à chaque page).
+      if (type === "JWTSessionError") {
+        console.warn("Auth.js : cookie de session illisible ignoré (visiteur non connecté).");
+        return;
+      }
       console.error(error);
     },
   },

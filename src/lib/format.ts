@@ -17,7 +17,8 @@ export function formatDateTime(date: Date | null | undefined, fallback = "—"):
 }
 
 export function formatDate(date: Date | null | undefined, fallback = "—"): string {
-  return date ? dateFormat.format(date) : fallback;
+  // Usage français : « 1er novembre », pas « 1 novembre ».
+  return date ? dateFormat.format(date).replace(/^1 /, "1er ") : fallback;
 }
 
 const integerFormat = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });

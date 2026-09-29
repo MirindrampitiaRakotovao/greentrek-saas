@@ -8,7 +8,7 @@ import {
   placesReservees,
   toIsoDate,
 } from "@/lib/departs";
-import { formatDateRange, formatMonthYear } from "@/lib/format";
+import { formatDate, formatDateRange, formatMonthYear } from "@/lib/format";
 
 const TODAY = parseIsoDate("2026-09-29");
 const session = (dateFin: string, placesTotal = 8, statut: "OUVERTE" | "ANNULEE" = "OUVERTE") => ({
@@ -83,5 +83,7 @@ describe("affichage des dates de départ (colonnes DATE, en UTC)", () => {
     expect(formatDateRange(d("2026-10-30"), d("2026-11-02"))).toBe("30 oct. – 2 nov. 2026");
     expect(formatDateRange(d("2026-12-30"), d("2027-01-02"))).toBe("30 déc. 2026 – 2 janv. 2027");
     expect(formatMonthYear(d("2026-10-01"))).toBe("octobre 2026");
+    expect(formatDate(d("2026-11-01"))).toBe("1er novembre 2026");
+    expect(formatDate(d("2026-11-11"))).toBe("11 novembre 2026");
   });
 });
