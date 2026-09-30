@@ -17,7 +17,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E8 Site vitrine | Fait | 2026-09-29 | Validé par l'étudiant : E8a (données publiques, recherche, détail d'un circuit), E8b (accueil d'après la maquette), E8c (photos sous licence libre avec crédits, partenaires illustrés, titre script, cercles flous) ; typecheck, lint, 436 tests, build et parcours dans le navigateur verts |
 | E9 Réservation client | Fait | 2026-09-29 | Validé par l'étudiant : inscription, tunnel, anti-surbooking testé en simultané, paiement simulé, annulation ; typecheck, lint, 459 tests, build et parcours dans le navigateur verts |
 | E10 Back-office opérationnel | Fait | 2026-09-29 | Validé par l'étudiant (réservations, paiements, clients, export CSV, facture avec QR code scannable sur le Wi-Fi), puis refonte de l'interface demandée (modales, confirmations, listes, pagination numérotée, défilement du contenu seul) ; typecheck, lint, 486 tests, build et parcours dans le navigateur verts |
-| E11 Super admin, plans | En cours | 2026-09-30 | Implémenté (console agences et plans, attribution, suspension, limites RG 18, page Abonnement, landing SaaS, Tarifs) : typecheck, lint, 501 tests, build et parcours dans le navigateur verts ; en attente de la validation de l'étudiant |
+| E11 Super admin, plans | Fait | 2026-09-30 | Validé par l'étudiant : console agences et plans, attribution, suspension, limites RG 18, page Abonnement, landing SaaS, Tarifs ; typecheck, lint, 501 tests, build et parcours dans le navigateur verts |
 | E12 Finition | À faire | | |
 
 ## Décisions et justifications
