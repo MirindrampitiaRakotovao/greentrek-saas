@@ -35,17 +35,17 @@ export default async function ClientPage({ params }: PageProps<"/dashboard/clien
       <div className="grid gap-5 md:grid-cols-3">
         <Card title="Contact">
           <p className="text-sm text-gt-teal-900">{client.email}</p>
-          <p className="text-sm text-gt-teal-900/70">
+          <p className="text-sm text-gt-teal-900/75">
             {client.telephone ?? "Téléphone non renseigné"}
           </p>
         </Card>
         <Card title="Réservations">
           <p className="text-3xl font-semibold text-gt-teal-900">{client.reservations.length}</p>
-          <p className="text-sm text-gt-teal-900/70">dont {actives.length} non annulée(s)</p>
+          <p className="text-sm text-gt-teal-900/75">dont {actives.length} non annulée(s)</p>
         </Card>
         <Card title="Total réservé">
           <p className="text-3xl font-semibold text-gt-teal-900">{formatMoney(total, devise)}</p>
-          <p className="text-sm text-gt-teal-900/70">hors réservations annulées</p>
+          <p className="text-sm text-gt-teal-900/75">hors réservations annulées</p>
         </Card>
       </div>
       <Card title="Historique">
@@ -63,7 +63,7 @@ export default async function ClientPage({ params }: PageProps<"/dashboard/clien
                     {r.reference}
                   </Link>
                   <p className="font-medium text-gt-teal-900">{r.session.circuit.titre}</p>
-                  <p className="text-xs text-gt-teal-900/60">
+                  <p className="text-xs text-gt-teal-900/75">
                     {formatDateRange(r.session.dateDebut, r.session.dateFin)} · {r.nombrePersonnes}{" "}
                     pers. · réservée le {formatDateTime(r.createdAt)}
                   </p>

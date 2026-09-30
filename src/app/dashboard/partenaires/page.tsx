@@ -49,7 +49,7 @@ export default async function PartenairesPage({
       />
 
       {partenaires.total === 0 ? (
-        <p className="rounded-2xl border border-dashed border-gt-mist bg-white p-8 text-center text-gt-teal-900/70">
+        <p className="rounded-2xl border border-dashed border-gt-mist bg-white p-8 text-center text-gt-teal-900/75">
           Aucun partenaire pour l&apos;instant.
         </p>
       ) : (
@@ -73,7 +73,7 @@ export default async function PartenairesPage({
             </thead>
             <tbody>
               {partenaires.items.map((partenaire) => (
-                <tr key={partenaire.id} className={partenaire.actif ? "" : "text-gt-teal-900/60"}>
+                <tr key={partenaire.id} className={partenaire.actif ? "" : "text-gt-teal-900/75"}>
                   <td className="font-medium text-gt-teal-900">{partenaire.nom}</td>
                   <td>{TYPE_PARTENAIRE_LABELS[partenaire.type]}</td>
                   <td>{partenaire.telephone ?? "—"}</td>
@@ -96,7 +96,7 @@ export default async function PartenairesPage({
                       >
                         <PartenaireForm partenaire={partenaire} devise={devise} />
                         <div className="mt-6 border-t border-gt-mist/70 pt-5">
-                          <p className="mb-3 text-sm text-gt-teal-900/70">
+                          <p className="mb-3 text-sm text-gt-teal-900/75">
                             Suppression possible uniquement si le partenaire n&apos;est inclus dans
                             aucun circuit. Sinon, décochez « Partenaire actif ».
                           </p>

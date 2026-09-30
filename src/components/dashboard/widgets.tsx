@@ -35,7 +35,7 @@ export function Card({
 export function TrendBadge({ change }: { change: number | null }) {
   if (change === null) {
     return (
-      <span className="rounded-full bg-gt-mist/50 px-2 py-0.5 text-[11px] font-semibold text-gt-teal-900/70">
+      <span className="rounded-full bg-gt-mist/50 px-2 py-0.5 text-[11px] font-semibold text-gt-teal-900/75">
         nouveau
       </span>
     );
@@ -80,7 +80,7 @@ export function KpiCard({
       </div>
       <div className="mt-3 flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
         <p className="text-2xl font-bold tracking-tight text-gt-teal-900">{value}</p>
-        <p className="text-xs text-gt-teal-900/60">{detail}</p>
+        <p className="text-xs text-gt-teal-900/75">{detail}</p>
       </div>
     </section>
   );
@@ -131,7 +131,7 @@ export function ProgressBar({ value, max, label }: { value: number; max: number;
 
 export function EmptyState({ children }: { children: ReactNode }) {
   return (
-    <p className="rounded-2xl border border-dashed border-gt-mist bg-gt-teal-50 px-4 py-6 text-center text-sm text-gt-teal-900/60">
+    <p className="rounded-2xl border border-dashed border-gt-mist bg-gt-teal-50 px-4 py-6 text-center text-sm text-gt-teal-900/75">
       {children}
     </p>
   );
@@ -179,9 +179,9 @@ export function Timeline({ events, now }: { events: readonly TimelineEvent[]; no
                   <Icon name={event.icon} className="size-4" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[11px] text-gt-teal-900/50">{timeFormat.format(event.at)}</p>
+                  <p className="text-[11px] text-gt-teal-900/75">{timeFormat.format(event.at)}</p>
                   <p className="text-sm font-medium break-words text-gt-teal-900">{event.titre}</p>
-                  <p className="truncate text-xs text-gt-teal-900/60">{event.detail}</p>
+                  <p className="truncate text-xs text-gt-teal-900/75">{event.detail}</p>
                 </div>
               </li>
             ))}

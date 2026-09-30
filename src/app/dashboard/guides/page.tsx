@@ -59,7 +59,7 @@ export default async function GuidesPage({ searchParams }: PageProps<"/dashboard
       />
 
       {guides.total === 0 ? (
-        <p className="rounded-2xl border border-dashed border-gt-mist bg-white p-8 text-center text-gt-teal-900/70">
+        <p className="rounded-2xl border border-dashed border-gt-mist bg-white p-8 text-center text-gt-teal-900/75">
           Aucun guide pour l&apos;instant.
         </p>
       ) : (
@@ -82,7 +82,7 @@ export default async function GuidesPage({ searchParams }: PageProps<"/dashboard
             </thead>
             <tbody>
               {guides.items.map((guide) => (
-                <tr key={guide.id} className={guide.actif ? "" : "text-gt-teal-900/60"}>
+                <tr key={guide.id} className={guide.actif ? "" : "text-gt-teal-900/75"}>
                   <td className="font-medium text-gt-teal-900">
                     {guide.prenom} {guide.nom}
                   </td>
@@ -111,7 +111,7 @@ export default async function GuidesPage({ searchParams }: PageProps<"/dashboard
                           accounts={accountsFor(guide.utilisateurId)}
                         />
                         <div className="mt-6 border-t border-gt-mist/70 pt-5">
-                          <p className="mb-3 text-sm text-gt-teal-900/70">
+                          <p className="mb-3 text-sm text-gt-teal-900/75">
                             Suppression possible uniquement si la fiche n&apos;encadre aucun départ
                             et n&apos;est reliée à aucun compte. Sinon, décochez « Guide actif ».
                           </p>

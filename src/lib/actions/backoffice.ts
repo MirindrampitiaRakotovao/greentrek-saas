@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { authorize, parseInput, toActionResult } from "@/lib/actions/helpers";
+import { authorize, journal, parseInput, toActionResult } from "@/lib/actions/helpers";
 import type { ActionResult } from "@/lib/actions/types";
 import { updateAgencySettings } from "@/lib/services/agency-settings";
 import { createGuide, deleteGuide, updateGuide } from "@/lib/services/guides";
@@ -28,7 +28,10 @@ export async function updateAgencySettingsAction(input: unknown): Promise<Action
   if (!parsed.ok) return parsed.result;
 
   const result = await updateAgencySettings(auth.db, auth.user.agenceId, parsed.data);
-  if (result.ok) revalidatePath("/dashboard", "layout"); // le nom apparaît dans le menu
+  if (result.ok) {
+    await journal(auth, "AGENCE_PARAMETRES", "Agence", auth.user.agenceId);
+    revalidatePath("/dashboard", "layout"); // le nom apparaît dans le menu
+  }
   return toActionResult(result, "Paramètres enregistrés.");
 }
 

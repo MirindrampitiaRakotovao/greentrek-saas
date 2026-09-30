@@ -80,7 +80,7 @@ export function Modal({
               <button
                 type="button"
                 onClick={onClose}
-                className="absolute top-4 right-4 grid size-9 place-items-center rounded-full text-gt-teal-900/60 hover:bg-white hover:text-gt-teal-900"
+                className="absolute top-4 right-4 grid size-9 place-items-center rounded-full text-gt-teal-900/75 hover:bg-white hover:text-gt-teal-900"
               >
                 <Icon name="close" className="size-5" />
                 <span className="sr-only">Fermer</span>
@@ -100,7 +100,7 @@ export function Modal({
                     {title}
                   </h2>
                   {description ? (
-                    <p id={descriptionId} className="mt-1 text-sm text-gt-teal-900/65">
+                    <p id={descriptionId} className="mt-1 text-sm text-gt-teal-900/75">
                       {description}
                     </p>
                   ) : null}

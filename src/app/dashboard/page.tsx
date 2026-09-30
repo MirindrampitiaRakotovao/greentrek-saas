@@ -23,9 +23,10 @@ export default async function DashboardPage() {
     return <GuideDashboardView data={await getGuideDashboard(db, user.id, now)} />;
   }
 
-  const [data, aTraiter] = await Promise.all([
+  const [data, aTraiter, avisAModerer] = await Promise.all([
     getAgencyDashboard(db, user.agenceId, now),
     countATraiter(db, now),
+    db.avis.count({ where: { statut: "EN_ATTENTE" } }),
   ]);
   const items = [
     {
@@ -48,6 +49,7 @@ export default async function DashboardPage() {
       label: "à rembourser",
       href: "/dashboard/reservations?statut=ANNULEE&periode=tous",
     },
+    { n: avisAModerer, label: "avis à modérer", href: "/dashboard/avis" },
   ].filter((item) => item.n > 0);
   return (
     <div className="space-y-5">

@@ -33,7 +33,7 @@ export function TextField({ label, error, hint, id, name, className, ...props }:
           {error}
         </p>
       ) : hint ? (
-        <p id={`${inputId}-hint`} className="mt-1 text-sm text-gt-teal-900/70">
+        <p id={`${inputId}-hint`} className="mt-1 text-sm text-gt-teal-900/75">
           {hint}
         </p>
       ) : null}

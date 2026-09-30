@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 
+import { ReviewList } from "@/components/avis/review-list";
 import { CircuitCard } from "@/components/vitrine/circuit-card";
 import { SearchBar } from "@/components/vitrine/search-bar";
 import { BlurBlobs } from "@/components/vitrine/blur-blobs";
@@ -15,6 +16,7 @@ import {
 } from "@/components/vitrine/home-sections";
 import { UpcomingDepartCard } from "@/components/vitrine/upcoming-departs";
 import { getVitrineAgency } from "@/lib/public-agency";
+import { listPublicAvis } from "@/lib/services/avis";
 import { listPublicPartenaires, listUpcomingDeparts, searchCircuits } from "@/lib/services/vitrine";
 import { TYPE_PARTENAIRE_LABELS } from "@/lib/validators/backoffice";
 import { loadVitrine } from "@/lib/vitrine-page";
@@ -31,15 +33,17 @@ export async function generateMetadata({ params }: PageProps<"/a/[slug]">): Prom
  * Accueil du site vitrine (§7.1), d'après la structure de la maquette (§8.4) : hero photo à
  * bord « coup de pinceau », recherche flottante, carrousel des circuits, « Vivre Madagascar
  * autrement », « Le meilleur pour votre aventure », tuiles thématiques, carrousel des
- * prochains départs, partenaires, pied de page. Pas de galerie « Suivez-nous » (comptes de
- * réseaux sociaux inconnus) ni d'avis (P2) : décisions B et C de l'étape E8.
+ * prochains départs, avis des voyageurs (publiés après modération, étape E12), partenaires,
+ * pied de page. Pas de galerie « Suivez-nous » (comptes de réseaux sociaux inconnus) :
+ * décision C de l'étape E8.
  */
 export default async function VitrineHomePage({ params }: PageProps<"/a/[slug]">) {
   const { agence, db, today } = await loadVitrine((await params).slug);
-  const [circuits, departs, partenaires] = await Promise.all([
+  const [circuits, departs, partenaires, avis] = await Promise.all([
     searchCircuits(db, {}),
     listUpcomingDeparts(db, 9),
     listPublicPartenaires(db),
+    listPublicAvis(db, { take: 6 }),
   ]);
   const titre = "text-3xl font-medium text-gt-teal-800 sm:text-4xl";
 
@@ -108,7 +112,7 @@ export default async function VitrineHomePage({ params }: PageProps<"/a/[slug]">
           </Link>
         </div>
         {circuits.length === 0 ? (
-          <p className="text-sm text-gt-teal-900/70">Aucun circuit publié pour l&apos;instant.</p>
+          <p className="text-sm text-gt-teal-900/75">Aucun circuit publié pour l&apos;instant.</p>
         ) : (
           <Carousel label="Nos circuits">
             {circuits.map((c) => (
@@ -137,7 +141,7 @@ export default async function VitrineHomePage({ params }: PageProps<"/a/[slug]">
             Prochains départs
           </h2>
           {departs.length === 0 ? (
-            <p className="text-sm text-gt-teal-900/70">Aucun départ ouvert pour l&apos;instant.</p>
+            <p className="text-sm text-gt-teal-900/75">Aucun départ ouvert pour l&apos;instant.</p>
           ) : (
             <Carousel label="Prochains départs">
               {departs.map((d) => (
@@ -148,6 +152,24 @@ export default async function VitrineHomePage({ params }: PageProps<"/a/[slug]">
             </Carousel>
           )}
         </div>
+      </section>
+
+      <section
+        id="avis"
+        aria-labelledby="titre-avis"
+        className="relative isolate mx-auto max-w-6xl scroll-mt-20 px-4 pt-16 sm:px-6"
+      >
+        <h2 id="titre-avis" className={titre}>
+          Ils ont randonné avec nous
+        </h2>
+        <p className="mt-2 mb-6 text-gt-teal-900/75">
+          Les avis sont déposés par les voyageurs après leur séjour.
+        </p>
+        {avis.length === 0 ? (
+          <p className="text-sm text-gt-teal-900/75">Aucun avis publié pour l&apos;instant.</p>
+        ) : (
+          <ReviewList avis={avis} agenceSlug={agence.slug} showCircuit />
+        )}
       </section>
 
       {partenaires.length > 0 ? (
@@ -179,7 +201,7 @@ export default async function VitrineHomePage({ params }: PageProps<"/a/[slug]">
                 <div className="p-5">
                   <p className="font-display text-lg font-medium text-gt-teal-900">{p.nom}</p>
                   {p.description ? (
-                    <p className="mt-2 line-clamp-3 text-sm text-gt-teal-900/70">{p.description}</p>
+                    <p className="mt-2 line-clamp-3 text-sm text-gt-teal-900/75">{p.description}</p>
                   ) : null}
                 </div>
               </li>

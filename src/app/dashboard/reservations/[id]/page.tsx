@@ -68,10 +68,10 @@ export default async function ReservationPage({
           <p className="text-3xl font-semibold text-gt-teal-900">
             {formatMoney(r.montantTotal, devise)}
           </p>
-          <p className="mt-1 text-sm text-gt-teal-900/70">
+          <p className="mt-1 text-sm text-gt-teal-900/75">
             Payé : {formatMoney(r.paye, devise)} · reste : {formatMoney(r.reste, devise)}
           </p>
-          <p className="mt-3 text-xs text-gt-teal-900/60">
+          <p className="mt-3 text-xs text-gt-teal-900/75">
             Réservée le {formatDateTime(r.createdAt)}
             {r.confirmeeAt ? ` · confirmée le ${formatDateTime(r.confirmeeAt)}` : ""}
             {r.annuleeAt ? ` · annulée le ${formatDateTime(r.annuleeAt)}` : ""}
@@ -110,9 +110,9 @@ export default async function ReservationPage({
           >
             {r.client.prenom} {r.client.nom}
           </Link>
-          <p className="text-sm text-gt-teal-900/70">{r.client.email}</p>
+          <p className="text-sm text-gt-teal-900/75">{r.client.email}</p>
           {r.client.telephone ? (
-            <p className="text-sm text-gt-teal-900/70">{r.client.telephone}</p>
+            <p className="text-sm text-gt-teal-900/75">{r.client.telephone}</p>
           ) : null}
           {r.remarques ? (
             <p className="mt-3 rounded-xl bg-gt-teal-50 p-3 text-sm whitespace-pre-line text-gt-teal-900/80">
@@ -128,8 +128,8 @@ export default async function ReservationPage({
           >
             {formatDateRange(r.session.dateDebut, r.session.dateFin)}
           </Link>
-          <p className="text-sm text-gt-teal-900/70">{r.session.circuit.titre}</p>
-          <p className="text-sm text-gt-teal-900/70">
+          <p className="text-sm text-gt-teal-900/75">{r.session.circuit.titre}</p>
+          <p className="text-sm text-gt-teal-900/75">
             {r.session.guide
               ? `Guide : ${r.session.guide.prenom} ${r.session.guide.nom}`
               : "Sans guide"}
@@ -145,7 +145,7 @@ export default async function ReservationPage({
                 <span className="font-medium text-gt-teal-900">
                   {p.prenom} {p.nom}
                 </span>
-                <span className="text-gt-teal-900/60">
+                <span className="text-gt-teal-900/75">
                   {[
                     p.age !== null ? `${p.age} ans` : null,
                     p.nationalite,
@@ -162,7 +162,7 @@ export default async function ReservationPage({
 
         <Card title="Paiements" className="min-w-0">
           {r.paiements.length === 0 ? (
-            <p className="text-sm text-gt-teal-900/70">Aucun paiement.</p>
+            <p className="text-sm text-gt-teal-900/75">Aucun paiement.</p>
           ) : (
             <ul className="divide-y divide-gt-mist/60 text-sm">
               {r.paiements.map((p) => (
@@ -171,7 +171,7 @@ export default async function ReservationPage({
                     <span className="font-medium text-gt-teal-900">
                       {METHODE_PAIEMENT_LABELS[p.methode]}
                     </span>
-                    <span className="block text-xs text-gt-teal-900/60">
+                    <span className="block text-xs text-gt-teal-900/75">
                       {STATUT_PAIEMENT_LABELS[p.statut]}
                       {p.referenceExterne ? ` · ${p.referenceExterne}` : ""}
                       {p.payeLe ? ` · ${formatDateTime(p.payeLe)}` : ""}

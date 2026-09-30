@@ -18,14 +18,14 @@ export function BookingStepper({ current }: { current: number }) {
             <span
               className={`grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold ${
                 state === "todo"
-                  ? "bg-gt-teal-50 text-gt-teal-900/60 ring-1 ring-gt-mist"
+                  ? "bg-gt-teal-50 text-gt-teal-900/75 ring-1 ring-gt-mist"
                   : "bg-gt-teal-700 text-white"
               }`}
             >
               {state === "done" ? "✓" : index + 1}
             </span>
             <span
-              className={`truncate ${state === "current" ? "font-semibold text-gt-teal-900" : "text-gt-teal-900/60"} ${state === "current" ? "" : "hidden sm:inline"}`}
+              className={`truncate ${state === "current" ? "font-semibold text-gt-teal-900" : "text-gt-teal-900/75"} ${state === "current" ? "" : "hidden sm:inline"}`}
             >
               {label}
             </span>

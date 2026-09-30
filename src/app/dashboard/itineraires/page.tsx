@@ -47,7 +47,7 @@ export default async function ItinerairesPage({
           <div className="relative -mx-5 overflow-x-auto px-5">
             <table className="w-full min-w-[760px] text-left text-sm">
               <caption className="sr-only">Derniers itinéraires calculés</caption>
-              <thead className="text-xs text-gt-teal-900/55">
+              <thead className="text-xs text-gt-teal-900/75">
                 <tr className="border-b border-gt-mist/70">
                   {[
                     "Date",
@@ -76,7 +76,7 @@ export default async function ItinerairesPage({
                         {h.etapeDepart?.nom ?? "étape supprimée"} →{" "}
                         {h.etapeArrivee?.nom ?? "étape supprimée"}
                       </p>
-                      <p className="text-xs text-gt-teal-900/60">
+                      <p className="text-xs text-gt-teal-900/75">
                         {h.circuit ? `Tracé du circuit « ${h.circuit.titre} » · ` : ""}
                         {h.creePar ? `${h.creePar.prenom} ${h.creePar.nom}` : ""}
                       </p>

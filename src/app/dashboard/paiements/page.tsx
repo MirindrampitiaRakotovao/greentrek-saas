@@ -127,7 +127,7 @@ export default async function PaiementsPage({ searchParams }: PageProps<"/dashbo
                   <td>
                     {METHODE_PAIEMENT_LABELS[p.methode]}
                     {p.referenceExterne ? (
-                      <span className="block text-xs text-gt-teal-900/60">
+                      <span className="block text-xs text-gt-teal-900/75">
                         {p.referenceExterne}
                       </span>
                     ) : null}

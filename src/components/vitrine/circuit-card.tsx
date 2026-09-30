@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Icon, type IconName } from "@/components/ui/icon";
+import { Stars } from "@/components/ui/stars";
 import { CircuitVisual } from "@/components/vitrine/circuit-visual";
 import { formatDateRange, formatMoney } from "@/lib/format";
 import type { PublicCircuitCard } from "@/lib/services/vitrine";
@@ -16,8 +17,8 @@ export function formatKm(km: number | null): string | null {
 
 /**
  * Carte de circuit (§8.4, section 4) : visuel, ruban « Réserver », titre, « à partir de
- * X Ar / pers. », durée, distance, difficulté, prochain départ et places libres.
- * Pas d'étoiles tant que les avis (P2) ne sont pas réalisés (décision B de l'étape E8).
+ * X Ar / pers. », durée, distance, difficulté, prochain départ et places libres, et note
+ * moyenne des avis publiés (étape E12 ; rien n'est affiché tant qu'aucun avis n'est publié).
  */
 export function CircuitCard({
   circuit,
@@ -56,8 +57,13 @@ export function CircuitCard({
       </div>
       <div className="flex flex-1 flex-col p-5">
         <h3 className="font-semibold text-gt-teal-900 group-hover:underline">{circuit.titre}</h3>
+        {circuit.note ? (
+          <div className="mt-1">
+            <Stars note={circuit.note.moyenne} nombre={circuit.note.nombre} />
+          </div>
+        ) : null}
         {circuit.resume ? (
-          <p className="mt-1 line-clamp-2 text-sm text-gt-teal-900/70">{circuit.resume}</p>
+          <p className="mt-1 line-clamp-2 text-sm text-gt-teal-900/75">{circuit.resume}</p>
         ) : null}
         <ul className="mt-3 mb-4 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-gt-teal-900/80">
           {facts.map((f) => (
@@ -68,7 +74,7 @@ export function CircuitCard({
           ))}
         </ul>
         <div className="mt-auto flex items-end justify-between gap-3 border-t border-gt-mist/60 pt-4">
-          <p className="text-xs text-gt-teal-900/70">
+          <p className="text-xs text-gt-teal-900/75">
             à partir de
             <span className="block text-lg font-bold text-gt-teal-900">
               {formatMoney(circuit.prixMin, devise)}

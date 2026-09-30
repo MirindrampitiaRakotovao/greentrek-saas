@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { parseInput, toActionResult } from "@/lib/actions/helpers";
 import type { ActionResult } from "@/lib/actions/types";
+import { getAdminDb } from "@/lib/admin-db";
 import { getCurrentUser } from "@/lib/auth/session";
 import { type Action, can, type Resource } from "@/lib/permissions";
 import {
@@ -13,6 +14,7 @@ import {
   setPlanActif,
   updatePlan,
 } from "@/lib/services/plateforme";
+import { type ActivityInput, logPlatformActivity } from "@/lib/services/journal";
 import {
   agenceStatutSchema,
   assignPlanSchema,
@@ -26,15 +28,26 @@ import {
  * d'utiliser le client non confiné (dans les services de `plateforme.ts`).
  */
 
-async function authorizeSuperAdmin(
-  action: Action,
-  resource: Resource,
-): Promise<ActionResult | null> {
+type SuperAdminAuth = { ok: true; userId: string } | { ok: false; result: ActionResult };
+
+async function authorizeSuperAdmin(action: Action, resource: Resource): Promise<SuperAdminAuth> {
   const user = await getCurrentUser();
   if (user?.role !== "SUPER_ADMIN" || !can(user.role, action, resource)) {
-    return { error: "Vous n'avez pas les droits nécessaires pour cette action." };
+    return {
+      ok: false,
+      result: { error: "Vous n'avez pas les droits nécessaires pour cette action." },
+    };
   }
-  return null;
+  return { ok: true, userId: user.id };
+}
+
+/** Journal d'activité de la plateforme (`agenceId` = agence concernée, ou null). */
+async function journalPlateforme(
+  auth: { userId: string },
+  agenceId: string | null,
+  input: Omit<ActivityInput, "utilisateurId">,
+): Promise<void> {
+  await logPlatformActivity(getAdminDb(), agenceId, { ...input, utilisateurId: auth.userId });
 }
 
 function revalidateAdmin() {
@@ -43,12 +56,18 @@ function revalidateAdmin() {
 }
 
 export async function setAgenceStatutAction(input: unknown): Promise<ActionResult> {
-  const refus = await authorizeSuperAdmin("modifier", "agence");
-  if (refus) return refus;
+  const auth = await authorizeSuperAdmin("modifier", "agence");
+  if (!auth.ok) return auth.result;
   const parsed = parseInput(agenceStatutSchema, input);
   if (!parsed.ok) return parsed.result;
   const result = await setAgenceStatut(parsed.data.id, parsed.data.statut);
   if (result.ok) {
+    await journalPlateforme(auth, parsed.data.id, {
+      action: "AGENCE_STATUT",
+      entite: "Agence",
+      entiteId: parsed.data.id,
+      details: { statut: parsed.data.statut },
+    });
     revalidateAdmin();
     revalidatePath("/a", "layout"); // site vitrine : disponible ou non (RG 19)
   }
@@ -61,12 +80,17 @@ export async function setAgenceStatutAction(input: unknown): Promise<ActionResul
 }
 
 export async function assignPlanAction(input: unknown): Promise<ActionResult> {
-  const refus = await authorizeSuperAdmin("modifier", "abonnement");
-  if (refus) return refus;
+  const auth = await authorizeSuperAdmin("modifier", "abonnement");
+  if (!auth.ok) return auth.result;
   const parsed = parseInput(assignPlanSchema, input);
   if (!parsed.ok) return parsed.result;
   const result = await assignPlan(parsed.data);
   if (result.ok) {
+    await journalPlateforme(auth, parsed.data.agenceId, {
+      action: "PLAN_ATTRIBUE",
+      entite: "Abonnement",
+      details: { planId: parsed.data.planId },
+    });
     revalidateAdmin();
     revalidatePath("/dashboard", "layout"); // l'agence voit son nouveau plan
   }
@@ -74,22 +98,30 @@ export async function assignPlanAction(input: unknown): Promise<ActionResult> {
 }
 
 export async function createPlanAction(input: unknown): Promise<ActionResult> {
-  const refus = await authorizeSuperAdmin("creer", "plan");
-  if (refus) return refus;
+  const auth = await authorizeSuperAdmin("creer", "plan");
+  if (!auth.ok) return auth.result;
   const parsed = parseInput(planSchema, input);
   if (!parsed.ok) return parsed.result;
   const result = await createPlan(parsed.data);
-  if (result.ok) revalidateAdmin();
+  if (result.ok) {
+    await journalPlateforme(auth, null, {
+      action: "PLAN_MODIFIE",
+      entite: "Plan",
+      details: { code: parsed.data.code },
+    });
+    revalidateAdmin();
+  }
   return toActionResult(result, "Plan créé.");
 }
 
 export async function updatePlanAction(id: string, input: unknown): Promise<ActionResult> {
-  const refus = await authorizeSuperAdmin("modifier", "plan");
-  if (refus) return refus;
+  const auth = await authorizeSuperAdmin("modifier", "plan");
+  if (!auth.ok) return auth.result;
   const parsed = parseInput(planSchema, input);
   if (!parsed.ok) return parsed.result;
   const result = await updatePlan(id, parsed.data);
   if (result.ok) {
+    await journalPlateforme(auth, null, { action: "PLAN_MODIFIE", entite: "Plan", entiteId: id });
     revalidateAdmin();
     revalidatePath("/dashboard", "layout");
   }
@@ -97,8 +129,8 @@ export async function updatePlanAction(id: string, input: unknown): Promise<Acti
 }
 
 export async function setPlanActifAction(input: unknown): Promise<ActionResult> {
-  const refus = await authorizeSuperAdmin("modifier", "plan");
-  if (refus) return refus;
+  const auth = await authorizeSuperAdmin("modifier", "plan");
+  if (!auth.ok) return auth.result;
   const parsed = parseInput(planActifSchema, input);
   if (!parsed.ok) return parsed.result;
   const result = await setPlanActif(parsed.data.id, parsed.data.actif);

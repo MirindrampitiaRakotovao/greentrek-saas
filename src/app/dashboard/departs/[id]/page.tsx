@@ -64,7 +64,7 @@ export default async function DepartPage({ params }: PageProps<"/dashboard/depar
         <Card title="Remplissage" className="min-w-0">
           <p className="mb-2 text-3xl font-semibold text-gt-teal-900">
             {depart.reservees}
-            <span className="text-base font-normal text-gt-teal-900/60">
+            <span className="text-base font-normal text-gt-teal-900/75">
               {" "}
               / {depart.placesTotal} places
             </span>
@@ -74,7 +74,7 @@ export default async function DepartPage({ params }: PageProps<"/dashboard/depar
             max={depart.placesTotal}
             label={`Remplissage : ${depart.reservees} sur ${depart.placesTotal} places`}
           />
-          <p className="mt-2 text-sm text-gt-teal-900/70">
+          <p className="mt-2 text-sm text-gt-teal-900/75">
             {Math.max(0, depart.placesTotal - depart.reservees)} place(s) libre(s) ·{" "}
             {actives.length} réservation(s) active(s)
           </p>
@@ -85,10 +85,10 @@ export default async function DepartPage({ params }: PageProps<"/dashboard/depar
               <p className="font-medium text-gt-teal-900">
                 {depart.guide.prenom} {depart.guide.nom}
               </p>
-              <p className="text-sm text-gt-teal-900/70">{depart.guide.telephone ?? "—"}</p>
+              <p className="text-sm text-gt-teal-900/75">{depart.guide.telephone ?? "—"}</p>
             </>
           ) : (
-            <p className="text-sm text-gt-teal-900/70">Aucun guide affecté.</p>
+            <p className="text-sm text-gt-teal-900/75">Aucun guide affecté.</p>
           )}
         </Card>
         <Card title="Circuit" className="min-w-0">
@@ -102,7 +102,7 @@ export default async function DepartPage({ params }: PageProps<"/dashboard/depar
               {depart.circuit.titre}
             </Link>
           )}
-          <p className="text-sm text-gt-teal-900/70">
+          <p className="text-sm text-gt-teal-900/75">
             {depart.circuit.dureeJours} jour(s) · capacité {depart.circuit.capaciteMax} pers.
           </p>
           {depart.notes ? (
@@ -121,7 +121,7 @@ export default async function DepartPage({ params }: PageProps<"/dashboard/depar
           <div className="relative -mx-5 overflow-x-auto px-5">
             <table className="w-full min-w-[640px] text-left text-sm">
               <caption className="sr-only">Réservations de ce départ</caption>
-              <thead className="text-xs text-gt-teal-900/55">
+              <thead className="text-xs text-gt-teal-900/75">
                 <tr className="border-b border-gt-mist/70">
                   {["Référence", "Client", "Personnes", "Montant", "Réservée le", "Statut"].map(
                     (h) => (
@@ -140,7 +140,7 @@ export default async function DepartPage({ params }: PageProps<"/dashboard/depar
                       <p className="font-medium text-gt-teal-900">
                         {r.client.prenom} {r.client.nom}
                       </p>
-                      <p className="text-xs text-gt-teal-900/60">
+                      <p className="text-xs text-gt-teal-900/75">
                         {r.client.telephone ?? r.client.email}
                       </p>
                     </td>
@@ -175,7 +175,7 @@ export default async function DepartPage({ params }: PageProps<"/dashboard/depar
                 <p className="font-medium text-gt-teal-900">
                   {p.prenom} {p.nom}
                 </p>
-                <p className="text-xs text-gt-teal-900/60">
+                <p className="text-xs text-gt-teal-900/75">
                   {[p.age !== null ? `${p.age} ans` : null, p.nationalite, p.reference]
                     .filter(Boolean)
                     .join(" · ")}
@@ -188,7 +188,7 @@ export default async function DepartPage({ params }: PageProps<"/dashboard/depar
 
       {canEdit ? (
         <Card title="Gestion du départ">
-          <p className="mb-4 text-sm text-gt-teal-900/70">
+          <p className="mb-4 text-sm text-gt-teal-900/75">
             Modifier les dates, les places, le prix ou le guide. Annuler le départ annule aussi ses
             réservations actives (remboursements depuis la fiche de chaque réservation).
           </p>

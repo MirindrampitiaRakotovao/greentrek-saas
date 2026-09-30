@@ -94,19 +94,19 @@ export default async function ReserverPage({
           </div>
           <dl className="grid gap-3 p-5 text-sm">
             <div>
-              <dt className="text-xs text-gt-teal-900/60">Dates</dt>
+              <dt className="text-xs text-gt-teal-900/75">Dates</dt>
               <dd className="font-medium text-gt-teal-900">
                 {formatDateRange(depart.dateDebut, depart.dateFin)}
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-gt-teal-900/60">Prix</dt>
+              <dt className="text-xs text-gt-teal-900/75">Prix</dt>
               <dd className="font-medium text-gt-teal-900">
                 {formatMoney(depart.prix, agence.devise)} / pers.
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-gt-teal-900/60">Places libres</dt>
+              <dt className="text-xs text-gt-teal-900/75">Places libres</dt>
               <dd className="font-medium text-gt-teal-900">{depart.placesLibres}</dd>
             </div>
           </dl>

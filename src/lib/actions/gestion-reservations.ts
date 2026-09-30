@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { authorize, parseInput, toActionResult } from "@/lib/actions/helpers";
+import { authorize, journal, parseInput, toActionResult } from "@/lib/actions/helpers";
 import type { ActionResult } from "@/lib/actions/types";
 import {
   cancelReservationByAgency,
@@ -33,7 +33,10 @@ export async function confirmReservationAction(input: unknown): Promise<ActionRe
   const parsed = parseInput(idSchema, input);
   if (!parsed.ok) return parsed.result;
   const result = await confirmReservation(auth.db, parsed.data.id);
-  if (result.ok) revalidateGestion();
+  if (result.ok) {
+    await journal(auth, "RESERVATION_CONFIRMEE", "Reservation", parsed.data.id);
+    revalidateGestion();
+  }
   return toActionResult(result, "Réservation confirmée.");
 }
 
@@ -43,7 +46,10 @@ export async function cancelReservationAgencyAction(input: unknown): Promise<Act
   const parsed = parseInput(idSchema, input);
   if (!parsed.ok) return parsed.result;
   const result = await cancelReservationByAgency(auth.db, parsed.data.id);
-  if (result.ok) revalidateGestion();
+  if (result.ok) {
+    await journal(auth, "RESERVATION_ANNULEE", "Reservation", parsed.data.id);
+    revalidateGestion();
+  }
   return toActionResult(result, "Réservation annulée, places libérées.");
 }
 
@@ -54,6 +60,10 @@ export async function recordPaymentAction(input: unknown): Promise<ActionResult>
   if (!parsed.ok) return parsed.result;
   const result = await recordPayment(auth.db, parsed.data);
   if (!result.ok) return toActionResult(result);
+  await journal(auth, "PAIEMENT_ENREGISTRE", "Reservation", parsed.data.reservationId, {
+    montant: parsed.data.montant,
+    methode: parsed.data.methode,
+  });
   revalidateGestion();
   return {
     success: result.data.confirmee
@@ -69,6 +79,7 @@ export async function validatePaymentAction(input: unknown): Promise<ActionResul
   if (!parsed.ok) return parsed.result;
   const result = await validatePayment(auth.db, parsed.data.id);
   if (!result.ok) return toActionResult(result);
+  await journal(auth, "PAIEMENT_VALIDE", "Paiement", parsed.data.id);
   revalidateGestion();
   return {
     success: result.data.confirmee
@@ -83,7 +94,10 @@ export async function rejectPaymentAction(input: unknown): Promise<ActionResult>
   const parsed = parseInput(idSchema, input);
   if (!parsed.ok) return parsed.result;
   const result = await rejectPayment(auth.db, parsed.data.id);
-  if (result.ok) revalidateGestion();
+  if (result.ok) {
+    await journal(auth, "PAIEMENT_REFUSE", "Paiement", parsed.data.id);
+    revalidateGestion();
+  }
   return toActionResult(result, "Paiement refusé.");
 }
 
@@ -93,6 +107,9 @@ export async function refundPaymentAction(input: unknown): Promise<ActionResult>
   const parsed = parseInput(idSchema, input);
   if (!parsed.ok) return parsed.result;
   const result = await refundPayment(auth.db, parsed.data.id);
-  if (result.ok) revalidateGestion();
+  if (result.ok) {
+    await journal(auth, "PAIEMENT_REMBOURSE", "Paiement", parsed.data.id);
+    revalidateGestion();
+  }
   return toActionResult(result, "Paiement remboursé (simulation).");
 }

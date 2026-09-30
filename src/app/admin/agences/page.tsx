@@ -81,7 +81,7 @@ export default async function AgencesPage({ searchParams }: PageProps<"/admin/ag
                     >
                       {a.nom}
                     </Link>
-                    <p className="text-xs text-gt-teal-900/60">/a/{a.slug}</p>
+                    <p className="text-xs text-gt-teal-900/75">/a/{a.slug}</p>
                   </td>
                   <td>
                     <Badge tone={a.statut === "ACTIVE" ? "success" : "danger"}>
@@ -92,12 +92,12 @@ export default async function AgencesPage({ searchParams }: PageProps<"/admin/ag
                     {a.abonnement ? (
                       <>
                         {a.abonnement.plan}
-                        <span className="block text-xs text-gt-teal-900/60">
+                        <span className="block text-xs text-gt-teal-900/75">
                           {STATUT_ABONNEMENT_LABELS[a.abonnement.statut]}
                         </span>
                       </>
                     ) : (
-                      <span className="text-gt-teal-900/60">Sans abonnement</span>
+                      <span className="text-gt-teal-900/75">Sans abonnement</span>
                     )}
                   </td>
                   <td>{a._count.circuits}</td>

@@ -16,9 +16,9 @@ export default async function ParametresPage() {
     <div className="max-w-2xl space-y-6">
       <PageHeader title="Paramètres de l'agence" />
       <dl className="rounded-2xl border border-gt-mist bg-white p-6">
-        <dt className="text-sm text-gt-teal-900/70">Adresse du site vitrine</dt>
+        <dt className="text-sm text-gt-teal-900/75">Adresse du site vitrine</dt>
         <dd className="mt-1 font-medium text-gt-teal-900">/a/{settings.slug}</dd>
-        <dd className="mt-1 text-sm text-gt-teal-900/70">
+        <dd className="mt-1 text-sm text-gt-teal-900/75">
           Non modifiable : la changer casserait les liens déjà partagés.
         </dd>
       </dl>

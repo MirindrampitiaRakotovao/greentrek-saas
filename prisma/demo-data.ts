@@ -434,8 +434,9 @@ export function generateAgencyDemo(spec: AgencySpec, now: Date): DemoAgencyData 
         });
       }
 
-      // Client : un tiers des réservations pour le compte client de démonstration (index 0).
-      const clientIndex = random.next() < 0.2 ? 0 : random.int(1, spec.clients.length - 1);
+      // Client : environ 6 % des réservations pour le compte client de connexion (index 0),
+      // soit une dizaine de séjours, comme un voyageur fidèle (les autres : clients variés).
+      const clientIndex = random.next() < 0.06 ? 0 : random.int(1, spec.clients.length - 1);
       const client = spec.clients[clientIndex]!;
       const participants = Array.from({ length: nombrePersonnes }, (_, n) => {
         const person =
@@ -497,6 +498,13 @@ export function generateAgencyDemo(spec: AgencySpec, now: Date): DemoAgencyData 
     // RG 11 : un départ futur sans place restante passe à COMPLETE.
     if (!isPast && placesRestantes === 0) session.statut = "COMPLETE";
   });
+
+  // Le dernier séjour terminé du compte client de connexion reste sans avis : il permet de
+  // montrer le dépôt d'un avis (RG 17) lors de la démonstration.
+  const dernierSejour = reservations
+    .filter((r) => r.clientIndex === 0 && r.statut === "TERMINEE")
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+  if (dernierSejour) dernierSejour.avis = null;
 
   // Références lisibles et uniques, dans l'ordre chronologique de création.
   reservations

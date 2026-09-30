@@ -138,7 +138,7 @@ export function BookingWizard({
             value={String(fields.length)}
             onChange={(event) => setNombre(Number(event.target.value))}
           />
-          <p className="text-sm text-gt-teal-900/70">
+          <p className="text-sm text-gt-teal-900/75">
             {placesLibres} place{placesLibres > 1 ? "s" : ""} libre{placesLibres > 1 ? "s" : ""} sur
             ce départ · {formatMoney(prix, devise)} par personne.
           </p>
@@ -150,7 +150,7 @@ export function BookingWizard({
           <h2 id="etape-participants" className="text-xl font-medium text-gt-teal-900">
             Qui part ?
           </h2>
-          <p className="text-sm text-gt-teal-900/70">
+          <p className="text-sm text-gt-teal-900/75">
             Un participant par voyageur : le guide dispose ainsi de la liste du groupe. Seuls le
             prénom et le nom sont obligatoires.
           </p>
@@ -217,7 +217,7 @@ export function BookingWizard({
                 <span className="font-medium">
                   {p.prenom} {p.nom}
                 </span>
-                {p.age ? <span className="text-gt-teal-900/60"> · {String(p.age)} ans</span> : null}
+                {p.age ? <span className="text-gt-teal-900/75"> · {String(p.age)} ans</span> : null}
               </li>
             ))}
           </ul>
@@ -234,7 +234,7 @@ export function BookingWizard({
             error={errors.remarques?.message}
             {...register("remarques")}
           />
-          <p className="text-xs text-gt-teal-900/60">
+          <p className="text-xs text-gt-teal-900/75">
             Le montant est confirmé par l&apos;agence à la validation et ne change plus ensuite. Les
             places sont réservées dès la validation ; le paiement suit.
           </p>

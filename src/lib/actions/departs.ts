@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { authorize, parseInput, toActionResult } from "@/lib/actions/helpers";
+import { authorize, journal, parseInput, toActionResult } from "@/lib/actions/helpers";
 import type { ActionResult } from "@/lib/actions/types";
 import { cancelDepart, createDepart, deleteDepart, updateDepart } from "@/lib/services/departs";
 import { idSchema } from "@/lib/validators/backoffice";
@@ -49,6 +49,9 @@ export async function cancelDepartAction(input: unknown): Promise<ActionResult> 
   if (!parsed.ok) return parsed.result;
   const result = await cancelDepart(auth.db, parsed.data.id);
   if (!result.ok) return toActionResult(result);
+  await journal(auth, "DEPART_ANNULE", "SessionDepart", parsed.data.id, {
+    reservationsAnnulees: result.data.reservationsAnnulees,
+  });
   revalidateDeparts();
   const n = result.data.reservationsAnnulees;
   return {

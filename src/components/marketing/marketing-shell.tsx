@@ -49,7 +49,9 @@ export function MarketingShell({ children }: { children: ReactNode }) {
           </nav>
         </div>
       </ShrinkingHeader>
-      <main className="flex-1 overflow-x-clip">{children}</main>
+      <main id="contenu" tabIndex={-1} className="flex-1 overflow-x-clip outline-none">
+        {children}
+      </main>
       <footer className="bg-gt-teal-800 text-white">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:grid-cols-3 sm:px-6">
           <div className="sm:col-span-2">

@@ -116,7 +116,7 @@ export default async function ReservationsPage({
             </span>
             <span>
               <span className="block text-2xl font-semibold text-gt-teal-900">{t.value}</span>
-              <span className="text-xs text-gt-teal-900/70">{t.label}</span>
+              <span className="text-xs text-gt-teal-900/75">{t.label}</span>
             </span>
           </Link>
         ))}
@@ -228,7 +228,7 @@ export default async function ReservationsPage({
                     <p className="font-medium text-gt-teal-900">
                       {r.client.prenom} {r.client.nom}
                     </p>
-                    <p className="text-xs text-gt-teal-900/60">{r.client.email}</p>
+                    <p className="text-xs text-gt-teal-900/75">{r.client.email}</p>
                   </td>
                   <td>
                     <p
@@ -237,14 +237,14 @@ export default async function ReservationsPage({
                     >
                       {r.session.circuit.titre}
                     </p>
-                    <p className="text-xs text-gt-teal-900/60">
+                    <p className="text-xs text-gt-teal-900/75">
                       {formatDateRange(r.session.dateDebut, r.session.dateFin)}
                     </p>
                   </td>
                   <td>{r.nombrePersonnes}</td>
                   <td className="whitespace-nowrap">
                     <span className="font-medium">{formatMoney(r.montantTotal, devise)}</span>
-                    <span className="block text-xs text-gt-teal-900/60">
+                    <span className="block text-xs text-gt-teal-900/75">
                       {r.paye >= r.montantTotal ? "payé" : `payé ${formatMoney(r.paye, devise)}`}
                     </span>
                     {r.paiementsEnAttente > 0 ? (

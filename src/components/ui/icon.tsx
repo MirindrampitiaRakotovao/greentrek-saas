@@ -56,6 +56,8 @@ const PATHS = {
   download: "M12 3v12m-5-5 5 5 5-5M4 21h16",
   play: "M6 4l14 8-14 8z",
   swap: "M7 4v16m0 0-3-3m3 3 3-3M17 20V4m0 0-3 3m3-3 3 3",
+  star: "m12 2.5 2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5-4.8-4.6 6.6-.9z",
+  message: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
 } as const;
 
 export type IconName = keyof typeof PATHS;

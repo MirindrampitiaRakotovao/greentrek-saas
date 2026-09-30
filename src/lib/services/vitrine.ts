@@ -1,6 +1,7 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { calendarDate } from "@/lib/dates";
 import { firstBookableDate, parseIsoDate, placesReservees } from "@/lib/departs";
+import { circuitRatings, type Note } from "@/lib/services/avis";
 import { type CircuitTrace, latestCircuitTrace } from "@/lib/services/itineraires";
 import type { TenantDb } from "@/lib/tenant";
 import type { VitrineSearch } from "@/lib/validators/vitrine";
@@ -14,6 +15,7 @@ import type { VitrineSearch } from "@/lib/validators/vitrine";
  * - un départ est proposé s'il est OUVERT, pas encore commencé (au plus tard la veille, voir
  *   `firstBookableDate`), sur un circuit publié, et
  *   qu'il lui reste des places ;
+ * - la note moyenne ne compte que les avis PUBLIE (modérés par l'agence) ;
  * - seuls des champs publics sont sélectionnés (jamais les notes internes, les clients,
  *   les coûts des prestations partenaires).
  */
@@ -53,6 +55,8 @@ export type PublicCircuitCard = CircuitCardPayload & {
   departs: PublicDepart[];
   /** « À partir de » : prix le plus bas parmi ces départs, sinon le prix du circuit. */
   prixMin: number;
+  /** Note moyenne des avis publiés (null : aucun avis). */
+  note: Note | null;
 };
 
 /**
@@ -94,10 +98,15 @@ async function bookableDeparts(
     .filter((d) => d.placesLibres > 0);
 }
 
-function toCard(circuit: CircuitCardPayload, departs: PublicDepart[]): PublicCircuitCard {
+function toCard(
+  circuit: CircuitCardPayload,
+  departs: PublicDepart[],
+  note: Note | null = null,
+): PublicCircuitCard {
   return {
     ...circuit,
     departs,
+    note,
     prixMin: departs.length ? Math.min(...departs.map((d) => d.prix)) : circuit.prixParPersonne,
   };
 }
@@ -123,9 +132,12 @@ export async function searchCircuits(
     orderBy: { titre: "asc" },
   });
   if (circuits.length === 0) return [];
-  const departs = (
-    await bookableDeparts(db, from, { circuitId: { in: circuits.map((c) => c.id) } })
-  ).filter((d) => d.placesLibres >= voyageurs);
+  const ids = circuits.map((c) => c.id);
+  const [bookable, notes] = await Promise.all([
+    bookableDeparts(db, from, { circuitId: { in: ids } }),
+    circuitRatings(db, ids),
+  ]);
+  const departs = bookable.filter((d) => d.placesLibres >= voyageurs);
 
   const needsDepart = Boolean(search.date || search.voyageurs);
   const cards = circuits
@@ -133,6 +145,7 @@ export async function searchCircuits(
       toCard(
         c,
         departs.filter((d) => d.circuitId === c.id),
+        notes.get(c.id) ?? null,
       ),
     )
     .filter((c) => !needsDepart || c.departs.length > 0);
@@ -218,6 +231,7 @@ export type PublicCircuitDetail = Prisma.CircuitGetPayload<{
   departs: PublicDepart[];
   prixMin: number;
   trace: CircuitTrace | null;
+  note: Note | null;
 };
 
 /** Détail d'un circuit publié (null si inexistant, brouillon, archivé ou d'une autre agence). */
@@ -231,12 +245,13 @@ export async function getPublicCircuit(
     select: circuitDetailSelect,
   });
   if (!circuit) return null;
-  const [departs, trace] = await Promise.all([
+  const [departs, trace, notes] = await Promise.all([
     bookableDeparts(db, firstBookableDate(calendarDate(now)), { circuitId: circuit.id }),
     latestCircuitTrace(db, circuit.id),
+    circuitRatings(db, [circuit.id]),
   ]);
   const { prixMin } = toCard(circuit, departs);
-  return { ...circuit, departs, prixMin, trace };
+  return { ...circuit, departs, prixMin, trace, note: notes.get(circuit.id) ?? null };
 }
 
 export type PublicDepartDetail = PublicDepart & {

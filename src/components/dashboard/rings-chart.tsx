@@ -48,7 +48,7 @@ export function RingsChart({
         </ResponsiveContainer>
       </div>
 
-      <p className="mt-3 text-xs text-gt-teal-900/60">{totalLabel}</p>
+      <p className="mt-3 text-xs text-gt-teal-900/75">{totalLabel}</p>
       <p className="text-2xl font-bold tracking-tight text-gt-teal-900">{totalValue}</p>
 
       <ul className="mt-4 space-y-3">
@@ -64,7 +64,7 @@ export function RingsChart({
                 />
                 <span>
                   {item.label}
-                  <span className="block text-xs text-gt-teal-900/60">{item.value}</span>
+                  <span className="block text-xs text-gt-teal-900/75">{item.value}</span>
                 </span>
               </span>
               <span className="rounded-lg bg-gt-teal-100 px-2 py-1 text-xs font-semibold text-gt-teal-900">

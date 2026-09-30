@@ -83,7 +83,7 @@ export function CircuitItinerary({
       <div className="min-w-0 space-y-4">
         <FormAlert message={error} />
         {steps.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-gt-mist bg-gt-teal-50 px-4 py-6 text-center text-sm text-gt-teal-900/60">
+          <p className="rounded-2xl border border-dashed border-gt-mist bg-gt-teal-50 px-4 py-6 text-center text-sm text-gt-teal-900/75">
             Aucune étape. Un circuit doit en compter au moins deux pour être publié.
           </p>
         ) : (
@@ -96,7 +96,7 @@ export function CircuitItinerary({
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-gt-teal-900">{s.etape.nom}</p>
-                    <p className="text-xs text-gt-teal-900/60">
+                    <p className="text-xs text-gt-teal-900/75">
                       {TYPE_ETAPE_LABELS[s.etape.type]}
                       {s.jour ? ` · jour ${s.jour}` : ""}
                       {s.dureeSejourMin ? ` · ${s.dureeSejourMin} min sur place` : ""}
@@ -157,7 +157,7 @@ export function CircuitItinerary({
                   ) : null}
                 </div>
                 {s.notes ? (
-                  <p className="mt-2 pl-11 text-xs text-gt-teal-900/70">{s.notes}</p>
+                  <p className="mt-2 pl-11 text-xs text-gt-teal-900/75">{s.notes}</p>
                 ) : null}
                 {canEdit && editing === s.id ? (
                   <StepDetailsForm
@@ -244,7 +244,7 @@ export function CircuitItinerary({
             className="h-[400px]"
           />
         </div>
-        <p className="mt-2 text-xs text-gt-teal-900/55">
+        <p className="mt-2 text-xs text-gt-teal-900/75">
           {trace
             ? `Tracé réel à travers les tronçons (A*, critère « Plus court ») : ${trace.distanceKm.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} km, ${Math.floor(trace.dureeMinutes / 60)} h ${String(trace.dureeMinutes % 60).padStart(2, "0")} de marche.`
             : "Tracé indicatif en ligne droite entre les étapes : calculez le tracé réel à travers les tronçons."}

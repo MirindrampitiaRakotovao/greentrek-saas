@@ -50,6 +50,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col font-sans">
+        {/* Lien d'évitement (accessibilité) : visible au premier appui sur Tab. */}
+        <a
+          href="#contenu"
+          className="sr-only rounded-full bg-gt-teal-700 px-5 py-2.5 text-sm font-semibold text-white shadow-lg focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100]"
+        >
+          Aller au contenu
+        </a>
         {/* Modales de confirmation et notifications, disponibles dans toute l'application. */}
         <DialogsProvider>{children}</DialogsProvider>
       </body>

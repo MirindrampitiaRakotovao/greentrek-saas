@@ -179,7 +179,7 @@ export function AssignPlanForm({
           {...register("statut")}
         />
       </div>
-      <p className="text-xs text-gt-teal-900/60">
+      <p className="text-xs text-gt-teal-900/75">
         L&apos;abonnement en cours est clôturé aujourd&apos;hui ; le nouveau commence
         aujourd&apos;hui.
       </p>

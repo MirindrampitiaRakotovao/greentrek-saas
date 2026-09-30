@@ -63,10 +63,10 @@ export default async function PlansPage() {
             {plans.map((plan) => {
               const features = planFeatures(plan.fonctionnalites);
               return (
-                <tr key={plan.id} className={plan.actif ? "" : "text-gt-teal-900/55"}>
+                <tr key={plan.id} className={plan.actif ? "" : "text-gt-teal-900/75"}>
                   <td>
                     <p className="font-medium">{plan.nom}</p>
-                    <p className="font-mono text-xs text-gt-teal-900/55">{plan.code}</p>
+                    <p className="font-mono text-xs text-gt-teal-900/75">{plan.code}</p>
                   </td>
                   <td className="whitespace-nowrap">{formatMoney(plan.prixMensuel, "MGA")}</td>
                   <td>{plan.maxCircuits}</td>

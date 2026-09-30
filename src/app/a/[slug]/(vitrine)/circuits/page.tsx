@@ -67,7 +67,7 @@ export default async function CircuitsPage({
         </div>
 
         {circuits.length === 0 ? (
-          <p className="mt-6 rounded-3xl border border-dashed border-gt-mist bg-white px-6 py-10 text-center text-sm text-gt-teal-900/70">
+          <p className="mt-6 rounded-3xl border border-dashed border-gt-mist bg-white px-6 py-10 text-center text-sm text-gt-teal-900/75">
             Aucun départ ne correspond à ces critères. Essayez une autre date ou un groupe plus
             petit.
           </p>

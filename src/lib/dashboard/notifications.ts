@@ -8,8 +8,8 @@ export async function getShellNotifications(db: TenantDb | PrismaClient, utilisa
     db.notification.findMany({
       where: { utilisateurId },
       orderBy: { createdAt: "desc" },
-      take: 6,
-      select: { id: true, titre: true, message: true, createdAt: true, lue: true },
+      take: 8,
+      select: { id: true, titre: true, message: true, lienUrl: true, createdAt: true, lue: true },
     }),
   ]);
   return {

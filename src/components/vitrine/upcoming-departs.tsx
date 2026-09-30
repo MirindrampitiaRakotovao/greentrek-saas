@@ -36,14 +36,14 @@ export function UpcomingDepartCard({
         <p className="line-clamp-2 font-medium text-gt-teal-900 group-hover:underline">
           {d.circuit.titre}
         </p>
-        <p className="mt-1 text-xs text-gt-teal-900/70">
+        <p className="mt-1 text-xs text-gt-teal-900/75">
           {formatDuree(d.circuit.dureeJours)} · {DIFFICULTE_LABELS[d.circuit.difficulte]} ·{" "}
           {d.placesLibres} place{d.placesLibres > 1 ? "s" : ""} libre
           {d.placesLibres > 1 ? "s" : ""}
         </p>
         <p className="mt-1 text-sm font-semibold text-gt-teal-900">
           {formatMoney(d.prix, devise)}{" "}
-          <span className="text-xs font-normal text-gt-teal-900/65">/ pers.</span>
+          <span className="text-xs font-normal text-gt-teal-900/75">/ pers.</span>
         </p>
       </div>
     </Link>

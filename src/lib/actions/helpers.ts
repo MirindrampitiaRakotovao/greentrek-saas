@@ -6,6 +6,8 @@ import type { ActionResult } from "@/lib/actions/types";
 import { requireAgencyUser } from "@/lib/auth/session";
 import { type Action, assertCan, ForbiddenError, type Resource } from "@/lib/permissions";
 import type { ServiceResult } from "@/lib/services/result";
+import { logAgencyActivity } from "@/lib/services/journal";
+import type { TenantDb } from "@/lib/tenant";
 
 /** Première erreur de chaque champ, à partir d'une validation Zod échouée. */
 export function zodFieldErrors(issues: readonly { path: PropertyKey[]; message: string }[]) {
@@ -61,4 +63,24 @@ export async function authorize(action: Action, resource: Resource) {
   } catch (error: unknown) {
     return { ok: false as const, result: forbiddenToResult(error) };
   }
+}
+
+/**
+ * Trace une action sensible réussie dans le journal d'activité (§7.6, étape E12) : qui
+ * (l'utilisateur de la session), quoi, sur quel objet. Jamais de donnée sensible dans `details`.
+ */
+export async function journal(
+  auth: { user: { id: string; agenceId: string }; db: TenantDb },
+  action: string,
+  entite: string,
+  entiteId?: string,
+  details?: Record<string, string | number | boolean | null>,
+): Promise<void> {
+  await logAgencyActivity(auth.db, auth.user.agenceId, {
+    utilisateurId: auth.user.id,
+    action,
+    entite,
+    entiteId: entiteId ?? null,
+    details: details ?? undefined,
+  });
 }

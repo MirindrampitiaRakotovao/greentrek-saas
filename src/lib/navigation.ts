@@ -55,6 +55,12 @@ const NAVIGATION: readonly NavEntry[] = [
     permission: ["modifier", "reservation"],
   },
   {
+    href: "/dashboard/avis",
+    label: "Avis",
+    icon: "star",
+    permission: ["moderer", "avis"],
+  },
+  {
     href: "/dashboard/etapes",
     label: "Carte du réseau",
     icon: "route",
@@ -94,6 +100,13 @@ const NAVIGATION: readonly NavEntry[] = [
     href: "/dashboard/parametres",
     label: "Paramètres",
     icon: "settings",
+    permission: ["modifier", "agence"],
+  },
+  {
+    href: "/dashboard/journal",
+    label: "Journal d'activité",
+    icon: "layers",
+    // Audit des actions sensibles : réservé au responsable de l'agence.
     permission: ["modifier", "agence"],
   },
   { href: "/dashboard/profil", label: "Mon profil", icon: "user" },

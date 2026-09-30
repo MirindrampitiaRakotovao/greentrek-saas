@@ -44,7 +44,7 @@ export default async function AgencePage({ params }: PageProps<"/admin/agences/[
           {sub ? (
             <>
               <p className="text-2xl font-semibold text-gt-teal-900">{sub.plan.nom}</p>
-              <p className="text-sm text-gt-teal-900/70">
+              <p className="text-sm text-gt-teal-900/75">
                 {STATUT_ABONNEMENT_LABELS[sub.statut]} · depuis le {formatShortDate(sub.dateDebut)}
                 {sub.dateFin ? ` · jusqu'au ${formatShortDate(sub.dateFin)}` : " · sans échéance"}
               </p>
@@ -53,7 +53,7 @@ export default async function AgencePage({ params }: PageProps<"/admin/agences/[
                   const max = limitFor(sub.plan, kind);
                   return (
                     <li key={kind}>
-                      <div className="mb-1 flex justify-between text-xs text-gt-teal-900/70">
+                      <div className="mb-1 flex justify-between text-xs text-gt-teal-900/75">
                         <span className="first-letter:uppercase">{LIMIT_LABELS[kind].pluriel}</span>
                         <span className="font-semibold text-gt-teal-900">
                           {agence.usage[kind]} / {max}
@@ -70,7 +70,7 @@ export default async function AgencePage({ params }: PageProps<"/admin/agences/[
               </ul>
             </>
           ) : (
-            <p className="text-sm text-gt-teal-900/70">
+            <p className="text-sm text-gt-teal-900/75">
               Aucun abonnement : pas de limite appliquée (décision C de l&apos;étape E11).
             </p>
           )}
@@ -103,19 +103,19 @@ export default async function AgencePage({ params }: PageProps<"/admin/agences/[
               ["Clients", agence._count.utilisateurs],
             ].map(([label, value]) => (
               <div key={label}>
-                <dt className="text-xs text-gt-teal-900/60">{label}</dt>
+                <dt className="text-xs text-gt-teal-900/75">{label}</dt>
                 <dd className="text-2xl font-semibold text-gt-teal-900">{value}</dd>
               </div>
             ))}
           </dl>
-          <p className="mt-4 text-sm text-gt-teal-900/70">
+          <p className="mt-4 text-sm text-gt-teal-900/75">
             {[agence.email, agence.telephone].filter(Boolean).join(" · ") ||
               "Coordonnées non renseignées"}
           </p>
         </Card>
 
         <Card title="Accès" className="min-w-0">
-          <p className="mb-4 text-sm text-gt-teal-900/70">
+          <p className="mb-4 text-sm text-gt-teal-900/75">
             {agence.statut === "ACTIVE"
               ? "La suspension coupe immédiatement l'accès de l'équipe et des clients, et retire le site vitrine (RG 19). Aucune donnée n'est supprimée."
               : "Agence suspendue : ni son équipe ni ses clients ne peuvent se connecter, son site vitrine est introuvable."}
@@ -126,7 +126,7 @@ export default async function AgencePage({ params }: PageProps<"/admin/agences/[
 
       <Card title={`Historique des abonnements (${agence.abonnements.length})`}>
         {agence.abonnements.length === 0 ? (
-          <p className="text-sm text-gt-teal-900/70">Aucun abonnement.</p>
+          <p className="text-sm text-gt-teal-900/75">Aucun abonnement.</p>
         ) : (
           <div className="gt-table-wrap">
             <table className="gt-table min-w-[560px]">

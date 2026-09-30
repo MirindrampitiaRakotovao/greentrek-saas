@@ -125,7 +125,7 @@ export default async function HomePage() {
                 <Icon name={f.icon} className="size-6" />
               </span>
               <h3 className="mt-4 text-lg font-medium text-gt-teal-900">{f.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-gt-teal-900/70">{f.text}</p>
+              <p className="mt-2 text-sm leading-relaxed text-gt-teal-900/75">{f.text}</p>
             </li>
           ))}
         </ul>
@@ -154,7 +154,7 @@ export default async function HomePage() {
               <li key={title} className="rounded-3xl bg-white p-6 ring-1 ring-gt-mist/60">
                 <span className="font-script text-4xl text-gt-teal-600">{index + 1}</span>
                 <h3 className="mt-2 text-lg font-medium text-gt-teal-900">{title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-gt-teal-900/70">{text}</p>
+                <p className="mt-2 text-sm leading-relaxed text-gt-teal-900/75">{text}</p>
               </li>
             ))}
           </ol>
@@ -181,9 +181,9 @@ export default async function HomePage() {
                   <p className="font-display text-lg font-medium text-gt-teal-900 group-hover:underline">
                     {a.nom}
                   </p>
-                  {a.ville ? <p className="text-sm text-gt-teal-900/60">{a.ville}</p> : null}
+                  {a.ville ? <p className="text-sm text-gt-teal-900/75">{a.ville}</p> : null}
                   {a.description ? (
-                    <p className="mt-2 line-clamp-2 text-sm text-gt-teal-900/70">{a.description}</p>
+                    <p className="mt-2 line-clamp-2 text-sm text-gt-teal-900/75">{a.description}</p>
                   ) : null}
                   <span className="mt-auto flex items-center gap-1 pt-4 text-sm font-semibold text-gt-teal-700">
                     Voir le site <Icon name="arrowRight" className="size-4" />

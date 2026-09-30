@@ -10,6 +10,7 @@ const ADMIN_NAV: readonly NavItem[] = [
   { href: "/admin", label: "Vue plateforme", icon: "home" },
   { href: "/admin/agences", label: "Agences", icon: "building" },
   { href: "/admin/plans", label: "Plans et tarifs", icon: "coins" },
+  { href: "/admin/journal", label: "Journal d'activité", icon: "layers" },
 ];
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {

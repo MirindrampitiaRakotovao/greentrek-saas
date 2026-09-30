@@ -364,13 +364,15 @@ async function seedAgence(
   }
 
   // Clients : le compte client (index 0) puis des voyageurs inventés (@example.com).
+  const nomsEquipe = new Set(Object.values(spec.equipe).map((p) => `${p.prenom} ${p.nom}`));
   const people: DemoPerson[] = [
     {
       ...spec.equipe.client,
       nationalite: spec.slug === "green-trek-mada" ? "Malagasy" : "Française",
     },
+    // Aucun voyageur ne porte le nom d'un membre de l'équipe ou du compte client.
     ...generateClients(spec.clients, spec.seed).filter(
-      (p) => `${p.prenom} ${p.nom}` !== `${spec.equipe.client.prenom} ${spec.equipe.client.nom}`,
+      (p) => !nomsEquipe.has(`${p.prenom} ${p.nom}`),
     ),
   ];
   const clientIds = [clientCompte.id];
@@ -475,7 +477,8 @@ async function seedAgence(
   }
 
   const reservationIds: string[] = [];
-  for (const reservation of data.reservations) {
+  const avisIds = new Map<number, string>();
+  for (const [index, reservation] of data.reservations.entries()) {
     const created = await db.reservation.create({
       data: {
         agenceId,
@@ -501,7 +504,7 @@ async function seedAgence(
       });
     }
     if (reservation.avis) {
-      await db.avis.create({
+      const avis = await db.avis.create({
         data: {
           agenceId,
           circuitId: circuitIds[data.sessions[reservation.sessionIndex]!.circuitIndex]!,
@@ -510,7 +513,49 @@ async function seedAgence(
           ...reservation.avis,
         },
       });
+      avisIds.set(index, avis.id);
     }
+  }
+
+  // Journal d'activité des 90 derniers jours, déduit des données ci-dessus (mêmes codes
+  // d'action que l'application) : paiements reçus à l'agence et validés, avis modérés.
+  const depuis = now.getTime() - 90 * 24 * 3_600_000;
+  const journal = data.reservations.flatMap((r, index) => [
+    ...r.paiements
+      .filter(
+        (p) =>
+          p.statut === "VALIDE" &&
+          (p.methode === "ESPECES" || p.methode === "VIREMENT") &&
+          p.payeLe !== null &&
+          p.payeLe.getTime() > depuis,
+      )
+      .map((p) => ({
+        utilisateurId: staff.id,
+        action: "PAIEMENT_VALIDE",
+        entite: "Reservation",
+        entiteId: reservationIds[index]!,
+        details: { reference: r.reference, montant: p.montant },
+        createdAt: p.payeLe!,
+      })),
+    ...(r.avis && r.avis.statut === "PUBLIE" && r.avis.createdAt.getTime() > depuis
+      ? [
+          {
+            utilisateurId: admin.id,
+            action: "AVIS_MODERE",
+            entite: "Avis",
+            entiteId: avisIds.get(index)!,
+            details: { statut: "PUBLIE" },
+            createdAt: new Date(
+              Math.min(now.getTime(), r.avis.createdAt.getTime() + 20 * 3_600_000),
+            ),
+          },
+        ]
+      : []),
+  ]);
+  if (journal.length > 0) {
+    await db.journalActivite.createMany({
+      data: journal.map((entry) => ({ ...entry, agenceId })),
+    });
   }
 
   // Notifications internes de l'équipe : dernières réservations et paiements à valider.

@@ -8,6 +8,7 @@ import { calendarDate } from "@/lib/dates";
 import { type Paginated, pageArgs, pageCount } from "@/lib/pagination";
 import { refreshSessionStatut } from "@/lib/services/departs";
 import { lockReservation, montantPaye } from "@/lib/services/reservations";
+import { notifyReservationClient } from "@/lib/services/notifications";
 import { failure, type ServiceResult, success } from "@/lib/services/result";
 import type { TenantDb, TenantTx } from "@/lib/tenant";
 
@@ -252,6 +253,7 @@ async function lockedReservation(tx: TenantTx, id: string) {
   return tx.reservation.findUnique({
     where: { id },
     select: {
+      reference: true,
       statut: true,
       montantTotal: true,
       sessionId: true,
@@ -276,6 +278,11 @@ export async function confirmReservation(
     await tx.reservation.update({
       where: { id },
       data: { statut: "CONFIRMEE", confirmeeAt: now },
+    });
+    await notifyReservationClient(tx, id, {
+      type: "RESERVATION",
+      titre: `Réservation ${r.reference} confirmée`,
+      message: "L'agence a confirmé votre réservation. Bon voyage !",
     });
     return success(undefined);
   });
@@ -305,6 +312,12 @@ export async function cancelReservationByAgency(
       data: { statut: "ECHOUE" },
     });
     await refreshSessionStatut(tx, r.sessionId, now);
+    await notifyReservationClient(tx, id, {
+      type: "ANNULATION",
+      titre: `Réservation ${r.reference} annulée`,
+      message:
+        "L'agence a annulé votre réservation. Les paiements déjà versés vous seront remboursés.",
+    });
     return success(undefined);
   });
 }
@@ -363,6 +376,13 @@ export async function recordPayment(
       montantPaye(r.paiements) + input.montant,
       now,
     );
+    await notifyReservationClient(tx, input.reservationId, {
+      type: "PAIEMENT",
+      titre: `Paiement reçu · ${r.reference}`,
+      message: confirmee
+        ? "Votre réservation est entièrement payée et confirmée."
+        : "L'agence a enregistré votre paiement.",
+    });
     return success({ confirmee });
   });
 }
@@ -406,6 +426,13 @@ export async function validatePayment(
       paye + p.montant,
       now,
     );
+    await notifyReservationClient(tx, reservationId, {
+      type: "PAIEMENT",
+      titre: `Paiement validé · ${r.reference}`,
+      message: confirmee
+        ? "Votre paiement a été reçu : la réservation est confirmée."
+        : "Votre paiement a été reçu.",
+    });
     return success({ confirmee });
   });
 }
@@ -427,6 +454,17 @@ async function changePaymentStatus(
     const refus = guard(r.statut);
     if (refus) return failure(refus);
     await tx.paiement.update({ where: { id: paiementId }, data: { statut: to } });
+    await notifyReservationClient(tx, reservationId, {
+      type: "PAIEMENT",
+      titre:
+        to === "REMBOURSE"
+          ? `Remboursement · ${r.reference}`
+          : `Paiement non reçu · ${r.reference}`,
+      message:
+        to === "REMBOURSE"
+          ? "L'agence a procédé au remboursement de votre paiement."
+          : "L'agence n'a pas reçu votre paiement : vous pouvez payer à nouveau depuis votre réservation.",
+    });
     return success(undefined);
   });
 }

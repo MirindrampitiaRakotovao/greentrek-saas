@@ -26,6 +26,7 @@
   --color-gt-canvas: var(--gt-canvas);
   --color-gt-chart-1: var(--gt-chart-1);
   --color-gt-chart-2: var(--gt-chart-2);
+  --color-gt-star: var(--gt-star);
 
   --font-sans: var(--font-poppins);
   --font-display: var(--font-nohemi), var(--font-poppins), sans-serif;

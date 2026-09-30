@@ -57,13 +57,13 @@ export default async function MesReservationsPage({
                 </div>
                 <div className="min-w-0 flex-1 py-1">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="font-mono text-xs text-gt-teal-900/60">{r.reference}</p>
+                    <p className="font-mono text-xs text-gt-teal-900/75">{r.reference}</p>
                     <StatusPill statut={r.statut} />
                   </div>
                   <p className="mt-1 line-clamp-1 font-medium text-gt-teal-900 group-hover:underline">
                     {r.session.circuit.titre}
                   </p>
-                  <p className="text-sm text-gt-teal-900/70">
+                  <p className="text-sm text-gt-teal-900/75">
                     {formatDateRange(r.session.dateDebut, r.session.dateFin)} · {r.nombrePersonnes}{" "}
                     pers.
                   </p>
@@ -74,6 +74,11 @@ export default async function MesReservationsPage({
                     {r.peutPayer ? (
                       <span className="ml-2 text-xs font-semibold text-gt-teal-700">
                         À payer : {formatMoney(r.reste, devise)}
+                      </span>
+                    ) : null}
+                    {r.peutDonnerAvis ? (
+                      <span className="ml-2 text-xs font-semibold text-gt-teal-700">
+                        Donnez votre avis
                       </span>
                     ) : null}
                   </p>

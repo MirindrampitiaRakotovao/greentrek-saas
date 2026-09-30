@@ -20,7 +20,7 @@ export const metadata: Metadata = { title: "Circuits — Green Trek" };
 const STATUT_STYLES = {
   PUBLIE: "bg-gt-teal-100 text-gt-teal-800",
   BROUILLON: "bg-gt-sand-200 text-gt-teal-900",
-  ARCHIVE: "bg-gt-mist text-gt-teal-900/70",
+  ARCHIVE: "bg-gt-mist text-gt-teal-900/75",
 } as const;
 
 /** Circuits de l'agence, en cartes (inspirées des cartes de la maquette du §8). */
@@ -83,9 +83,9 @@ export default async function CircuitsPage({ searchParams }: PageProps<"/dashboa
                     {c.titre}
                   </h2>
                   {c.resume ? (
-                    <p className="mt-1 line-clamp-2 text-sm text-gt-teal-900/65">{c.resume}</p>
+                    <p className="mt-1 line-clamp-2 text-sm text-gt-teal-900/75">{c.resume}</p>
                   ) : null}
-                  <p className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gt-teal-900/70">
+                  <p className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gt-teal-900/75">
                     <span>{DIFFICULTE_LABELS[c.difficulte]}</span>
                     <span>
                       {c.dureeJours} jour{c.dureeJours > 1 ? "s" : ""}
@@ -93,7 +93,7 @@ export default async function CircuitsPage({ searchParams }: PageProps<"/dashboa
                     <span>{c._count.etapes} étape(s)</span>
                     <span>{c._count.sessionsDepart} départ(s)</span>
                   </p>
-                  <p className="mt-auto pt-4 text-sm text-gt-teal-900/70">
+                  <p className="mt-auto pt-4 text-sm text-gt-teal-900/75">
                     à partir de{" "}
                     <span className="text-lg font-bold text-gt-teal-900">
                       {formatMoney(c.prixParPersonne, devise)}

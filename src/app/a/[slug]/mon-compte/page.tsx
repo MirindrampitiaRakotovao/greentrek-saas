@@ -64,7 +64,7 @@ export default async function MonComptePage({ params }: PageProps<"/a/[slug]/mon
             <div className="relative -mx-5 overflow-x-auto px-5">
               <table className="w-full min-w-[620px] text-left text-sm">
                 <caption className="sr-only">Mes réservations</caption>
-                <thead className="text-xs text-gt-teal-900/55">
+                <thead className="text-xs text-gt-teal-900/75">
                   <tr className="border-b border-gt-mist/70">
                     <th scope="col" className="py-2 pr-3 font-medium">
                       Réservation
@@ -85,7 +85,7 @@ export default async function MonComptePage({ params }: PageProps<"/a/[slug]/mon
                     <tr key={r.id}>
                       <td className="py-3 pr-3">
                         <p className="font-semibold text-gt-teal-900">{r.circuit}</p>
-                        <p className="text-xs text-gt-teal-900/60">
+                        <p className="text-xs text-gt-teal-900/75">
                           {r.reference} · {r.nombrePersonnes} pers.
                         </p>
                       </td>
@@ -98,7 +98,7 @@ export default async function MonComptePage({ params }: PageProps<"/a/[slug]/mon
                           max={r.montant}
                           label={`Paiement de ${r.reference}`}
                         />
-                        <p className="mt-1 text-xs text-gt-teal-900/70">
+                        <p className="mt-1 text-xs text-gt-teal-900/75">
                           {formatMoney(r.paye, data.devise)} / {formatMoney(r.montant, data.devise)}
                         </p>
                       </td>
@@ -125,7 +125,7 @@ export default async function MonComptePage({ params }: PageProps<"/a/[slug]/mon
             className="absolute top-10 -right-12 size-20 rounded-full bg-gt-teal-700/70"
           />
           <Icon name="mountain" className="relative size-7 text-gt-sand-300" />
-          <p className="relative mt-4 text-sm text-white/70">Mon prochain voyage</p>
+          <p className="relative mt-4 text-sm text-white/80">Mon prochain voyage</p>
           {next ? (
             <>
               <p className="relative mt-1 text-xl font-bold">{next.circuit}</p>

@@ -61,12 +61,12 @@ export default async function CircuitPage({ params }: PageProps<"/dashboard/circ
       {canEdit ? (
         <Card title="Publication">
           {manquantes > 0 ? (
-            <p className="mb-3 text-sm text-gt-teal-900/70">
+            <p className="mb-3 text-sm text-gt-teal-900/75">
               Encore {manquantes} étape(s) à ajouter avant de pouvoir publier (RG 4 : au moins{" "}
               {MIN_ETAPES_PUBLICATION} étapes).
             </p>
           ) : (
-            <p className="mb-3 text-sm text-gt-teal-900/70">
+            <p className="mb-3 text-sm text-gt-teal-900/75">
               Un circuit publié est visible sur le site vitrine de l&apos;agence (RG 9).
             </p>
           )}
@@ -94,7 +94,7 @@ export default async function CircuitPage({ params }: PageProps<"/dashboard/circ
       {user.role === "GUIDE" ? null : (
         <Card title={`Prochains départs (${departs.length})`}>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-gt-teal-900/70">
+            <p className="text-sm text-gt-teal-900/75">
               {circuit.statut === "BROUILLON"
                 ? "Circuit en brouillon : ses départs ne seront visibles publiquement qu'après publication."
                 : "Les départs ouverts d'un circuit publié sont proposés sur le site vitrine."}

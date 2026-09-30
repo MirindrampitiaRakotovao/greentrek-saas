@@ -120,7 +120,7 @@ export function AgencyDashboardView({
             <div className="relative -mx-5 overflow-x-auto px-5">
               <table className="w-full min-w-[520px] text-left text-sm">
                 <caption className="sr-only">Six dernières réservations</caption>
-                <thead className="text-xs text-gt-teal-900/55">
+                <thead className="text-xs text-gt-teal-900/75">
                   <tr className="border-b border-gt-mist/70">
                     <th scope="col" className="py-2 pr-3 font-medium">
                       Réservation
@@ -144,7 +144,7 @@ export function AgencyDashboardView({
                     <tr key={r.id}>
                       <td className="py-3 pr-3">
                         <p className="font-semibold text-gt-teal-900">{r.reference}</p>
-                        <p className="text-xs text-gt-teal-900/60">{r.client}</p>
+                        <p className="text-xs text-gt-teal-900/75">{r.client}</p>
                       </td>
                       <td className="max-w-[140px] truncate py-3 pr-3 text-gt-teal-900/80">
                         {r.circuit}
@@ -182,10 +182,10 @@ export function AgencyDashboardView({
         </Card>
 
         <Card title="Prochains départs">
-          <p className="text-xs text-gt-teal-900/60">Places réservées</p>
+          <p className="text-xs text-gt-teal-900/75">Places réservées</p>
           <p className="text-2xl font-bold tracking-tight text-gt-teal-900">
             {kpis.remplissage.reservees}
-            <span className="text-base font-medium text-gt-teal-900/60">
+            <span className="text-base font-medium text-gt-teal-900/75">
               {" "}
               / {kpis.remplissage.places}
             </span>
@@ -199,7 +199,7 @@ export function AgencyDashboardView({
               {data.prochainsDeparts.map((d) => (
                 <li key={d.id}>
                   <p className="truncate text-sm font-semibold text-gt-teal-900">{d.circuit}</p>
-                  <p className="mb-2 text-xs text-gt-teal-900/60">
+                  <p className="mb-2 text-xs text-gt-teal-900/75">
                     {shortDate.format(d.dateDebut)}
                     {d.dateFin.getTime() !== d.dateDebut.getTime()
                       ? ` → ${shortDate.format(d.dateFin)}`
@@ -211,7 +211,7 @@ export function AgencyDashboardView({
                     max={d.places}
                     label={`Remplissage du départ ${d.circuit}`}
                   />
-                  <p className="mt-1.5 flex justify-between text-xs text-gt-teal-900/70">
+                  <p className="mt-1.5 flex justify-between text-xs text-gt-teal-900/75">
                     <span>
                       {d.reservees} / {d.places} places
                     </span>
@@ -232,14 +232,14 @@ export function AgencyDashboardView({
       <div className="min-w-0 space-y-5">
         {showSubscription && data.abonnement ? (
           <Card title="Abonnement">
-            <p className="text-xs text-gt-teal-900/60">Plan actuel</p>
+            <p className="text-xs text-gt-teal-900/75">Plan actuel</p>
             <div className="flex items-end justify-between gap-2">
               <p className="text-2xl font-bold tracking-tight text-gt-teal-900">
                 {data.abonnement.plan}
               </p>
               <p className="text-right text-sm font-semibold text-gt-teal-800">
                 {SUBSCRIPTION_STATUS[data.abonnement.statut] ?? data.abonnement.statut}
-                <span className="block text-xs font-normal text-gt-teal-900/60">
+                <span className="block text-xs font-normal text-gt-teal-900/75">
                   {data.abonnement.dateFin
                     ? `jusqu'au ${formatDate(data.abonnement.dateFin)}`
                     : "sans échéance"}
@@ -249,7 +249,7 @@ export function AgencyDashboardView({
             <ul className="mt-4 space-y-3">
               {data.abonnement.usage.map((u) => (
                 <li key={u.label}>
-                  <p className="mb-1.5 flex justify-between text-xs text-gt-teal-900/70">
+                  <p className="mb-1.5 flex justify-between text-xs text-gt-teal-900/75">
                     <span>{u.label}</span>
                     <span className="font-semibold text-gt-teal-900">
                       {u.used} / {u.max}
@@ -263,7 +263,7 @@ export function AgencyDashboardView({
         ) : null}
 
         <Card title="Circuits">
-          <p className="text-xs text-gt-teal-900/60">Circuits publiés</p>
+          <p className="text-xs text-gt-teal-900/75">Circuits publiés</p>
           <p className="text-2xl font-bold tracking-tight text-gt-teal-900">
             {data.circuitsPublies}
           </p>

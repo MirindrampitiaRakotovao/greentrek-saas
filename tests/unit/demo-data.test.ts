@@ -135,6 +135,21 @@ describe("données de démonstration", () => {
         references.add(r.reference);
       }
     });
+
+    it(`${label} — le compte client de connexion a un historique crédible et démontrable`, () => {
+      const siennes = data.reservations.filter((r) => r.clientIndex === 0);
+      expect(siennes.length).toBeGreaterThanOrEqual(3);
+      expect(siennes.length).toBeLessThanOrEqual(20);
+      // De quoi montrer le dépôt d'un avis (RG 17) et une réservation à venir.
+      expect(siennes.some((r) => r.statut === "TERMINEE" && !r.avis)).toBe(true);
+      expect(
+        siennes.some(
+          (r) =>
+            r.statut !== "ANNULEE" &&
+            data.sessions[r.sessionIndex]!.dateDebut.getTime() > NOW.getTime(),
+        ),
+      ).toBe(true);
+    });
   }
 
   it("prévoit des réservations créées ce mois-ci et le mois précédent (tableau de bord lisible)", () => {

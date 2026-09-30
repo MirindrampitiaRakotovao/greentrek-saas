@@ -9,6 +9,7 @@ import {
 } from "@/lib/departs";
 import { type Paginated, pageArgs, pageCount } from "@/lib/pagination";
 import { checkPlanLimit } from "@/lib/services/abonnements";
+import { notifyReservationClient } from "@/lib/services/notifications";
 import { failure, type ServiceResult, success } from "@/lib/services/result";
 import type { TenantDb, TenantTx } from "@/lib/tenant";
 import type { DepartFilters, DepartInput, UpdateDepartInput } from "@/lib/validators/departs";
@@ -367,10 +368,22 @@ export async function cancelDepart(
     if (!session) return failure("Départ introuvable.");
     if (session.statut === "ANNULEE") return failure("Ce départ est déjà annulé.");
     if (session.statut === "TERMINEE") return failure("Un départ terminé ne peut pas être annulé.");
+    const touchees = await tx.reservation.findMany({
+      where: { sessionId: id, statut: { in: ["EN_ATTENTE", "CONFIRMEE"] } },
+      select: { id: true, reference: true },
+    });
     const annulees = await tx.reservation.updateMany({
       where: { sessionId: id, statut: { in: ["EN_ATTENTE", "CONFIRMEE"] } },
       data: { statut: "ANNULEE", annuleeAt: now },
     });
+    for (const r of touchees) {
+      await notifyReservationClient(tx, r.id, {
+        type: "DEPART",
+        titre: `Départ annulé · ${r.reference}`,
+        message:
+          "L'agence a annulé ce départ : votre réservation est annulée et les paiements déjà versés vous seront remboursés.",
+      });
+    }
     await tx.sessionDepart.update({ where: { id }, data: { statut: "ANNULEE" } });
     return success({ reservationsAnnulees: annulees.count });
   });

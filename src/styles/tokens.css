@@ -32,4 +32,6 @@
      tableau accessible obligatoires. */
   --gt-chart-1: #00899e;
   --gt-chart-2: #c98a1b;
+  /* Étoiles des avis (toujours accompagnées de la note en texte). */
+  --gt-star: #d99a1e;
 }

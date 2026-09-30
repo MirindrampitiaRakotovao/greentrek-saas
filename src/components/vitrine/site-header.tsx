@@ -7,8 +7,8 @@ import type { VitrineAgency } from "@/lib/public-agency";
 
 /**
  * En-tête du site vitrine (§8.4, section 1) : logo et nom de l'agence, liens, accès au
- * compte ; il se réduit au défilement (§8.5). Sur mobile, le menu est un `<details>` natif : il fonctionne sans JavaScript et
- * au clavier. Pas de lien « Avis » tant que les avis (P2) ne sont pas réalisés.
+ * compte ; il se réduit au défilement (§8.5). Sur mobile, le menu est un `<details>` natif :
+ * il fonctionne sans JavaScript et au clavier.
  */
 export async function SiteHeader({ agence }: { agence: VitrineAgency }) {
   const user = await getCurrentUser();
@@ -19,6 +19,7 @@ export async function SiteHeader({ agence }: { agence: VitrineAgency }) {
     { href: `${base}#experiences`, label: "Expériences" },
     { href: `${base}#departs`, label: "Départs" },
     { href: `${base}#partenaires`, label: "Partenaires" },
+    { href: `${base}#avis`, label: "Avis" },
     { href: `${base}#contact`, label: "Contact" },
   ];
   const account = isClient

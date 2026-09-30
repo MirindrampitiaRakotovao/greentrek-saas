@@ -70,11 +70,11 @@ export default async function EquipePage({ searchParams }: PageProps<"/dashboard
               const role = member.role as TeamRole;
               const isSelf = member.id === user.id;
               return (
-                <tr key={member.id} className={member.actif ? "" : "text-gt-teal-900/60"}>
+                <tr key={member.id} className={member.actif ? "" : "text-gt-teal-900/75"}>
                   <td className="font-medium text-gt-teal-900">
                     {member.prenom} {member.nom}
                     {isSelf ? (
-                      <span className="ml-2 text-xs text-gt-teal-900/60">(vous)</span>
+                      <span className="ml-2 text-xs text-gt-teal-900/75">(vous)</span>
                     ) : null}
                   </td>
                   <td>{member.email}</td>

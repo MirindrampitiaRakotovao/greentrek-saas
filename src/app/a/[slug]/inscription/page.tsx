@@ -39,7 +39,7 @@ export default async function ClientRegistrationPage({
             Se connecter
           </Link>
           <br />
-          <span className="text-xs text-gt-teal-900/60">
+          <span className="text-xs text-gt-teal-900/75">
             Nous ne collectons que les informations nécessaires à vos réservations.
           </span>
         </>

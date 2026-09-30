@@ -35,11 +35,11 @@ export function InvoicePanel({
             // SVG produit sur le serveur par la bibliothèque qrcode à partir de NOTRE adresse.
             dangerouslySetInnerHTML={{ __html: link.qr }}
           />
-          <p className="text-xs text-gt-teal-900/65">
+          <p className="text-xs text-gt-teal-900/75">
             Scannez avec un téléphone pour ouvrir la facture.
           </p>
           {/* Adresse contenue dans le QR : on voit tout de suite si un téléphone peut l'ouvrir. */}
-          <p className="max-w-full font-mono text-[10px] break-all text-gt-teal-900/55">
+          <p className="max-w-full font-mono text-[10px] break-all text-gt-teal-900/75">
             {link.url.split("/a/")[0]}
           </p>
           <a

@@ -86,7 +86,7 @@ export function MemberEditForm({ member, isSelf }: { member: Member; isSelf: boo
             <input type="hidden" {...register("role")} />
             <p className="text-sm font-medium text-gt-teal-900">Rôle</p>
             <p className="mt-2 text-gt-teal-900">{TEAM_ROLE_LABELS[member.role]}</p>
-            <p className="mt-1 text-sm text-gt-teal-900/70">
+            <p className="mt-1 text-sm text-gt-teal-900/75">
               Vous ne pouvez pas modifier votre propre rôle.
             </p>
           </div>

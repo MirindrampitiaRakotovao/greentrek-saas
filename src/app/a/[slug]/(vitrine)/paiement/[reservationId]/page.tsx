@@ -37,7 +37,7 @@ export default async function PaiementPage({
         <h1 className="mt-1 text-2xl font-medium text-gt-teal-900">
           {reservation.session.circuit.titre}
         </h1>
-        <p className="mt-1 text-sm text-gt-teal-900/70">
+        <p className="mt-1 text-sm text-gt-teal-900/75">
           {formatDateRange(reservation.session.dateDebut, reservation.session.dateFin)} ·{" "}
           {reservation.nombrePersonnes} voyageur{reservation.nombrePersonnes > 1 ? "s" : ""}
         </p>
@@ -47,7 +47,7 @@ export default async function PaiementPage({
             {formatMoney(reservation.reste, agence.devise)}
           </dd>
         </dl>
-        <p className="mt-3 text-xs text-gt-teal-900/60">
+        <p className="mt-3 text-xs text-gt-teal-900/75">
           Vos places sont réservées. Vous pouvez aussi payer plus tard depuis « Mes réservations ».
         </p>
         <div className="mt-6">

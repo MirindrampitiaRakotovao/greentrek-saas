@@ -38,7 +38,7 @@ export function TextareaField({
           {error}
         </p>
       ) : hint ? (
-        <p id={`${fieldId}-hint`} className="mt-1 text-sm text-gt-teal-900/70">
+        <p id={`${fieldId}-hint`} className="mt-1 text-sm text-gt-teal-900/75">
           {hint}
         </p>
       ) : null}

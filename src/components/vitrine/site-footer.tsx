@@ -71,7 +71,7 @@ export function SiteFooter({
             ) : null}
             {!agence.telephone && !agence.email ? (
               // TODO(données terrain) : e-mail et téléphone officiels de l'agence.
-              <li className="text-white/65">Coordonnées téléphoniques et e-mail à venir.</li>
+              <li className="text-white/80">Coordonnées téléphoniques et e-mail à venir.</li>
             ) : null}
             <li>
               <Link href={`${base}/connexion`} className="hover:underline">

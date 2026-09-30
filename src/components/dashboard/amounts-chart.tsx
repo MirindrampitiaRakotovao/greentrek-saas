@@ -55,7 +55,7 @@ export function AmountsChart<K extends string>({
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs text-gt-teal-900/60">
+          <p className="text-xs text-gt-teal-900/75">
             Total {totals[0]?.label.toLocaleLowerCase("fr")} · {RANGE_LABELS[range]}
           </p>
           <p className="text-2xl font-bold tracking-tight text-gt-teal-900">

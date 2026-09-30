@@ -125,7 +125,7 @@ export function BenchmarkPanel() {
             <div className="relative -mx-5 overflow-x-auto px-5">
               <table className="w-full min-w-[760px] text-right text-sm">
                 <caption className="sr-only">Résultats du banc d&apos;essai</caption>
-                <thead className="text-xs text-gt-teal-900/55">
+                <thead className="text-xs text-gt-teal-900/75">
                   <tr className="border-b border-gt-mist/70">
                     {[
                       "Étapes",
@@ -167,7 +167,7 @@ export function BenchmarkPanel() {
                 </tbody>
               </table>
             </div>
-            <p className="mt-3 text-xs leading-relaxed text-gt-teal-900/65">
+            <p className="mt-3 text-xs leading-relaxed text-gt-teal-900/75">
               Le calibrage de l&apos;heuristique d&apos;A* (un prétraitement par graphe) est mesuré
               à part : il n&apos;est payé qu&apos;une fois, puis amorti sur les recherches
               suivantes. Les temps absolus dépendent de la machine ; les rapports entre algorithmes

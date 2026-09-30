@@ -365,7 +365,7 @@ export function MapExplorer({
               autoComplete="off"
               className="gt-search-no-cancel w-full rounded-full border border-gt-mist bg-white py-3 pr-20 pl-5 text-[15px] text-gt-teal-900 shadow-sm outline-none focus:border-gt-teal-600 focus:ring-2 focus:ring-gt-teal-500/20"
             />
-            <span className="absolute top-1/2 right-3 flex -translate-y-1/2 items-center gap-1 text-gt-teal-900/60">
+            <span className="absolute top-1/2 right-3 flex -translate-y-1/2 items-center gap-1 text-gt-teal-900/75">
               <Icon name="search" className="size-5" />
               {query || mode.kind !== "list" || edgeMode.kind !== "list" ? (
                 <button
@@ -403,7 +403,7 @@ export function MapExplorer({
                 className={`rounded-full py-2 text-sm font-medium transition ${
                   view === id
                     ? "bg-white text-gt-teal-900 shadow-sm"
-                    : "text-gt-teal-900/65 hover:text-gt-teal-900"
+                    : "text-gt-teal-900/75 hover:text-gt-teal-900"
                 }`}
               >
                 {label}
@@ -463,7 +463,7 @@ export function MapExplorer({
                 </button>
               </div>
               {mode.kind === "new" ? (
-                <p className="mb-3 text-xs text-gt-teal-900/60">
+                <p className="mb-3 text-xs text-gt-teal-900/75">
                   Position prise au clic ; déplacez l&apos;épingle orange pour l&apos;ajuster.
                 </p>
               ) : null}
@@ -543,14 +543,14 @@ function TronconPanel({
               <span>Cliquez sur l&apos;étape de départ, sur la carte.</span>
             )}
           </li>
-          <li className="flex items-center gap-2 text-gt-teal-900/70">
+          <li className="flex items-center gap-2 text-gt-teal-900/75">
             <span className="grid size-6 place-items-center rounded-full bg-gt-chart-2 text-xs font-bold text-white">
               2
             </span>
             Puis sur l&apos;étape d&apos;arrivée.
           </li>
         </ol>
-        <p className="text-xs text-gt-teal-900/60">
+        <p className="text-xs text-gt-teal-900/75">
           La distance (Haversine × sinuosité) et la durée (Naismith adaptée) seront proposées,
           modifiables.
         </p>
@@ -584,29 +584,29 @@ function TronconPanel({
         ) : (
           <dl className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <dt className="text-gt-teal-900/60">Distance</dt>
+              <dt className="text-gt-teal-900/75">Distance</dt>
               <dd className="font-medium">
                 {formatKm(values.distanceKm)}
                 {values.distanceEstimee ? " (estimée)" : ""}
               </dd>
             </div>
             <div>
-              <dt className="text-gt-teal-900/60">Durée</dt>
+              <dt className="text-gt-teal-900/75">Durée</dt>
               <dd className="font-medium">{formatDuree(values.dureeMinutes)}</dd>
             </div>
             <div>
-              <dt className="text-gt-teal-900/60">Difficulté</dt>
+              <dt className="text-gt-teal-900/75">Difficulté</dt>
               <dd className="font-medium">{DIFFICULTE_TRONCON_LABELS[values.difficulte]}</dd>
             </div>
             <div>
-              <dt className="text-gt-teal-900/60">Dénivelé</dt>
+              <dt className="text-gt-teal-900/75">Dénivelé</dt>
               <dd className="font-medium">
                 {values.deniveleM === null ? "—" : `${values.deniveleM} m`}
               </dd>
             </div>
             {values.commentaire ? (
               <div className="col-span-2">
-                <dt className="text-gt-teal-900/60">Commentaire</dt>
+                <dt className="text-gt-teal-900/75">Commentaire</dt>
                 <dd>{values.commentaire}</dd>
               </div>
             ) : null}
@@ -635,7 +635,7 @@ function TronconPanel({
             Nouveau tronçon
           </button>
         ) : null}
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gt-teal-900/70">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gt-teal-900/75">
           <span className="flex items-center gap-1.5">
             <span aria-hidden="true" className="h-1 w-6 rounded bg-[#1a73e8]" />
             mesuré
@@ -650,7 +650,7 @@ function TronconPanel({
         </div>
       </div>
       {list.length === 0 ? (
-        <p className="px-4 py-6 text-sm text-gt-teal-900/60">Aucun tronçon.</p>
+        <p className="px-4 py-6 text-sm text-gt-teal-900/75">Aucun tronçon.</p>
       ) : (
         <ul>
           {list.map((t) => (
@@ -664,7 +664,7 @@ function TronconPanel({
                   <span className="block truncate font-medium text-gt-teal-900">
                     {nom(t.etapeDepartId)} {t.bidirectionnel ? "↔" : "→"} {nom(t.etapeArriveeId)}
                   </span>
-                  <span className="block text-xs text-gt-teal-900/60">
+                  <span className="block text-xs text-gt-teal-900/75">
                     {formatKm(t.distanceKm)} · {formatDuree(t.dureeMinutes)} · difficulté{" "}
                     {t.difficulte}
                   </span>
@@ -696,12 +696,12 @@ function ResultList({
 }) {
   return (
     <div>
-      <p className="px-4 pt-3 pb-2 text-xs text-gt-teal-900/60">
+      <p className="px-4 pt-3 pb-2 text-xs text-gt-teal-900/75">
         {etapes.length} lieu(x) sur {total}
         {canEdit ? " · cliquez sur la carte pour ajouter une étape" : ""}
       </p>
       {etapes.length === 0 ? (
-        <p className="px-4 py-6 text-sm text-gt-teal-900/60">Aucun lieu ne correspond.</p>
+        <p className="px-4 py-6 text-sm text-gt-teal-900/75">Aucun lieu ne correspond.</p>
       ) : (
         <ul>
           {etapes.map((e) => (
@@ -716,7 +716,7 @@ function ResultList({
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate font-medium text-gt-teal-900">{e.nom}</span>
-                  <span className="block text-xs text-gt-teal-900/60">
+                  <span className="block text-xs text-gt-teal-900/75">
                     {TYPE_ETAPE_LABELS[e.type]}
                     {e.circuits.length > 0
                       ? ` · ${e.circuits.length} circuit${e.circuits.length > 1 ? "s" : ""}`
@@ -790,7 +790,7 @@ function PlaceCard({
 
       <div className="p-4">
         <h2 className="text-2xl font-semibold text-gt-teal-900">{etape.nom}</h2>
-        <p className="mt-1 text-sm text-gt-teal-900/65">
+        <p className="mt-1 text-sm text-gt-teal-900/75">
           {TYPE_ETAPE_LABELS[etape.type]}
           {etape.altitudeM !== null ? ` · ${etape.altitudeM} m d'altitude` : ""}
         </p>
@@ -850,7 +850,7 @@ function PlaceCard({
         <section className="mt-4">
           <h3 className="font-semibold text-gt-teal-900">Circuits passant par ce lieu</h3>
           {etape.circuits.length === 0 ? (
-            <p className="mt-1 text-sm text-gt-teal-900/60">Aucun circuit pour l&apos;instant.</p>
+            <p className="mt-1 text-sm text-gt-teal-900/75">Aucun circuit pour l&apos;instant.</p>
           ) : (
             <ul className="mt-2 space-y-1">
               {etape.circuits.map((c) => (
@@ -871,7 +871,7 @@ function PlaceCard({
         <section className="mt-4">
           <h3 className="font-semibold text-gt-teal-900">Tronçons ({relies.length})</h3>
           {relies.length === 0 ? (
-            <p className="mt-1 text-sm text-gt-teal-900/60">
+            <p className="mt-1 text-sm text-gt-teal-900/75">
               Aucun tronçon : ce lieu n&apos;est relié à aucun autre.
             </p>
           ) : (
@@ -889,7 +889,7 @@ function PlaceCard({
                         <Icon name="route" className="size-4 shrink-0 text-gt-teal-700" />
                         <span className="truncate">{nom(autre)}</span>
                       </span>
-                      <span className="shrink-0 text-xs text-gt-teal-900/60">
+                      <span className="shrink-0 text-xs text-gt-teal-900/75">
                         {formatKm(t.distanceKm)} · {formatDuree(t.dureeMinutes)}
                         {t.distanceEstimee ? " · estimé" : ""}
                       </span>
@@ -913,7 +913,7 @@ function PlaceCard({
                     className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-gt-teal-50"
                   >
                     <span className="truncate text-gt-teal-900">{e.nom}</span>
-                    <span className="shrink-0 text-xs text-gt-teal-900/60">
+                    <span className="shrink-0 text-xs text-gt-teal-900/75">
                       {km.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} km à vol
                       d&apos;oiseau
                     </span>
@@ -937,7 +937,7 @@ function PlaceCard({
               }}
             />
             {etape.usages > 0 ? (
-              <p className="mt-2 text-xs text-gt-teal-900/60">
+              <p className="mt-2 text-xs text-gt-teal-900/75">
                 Utilisée par {etape.usages} élément(s) : la suppression sera refusée (RG 8).
               </p>
             ) : null}

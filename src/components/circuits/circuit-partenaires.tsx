@@ -67,14 +67,14 @@ export function CircuitPartenaires({
     <div className="space-y-4">
       <FormAlert message={error} />
       {prestations.length === 0 ? (
-        <p className="text-sm text-gt-teal-900/60">Aucun partenaire inclus pour l&apos;instant.</p>
+        <p className="text-sm text-gt-teal-900/75">Aucun partenaire inclus pour l&apos;instant.</p>
       ) : (
         <ul className="divide-y divide-gt-mist/60">
           {prestations.map((p) => (
             <li key={p.id} className="flex items-center justify-between gap-3 py-3">
               <div className="min-w-0">
                 <p className="font-medium text-gt-teal-900">{p.partenaire.nom}</p>
-                <p className="text-xs text-gt-teal-900/65">
+                <p className="text-xs text-gt-teal-900/75">
                   {p.prestation}
                   {p.etape ? ` · à ${p.etape.nom}` : ""} ·{" "}
                   {p.prixUnitaire === null

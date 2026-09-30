@@ -32,7 +32,7 @@ export default async function TarifsPage() {
         <h1 className="mt-2 text-4xl font-medium text-gt-teal-900 sm:text-5xl">
           Un plan pour chaque agence
         </h1>
-        <p className="mt-4 text-gt-teal-900/70">
+        <p className="mt-4 text-gt-teal-900/75">
           Toutes les agences commencent par un essai gratuit de {TRIAL_DAYS} jours, sans engagement.
           Choisissez ensuite le plan adapté à la taille de votre agence.
         </p>
@@ -63,12 +63,12 @@ export default async function TarifsPage() {
                   {plan.prixMensuel === 0 ? "Gratuit" : formatMoney(plan.prixMensuel, "MGA")}
                 </span>
                 {plan.prixMensuel > 0 ? (
-                  <span className={featured ? "text-white/70" : "text-gt-teal-900/60"}>
+                  <span className={featured ? "text-white/80" : "text-gt-teal-900/75"}>
                     {" "}
                     / mois
                   </span>
                 ) : (
-                  <span className={featured ? "text-white/70" : "text-gt-teal-900/60"}>
+                  <span className={featured ? "text-white/80" : "text-gt-teal-900/75"}>
                     {" "}
                     pendant {TRIAL_DAYS} jours
                   </span>
@@ -110,7 +110,7 @@ export default async function TarifsPage() {
         })}
       </ul>
 
-      <p className="mt-10 text-center text-sm text-gt-teal-900/65">
+      <p className="mt-10 text-center text-sm text-gt-teal-900/75">
         Après l&apos;essai, le plan est attribué par l&apos;administrateur de la plateforme. Limites
         appliquées à la création des circuits, des comptes et des départs.
       </p>

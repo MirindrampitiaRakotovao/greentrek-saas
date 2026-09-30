@@ -51,7 +51,7 @@ export function Pagination({
       <ol className="flex items-center gap-1">
         {pageItems(page, pageCount).map((item, index) =>
           item === "…" ? (
-            <li key={`ellipse-${index}`} aria-hidden="true" className="px-2 text-gt-teal-900/45">
+            <li key={`ellipse-${index}`} aria-hidden="true" className="px-2 text-gt-teal-900/75">
               …
             </li>
           ) : (

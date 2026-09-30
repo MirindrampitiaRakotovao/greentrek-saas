@@ -86,7 +86,7 @@ export function PaymentForm({
                   <Icon name={METHODE_DETAILS[m].icon} className="size-4 text-gt-teal-600" />
                   {METHODE_PAIEMENT_LABELS[m]}
                 </span>
-                <span className="mt-0.5 block text-xs text-gt-teal-900/65">
+                <span className="mt-0.5 block text-xs text-gt-teal-900/75">
                   {METHODE_DETAILS[m].text}
                 </span>
               </span>

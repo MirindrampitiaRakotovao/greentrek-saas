@@ -28,7 +28,7 @@ export default async function CreditsPhotosPage({ params }: PageProps<"/a/[slug]
         {credits.map(([chemin, c]) => (
           <li key={chemin} className="py-4">
             <p className="font-medium text-gt-teal-900">{c.sujet}</p>
-            <p className="mt-1 text-sm text-gt-teal-900/70">
+            <p className="mt-1 text-sm text-gt-teal-900/75">
               {c.auteur} ·{" "}
               {c.licenceUrl ? (
                 <a href={c.licenceUrl} className="underline" rel="noreferrer" target="_blank">
@@ -52,7 +52,7 @@ export default async function CreditsPhotosPage({ params }: PageProps<"/a/[slug]
       </ul>
 
       <h2 className="mt-10 text-xl font-medium text-gt-teal-800">Autres photos du site</h2>
-      <p className="mt-2 text-sm text-gt-teal-900/70">
+      <p className="mt-2 text-sm text-gt-teal-900/75">
         Photos de l&apos;accueil et des partenaires : crédits en cours de vérification.
       </p>
       <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-gt-teal-900/75">

@@ -31,7 +31,7 @@ export function DepartList({
     <div className="space-y-6">
       {groupByMonth(departs).map((group) => (
         <section key={group.label} aria-label={group.label}>
-          <h3 className="mb-2 text-xs font-semibold tracking-wide text-gt-teal-900/60 uppercase">
+          <h3 className="mb-2 text-xs font-semibold tracking-wide text-gt-teal-900/75 uppercase">
             {group.label}
           </h3>
           <ul className="divide-y divide-gt-mist/60 overflow-hidden rounded-2xl border border-gt-mist/70 bg-white">
@@ -50,7 +50,7 @@ export function DepartList({
                       {showCircuit ? (
                         <p className="truncate text-sm text-gt-teal-900/80">{d.circuit.titre}</p>
                       ) : null}
-                      <p className="truncate text-xs text-gt-teal-900/65">
+                      <p className="truncate text-xs text-gt-teal-900/75">
                         {d.guide ? `Guide : ${d.guide.prenom} ${d.guide.nom}` : "Sans guide"}
                       </p>
                     </div>
@@ -60,7 +60,7 @@ export function DepartList({
                         max={d.placesTotal}
                         label={`Remplissage : ${d.reservees} sur ${d.placesTotal} places`}
                       />
-                      <p className="mt-1 text-xs text-gt-teal-900/70">
+                      <p className="mt-1 text-xs text-gt-teal-900/75">
                         {d.reservees} / {d.placesTotal} places
                         {d.statut === "OUVERTE" ? ` · ${restantes} libre(s)` : ""}
                       </p>

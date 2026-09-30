@@ -18,7 +18,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E9 Réservation client | Fait | 2026-09-29 | Validé par l'étudiant : inscription, tunnel, anti-surbooking testé en simultané, paiement simulé, annulation ; typecheck, lint, 459 tests, build et parcours dans le navigateur verts |
 | E10 Back-office opérationnel | Fait | 2026-09-29 | Validé par l'étudiant (réservations, paiements, clients, export CSV, facture avec QR code scannable sur le Wi-Fi), puis refonte de l'interface demandée (modales, confirmations, listes, pagination numérotée, défilement du contenu seul) ; typecheck, lint, 486 tests, build et parcours dans le navigateur verts |
 | E11 Super admin, plans | Fait | 2026-09-30 | Validé par l'étudiant : console agences et plans, attribution, suspension, limites RG 18, page Abonnement, landing SaaS, Tarifs ; typecheck, lint, 501 tests, build et parcours dans le navigateur verts |
-| E12 Finition | À faire | | |
+| E12 Finition | En attente de validation | 2026-09-30 | Données réalistes (seed complet), avis et modération, notifications, journal d'activité, accessibilité, script de démonstration ; typecheck, lint, tests, build et parcours dans le navigateur verts ; à valider par l'étudiant |
 
 ## Décisions et justifications
 
@@ -338,7 +338,43 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - **Landing SaaS `/`** (§7.5) : hero photo, atouts réels de la plateforme (site vitrine, réservation sans surbooking, itinéraires Dijkstra / A*, back-office, isolation des données, équipe), « Comment ça marche », agences actives (lien vers leur site), appel à l'inscription ; aucun chiffre ni témoignage inventé. **`/tarifs`** : plans actifs lus en base (tarifs fictifs), plan payant le moins cher mis en avant (« Recommandé »). Pages dynamiques : une modification du super admin s'affiche aussitôt. L'ancienne page d'accueil provisoire d'E0 est remplacée.
 - **Tests** : 11 tests d'intégration (limites de circuits avec archivage, de comptes avec réactivation et clients exclus, de départs avec annulation ; essai expiré ; agence sans abonnement ; attribution et nouvelles limites ; plan désactivé ; date de fin ; suspension : connexion, session, site vitrine, réactivation ; liste des agences ; validation des plans) et 4 tests unitaires des règles pures. Parcours dans le navigateur : landing et tarifs (ordinateur et mobile) ; inscription d'une agence de test → essai ; 4e circuit refusé par la limite ; attribution du plan Pro (essai clôturé) ; suspension (site vitrine 404, session de l'équipe renvoyée à la connexion) puis réactivation ; page Plans ; administrateur d'agence refusé sur `/admin` ; aucune erreur. Agence de test supprimée ensuite.
 
+### E12 — Finition : données réalistes, avis, notifications, journal, accessibilité (2026-09-30)
+
+- **Écarts assumés, décidés par l'étudiant** (règle 6 de CLAUDE.md et §11 du cahier des charges), pour une plateforme qui se présente comme un produit réel :
+  - plus aucune mention « démo », « simulé » ou « fictif » dans l'interface, ni sur la facture et le paiement. Le paiement reste simulé dans le code : aucun prestataire n'est appelé, et un numéro de test finissant par 0000 est refusé ;
+  - circuits de Green Trek Mada sans préfixe « [DÉMO] ». Les prix, durées et itinéraires sont des **hypothèses** documentées ici et à confirmer avec l'agence ;
+  - agences de comparaison aux noms réalistes inventés (« Tanety Trek » à Antsirabe, « Ranohira Sentiers » à l'Isalo) au lieu de « Démo Alpha / Beta ». Elles sont inventées ; seuls leurs lieux (OpenStreetMap) et leurs photos (Wikimedia Commons, crédités) sont réels.
+- **Seed complet et déterministe** (`prisma/demo-data.ts`, fonctions pures testées ; `prisma/seed.ts`) : 3 agences, 107 comptes, 10 circuits, environ 160 départs sur 12 mois passés et 5 mois à venir, environ 500 réservations aux statuts variés, 630 paiements (acomptes, en attente, refusés, remboursés), plus de 200 avis, des notifications et un journal d'activité déduit des données. Contrôles : aucun surbooking, RG 11 et RG 16 respectées, limites des plans respectées.
+  - Personnes inventées : e-mails `@example.com` (RFC 2606), aucun numéro de téléphone généré. Aucun voyageur ne porte le nom d'un membre de l'équipe.
+  - Le compte client de connexion a une dizaine de réservations, dont toujours un séjour terminé sans avis (pour montrer le dépôt d'un avis) et une réservation à venir.
+- **Avis (RG 17)** (`src/lib/services/avis.ts`) :
+  - le client note un séjour terminé (1 à 5 étoiles, commentaire facultatif) depuis sa réservation ; un seul avis par réservation (index unique, doublon simultané intercepté) ; seul le titulaire peut noter ;
+  - l'avis est « À modérer » jusqu'à sa publication ou son rejet par l'agence (page « Avis », ADMIN_AGENCE et STAFF) ; la décision peut être revue ;
+  - sur le site vitrine, seuls les avis publiés comptent : note moyenne sur les cartes et la fiche circuit, avis sur la fiche et sur l'accueil (lien « Avis » du menu, prévu au §8.4). Auteur affiché : prénom et initiale du nom (données minimales, §12) ;
+  - une réservation confirmée dont le séjour est fini passe « Terminée » à la lecture de l'espace client (même règle que la décision B d'E10), ce qui ouvre le dépôt d'avis.
+- **Notifications internes** (in-app uniquement, §2) : créées dans la même transaction que l'événement (pas de notification pour une action annulée) :
+  - vers l'équipe : nouvelle réservation, paiement à valider ou reçu, annulation par le client, nouvel avis ;
+  - vers le client : réservation confirmée ou annulée, paiement enregistré, validé, refusé ou remboursé, départ annulé.
+  La cloche ouvre la page concernée et marque la notification comme lue ; « Tout marquer comme lu ». Un utilisateur ne touche que ses propres notifications.
+- **Journal d'activité** (`src/lib/services/journal.ts`) : trace les actions sensibles (réservations, paiements, départs annulés, statut des circuits, avis modérés, comptes ajoutés, activés ou désactivés, paramètres de l'agence), avec auteur, date et détails sans donnée sensible (§12). Page « Journal d'activité » réservée à l'ADMIN_AGENCE. Console plateforme : `/admin/journal`, pour les suspensions et les plans attribués ou modifiés.
+- **Accessibilité** :
+  - lien d'évitement « Aller au contenu », visible au premier appui sur Tab ;
+  - contrastes : les textes secondaires passent de 45 à 70 % d'opacité à 75 % (mesure : 3,6:1 à 60 % sur blanc, sous le seuil WCAG AA de 4,5:1 ; 5,4:1 à 75 % sur blanc, 4,8:1 sur le fond gris-vert). Sur fond sombre, les textes blancs passent à 80 % d'opacité ;
+  - la note en étoiles est toujours donnée en texte, et la saisie de la note se fait par des boutons radio natifs (utilisables au clavier).
+- **Script de démonstration** : `docs/SCRIPT_DEMO.md` (déroulé du §14.1, comptes, préparation, plan B hors ligne).
+- **Tests** : 13 tests d'intégration :
+  - RG 17 : avis accepté et équipe notifiée ; doublon refusé ; séjour non terminé ; autre client ; autre agence ;
+  - passage « Terminée » puis avis ;
+  - note moyenne et avis publics limités aux avis publiés, avec auteur abrégé ; rejet puis publication ;
+  - isolation de la modération ;
+  - notification du client avec lien ; « lu » limité à l'utilisateur ;
+  - journal isolé par agence, écriture refusée pour une autre agence.
+  S'y ajoute 1 test unitaire sur l'historique du compte client de connexion.
+- **Parcours dans le navigateur** (build de production) : premier Tab sur le lien d'évitement ; étoiles et avis sur l'accueil et la fiche circuit (ordinateur et mobile) ; dépôt d'un avis par le client (note obligatoire) ; bandeau « À traiter » et cloche du personnel ; ouverture de la page Avis depuis la notification et publication ; journal de l'administrateur ; guide refusé sur la page Avis ; journal de la console ; aucune erreur navigateur.
+
 ## Captures d'écran à prendre
+
+- E12 : site vitrine avec les notes sur les cartes et la section « Ils ont randonné avec nous » ; fiche circuit avec la note et les avis ; modale « Votre avis sur le séjour » ; page « Avis » du back-office (à modérer) ; cloche des notifications ouverte ; journal d'activité de l'agence et de la console ; lien « Aller au contenu » visible après Tab.
 
 - E11 : landing SaaS (ordinateur et mobile) ; page Tarifs ; console : liste des agences, fiche d'une agence (jauges, historique), modale d'attribution d'un plan, confirmation de suspension, site vitrine d'une agence suspendue (404) ; page Plans ; page Abonnement d'une agence ; message « Limite du plan atteinte ».
 
@@ -369,14 +405,14 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 
 ## Comptes de démonstration
 
-Mot de passe commun à tous les comptes : **`Demo2026!`** (démonstration locale uniquement). Toutes les personnes sont fictives ; les adresses utilisent le domaine réservé `.test`.
+Mot de passe commun à tous les comptes : **`Demo2026!`** (démonstration locale uniquement). Les membres des équipes et les voyageurs sont des personnes inventées ; les comptes de connexion utilisent le domaine réservé `.test`, les autres voyageurs `@example.com`.
 
-| Rôle | Green Trek Mada | Démo Alpha (fictive) | Démo Beta (fictive) |
+| Rôle | Green Trek Mada | Tanety Trek (inventée) | Ranohira Sentiers (inventée) |
 |---|---|---|---|
 | SUPER_ADMIN | `superadmin@greentrek-saas.test` (toutes agences) | | |
-| ADMIN_AGENCE | `admin@green-trek-mada.test` | `admin@demo-alpha.test` | `admin@demo-beta.test` |
-| STAFF | `staff@green-trek-mada.test` | `staff@demo-alpha.test` | `staff@demo-beta.test` |
-| GUIDE | `guide@green-trek-mada.test` | `guide@demo-alpha.test` | `guide@demo-beta.test` |
-| CLIENT | `client@green-trek-mada.test` | `client@demo-alpha.test` | `client@demo-beta.test` |
+| ADMIN_AGENCE | `admin@green-trek-mada.test` | `admin@tanety-trek.test` | `admin@ranohira-sentiers.test` |
+| STAFF | `staff@green-trek-mada.test` | `staff@tanety-trek.test` | `staff@ranohira-sentiers.test` |
+| GUIDE | `guide@green-trek-mada.test` | `guide@tanety-trek.test` | `guide@ranohira-sentiers.test` |
+| CLIENT | `client@green-trek-mada.test` | `client@tanety-trek.test` | `client@ranohira-sentiers.test` |
 
-Abonnements simulés : Green Trek Mada en plan Pro (actif) ; Démo Alpha et Démo Beta en essai (30 jours).
+Connexion des clients : depuis le site de leur agence (`/a/<slug>/connexion`). Abonnements : Green Trek Mada en Pro (après un essai), Tanety Trek en Pro, Ranohira Sentiers en Entreprise.

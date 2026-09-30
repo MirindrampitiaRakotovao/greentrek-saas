@@ -6,6 +6,7 @@ import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "rea
 
 import { Icon } from "@/components/ui/icon";
 import { logoutAction } from "@/lib/actions/auth";
+import { markNotificationsReadAction } from "@/lib/actions/avis";
 import type { NavItem } from "@/lib/navigation";
 
 /**
@@ -25,6 +26,7 @@ export type ShellNotification = {
   id: string;
   titre: string;
   message: string;
+  lienUrl: string | null;
   at: string; // ISO 8601
   lue: boolean;
 };
@@ -110,7 +112,7 @@ export function AppShell({
               <span className="block text-base font-bold tracking-wide text-gt-teal-900 uppercase">
                 {brand.name}
               </span>
-              <span className="block text-xs text-gt-teal-900/60">{brand.tagline}</span>
+              <span className="block text-xs text-gt-teal-900/75">{brand.tagline}</span>
             </span>
           </Link>
           <button
@@ -206,7 +208,7 @@ export function AppShell({
             <div className="flex items-center gap-3">
               <div className="hidden text-right sm:block">
                 <p className="text-sm font-semibold text-gt-teal-900">{user.name}</p>
-                <p className="text-xs text-gt-teal-900/60">{user.subtitle}</p>
+                <p className="text-xs text-gt-teal-900/75">{user.subtitle}</p>
               </div>
               <span
                 aria-hidden="true"
@@ -222,9 +224,15 @@ export function AppShell({
             ref={scrollRef}
             className="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain"
           >
-            <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8">{children}</main>
+            <main
+              id="contenu"
+              tabIndex={-1}
+              className="min-w-0 flex-1 px-4 py-5 outline-none sm:px-6 lg:px-8"
+            >
+              {children}
+            </main>
 
-            <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-gt-mist/70 px-4 py-4 text-xs text-gt-teal-900/60 sm:px-6 lg:px-8">
+            <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-gt-mist/70 px-4 py-4 text-xs text-gt-teal-900/75 sm:px-6 lg:px-8">
               <p>
                 © {new Date().getFullYear()} Green Trek · Projet de fin d&apos;études, ENI
                 Fianarantsoa
@@ -273,7 +281,7 @@ function PageSearch({ nav }: { nav: readonly NavItem[] }) {
       />
       <Icon
         name="search"
-        className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-gt-teal-900/50"
+        className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-gt-teal-900/75"
       />
       {query.trim() ? (
         <ul
@@ -281,7 +289,7 @@ function PageSearch({ nav }: { nav: readonly NavItem[] }) {
           className="absolute top-full right-0 left-0 z-20 mt-2 overflow-hidden rounded-2xl border border-gt-mist bg-white py-1 shadow-lg shadow-gt-teal-900/10"
         >
           {results.length === 0 ? (
-            <li className="px-4 py-2 text-sm text-gt-teal-900/60">Aucune page trouvée.</li>
+            <li className="px-4 py-2 text-sm text-gt-teal-900/75">Aucune page trouvée.</li>
           ) : (
             results.map((item) => (
               <li key={item.href}>
@@ -302,9 +310,25 @@ function PageSearch({ nav }: { nav: readonly NavItem[] }) {
   );
 }
 
-/** Cloche des notifications in-app (table Notification), avec le nombre de non lues. */
+/**
+ * Cloche des notifications in-app (table Notification), avec le nombre de non lues. Un clic
+ * sur une notification la marque comme lue et ouvre la page concernée.
+ */
 function Notifications({ unread, items }: { unread: number; items: readonly ShellNotification[] }) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+
+  async function openItem(item: ShellNotification) {
+    setOpen(false);
+    if (!item.lue) await markNotificationsReadAction({ ids: [item.id] });
+    if (item.lienUrl) router.push(item.lienUrl);
+    else router.refresh();
+  }
+
+  async function markAll() {
+    await markNotificationsReadAction({});
+    router.refresh();
+  }
   const panelId = useId();
   const ref = useRef<HTMLDivElement>(null);
 
@@ -351,26 +375,42 @@ function Notifications({ unread, items }: { unread: number; items: readonly Shel
           id={panelId}
           className="absolute right-0 z-20 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-gt-mist bg-white p-2 shadow-lg shadow-gt-teal-900/10"
         >
-          <p className="px-3 py-2 text-sm font-semibold text-gt-teal-900">Notifications</p>
+          <div className="flex items-center justify-between gap-2 px-3 py-2">
+            <p className="text-sm font-semibold text-gt-teal-900">Notifications</p>
+            {unread > 0 ? (
+              <button
+                type="button"
+                onClick={markAll}
+                className="text-xs font-medium text-gt-teal-700 underline-offset-2 hover:underline"
+              >
+                Tout marquer comme lu
+              </button>
+            ) : null}
+          </div>
           {items.length === 0 ? (
-            <p className="px-3 pb-3 text-sm text-gt-teal-900/60">Aucune notification.</p>
+            <p className="px-3 pb-3 text-sm text-gt-teal-900/75">Aucune notification.</p>
           ) : (
             <ul className="max-h-80 space-y-1 overflow-y-auto">
               {items.map((item) => (
-                <li key={item.id} className="rounded-xl px-3 py-2 hover:bg-gt-teal-50">
-                  <p className="flex items-center gap-2 text-sm font-medium text-gt-teal-900">
-                    {item.lue ? null : (
-                      <span
-                        aria-label="Non lue"
-                        className="size-2 shrink-0 rounded-full bg-gt-chart-1"
-                      />
-                    )}
-                    {item.titre}
-                  </p>
-                  <p className="text-xs text-gt-teal-900/70">{item.message}</p>
-                  <p className="mt-0.5 text-[11px] text-gt-teal-900/50">
-                    {notificationDate.format(new Date(item.at))}
-                  </p>
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => openItem(item)}
+                    className={`block w-full rounded-xl px-3 py-2 text-left hover:bg-gt-teal-50 ${item.lue ? "" : "bg-gt-teal-50/60"}`}
+                  >
+                    <span className="flex items-center gap-2 text-sm font-medium text-gt-teal-900">
+                      {item.lue ? null : (
+                        <span className="size-2 shrink-0 rounded-full bg-gt-chart-1">
+                          <span className="sr-only">Non lue :</span>
+                        </span>
+                      )}
+                      {item.titre}
+                    </span>
+                    <span className="block text-xs text-gt-teal-900/75">{item.message}</span>
+                    <span className="mt-0.5 block text-[11px] text-gt-teal-900/75">
+                      {notificationDate.format(new Date(item.at))}
+                    </span>
+                  </button>
                 </li>
               ))}
             </ul>

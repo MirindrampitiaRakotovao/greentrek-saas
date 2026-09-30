@@ -36,9 +36,13 @@ export default async function FacturePage({
   const link = await invoiceLink(agence.slug, agence.id, id);
 
   return (
-    <main className="min-h-screen bg-gt-canvas px-4 py-8 print:bg-white print:p-0">
+    <main
+      id="contenu"
+      tabIndex={-1}
+      className="min-h-screen bg-gt-canvas px-4 py-8 outline-none print:bg-white print:p-0"
+    >
       <div className="mx-auto mb-4 flex max-w-[794px] flex-wrap items-center justify-between gap-3 print:hidden">
-        <p className="text-sm text-gt-teal-900/70">Facture · {agence.nom}</p>
+        <p className="text-sm text-gt-teal-900/75">Facture · {agence.nom}</p>
         <PrintButton />
       </div>
       <InvoiceDocument invoice={invoice} qr={link.qr} />

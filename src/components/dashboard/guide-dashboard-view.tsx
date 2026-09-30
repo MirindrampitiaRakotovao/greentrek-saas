@@ -61,7 +61,7 @@ export function GuideDashboardView({ data }: { data: GuideDashboard | null }) {
                     >
                       {d.circuit}
                     </Link>
-                    <p className="text-sm text-gt-teal-900/65">
+                    <p className="text-sm text-gt-teal-900/75">
                       {longDate.format(d.dateDebut)}
                       {d.dateFin.getTime() !== d.dateDebut.getTime()
                         ? ` → ${longDate.format(d.dateFin)}`
@@ -74,7 +74,7 @@ export function GuideDashboardView({ data }: { data: GuideDashboard | null }) {
                       max={d.places}
                       label={`Participants de ${d.circuit}`}
                     />
-                    <p className="mt-1.5 text-xs text-gt-teal-900/70">
+                    <p className="mt-1.5 text-xs text-gt-teal-900/75">
                       {d.participants} participant(s) · {d.reservations} réservation(s) · {d.places}{" "}
                       places
                     </p>
@@ -93,7 +93,7 @@ export function GuideDashboardView({ data }: { data: GuideDashboard | null }) {
             className="absolute -top-8 -right-8 size-28 rounded-full bg-gt-teal-card"
           />
           <Icon name="compass" className="relative size-7 text-gt-sand-300" />
-          <p className="relative mt-4 text-sm text-white/70">Prochain départ</p>
+          <p className="relative mt-4 text-sm text-white/80">Prochain départ</p>
           {next ? (
             <>
               <p className="relative mt-1 text-xl font-bold">{next.circuit}</p>

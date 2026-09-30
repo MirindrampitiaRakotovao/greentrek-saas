@@ -14,13 +14,17 @@ export function AuthCard({
   footer?: ReactNode;
 }) {
   return (
-    <main className="flex flex-1 items-center justify-center bg-gt-cream px-4 py-12">
+    <main
+      id="contenu"
+      tabIndex={-1}
+      className="flex flex-1 items-center justify-center bg-gt-cream px-4 py-12 outline-none"
+    >
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg shadow-gt-teal-900/10 sm:p-8">
         <Link href="/" className="font-display text-2xl text-gt-teal-700">
           Green Trek
         </Link>
         <h1 className="mt-4 text-2xl font-semibold text-gt-teal-900">{title}</h1>
-        {subtitle ? <p className="mt-1 text-sm text-gt-teal-900/70">{subtitle}</p> : null}
+        {subtitle ? <p className="mt-1 text-sm text-gt-teal-900/75">{subtitle}</p> : null}
         <div className="mt-6">{children}</div>
         {footer ? <div className="mt-6 text-sm text-gt-teal-900/80">{footer}</div> : null}
       </div>

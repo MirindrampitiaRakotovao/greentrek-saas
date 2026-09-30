@@ -76,16 +76,16 @@ export default async function AbonnementPage() {
               {STATUT_ABONNEMENT_LABELS[sub.statut]}
             </Badge>
           </div>
-          <p className="mt-1 text-sm text-gt-teal-900/70">
+          <p className="mt-1 text-sm text-gt-teal-900/75">
             {formatMoney(sub.plan.prixMensuel, "MGA")} par mois
           </p>
           <dl className="mt-4 space-y-1 text-sm">
             <div className="flex justify-between">
-              <dt className="text-gt-teal-900/65">Début</dt>
+              <dt className="text-gt-teal-900/75">Début</dt>
               <dd>{formatDate(sub.dateDebut)}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-gt-teal-900/65">Fin</dt>
+              <dt className="text-gt-teal-900/75">Fin</dt>
               <dd>{sub.dateFin ? formatDate(sub.dateFin) : "Sans échéance"}</dd>
             </div>
           </dl>
@@ -120,7 +120,7 @@ export default async function AbonnementPage() {
               );
             })}
           </ul>
-          <p className="mt-4 text-xs text-gt-teal-900/60">
+          <p className="mt-4 text-xs text-gt-teal-900/75">
             Comptés : circuits non archivés, comptes du personnel actifs (les clients ne comptent
             pas), départs ouverts ou complets pas encore terminés.
           </p>

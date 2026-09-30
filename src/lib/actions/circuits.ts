@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { authorize, parseInput, toActionResult } from "@/lib/actions/helpers";
+import { authorize, journal, parseInput, toActionResult } from "@/lib/actions/helpers";
 import type { ActionResult } from "@/lib/actions/types";
 import {
   addCircuitEtape,
@@ -114,7 +114,12 @@ export async function setCircuitStatutAction(input: unknown): Promise<ActionResu
   const parsed = parseInput(circuitStatutSchema, input);
   if (!parsed.ok) return parsed.result;
   const result = await setCircuitStatut(auth.db, parsed.data.id, parsed.data.statut);
-  if (result.ok) revalidatePath(CIRCUITS_PATH, "layout");
+  if (result.ok) {
+    await journal(auth, "CIRCUIT_STATUT", "Circuit", parsed.data.id, {
+      statut: parsed.data.statut,
+    });
+    revalidatePath(CIRCUITS_PATH, "layout");
+  }
   return toActionResult(result);
 }
 

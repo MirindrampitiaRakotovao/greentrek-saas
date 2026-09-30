@@ -65,7 +65,7 @@ export default async function AdminPage() {
           <div className="relative -mx-5 overflow-x-auto px-5">
             <table className="w-full min-w-[720px] text-left text-sm">
               <caption className="sr-only">Agences de la plateforme</caption>
-              <thead className="text-xs text-gt-teal-900/55">
+              <thead className="text-xs text-gt-teal-900/75">
                 <tr className="border-b border-gt-mist/70">
                   <th scope="col" className="py-2 pr-3 font-medium">
                     Agence
@@ -95,12 +95,12 @@ export default async function AdminPage() {
                   <tr key={a.id}>
                     <td className="py-3 pr-3">
                       <p className="font-semibold text-gt-teal-900">{a.nom}</p>
-                      <p className="text-xs text-gt-teal-900/60">/a/{a.slug}</p>
+                      <p className="text-xs text-gt-teal-900/75">/a/{a.slug}</p>
                     </td>
                     <td className="py-3 pr-3 text-gt-teal-900/80">
                       {a.plan ?? "—"}
                       {a.abonnementStatut === "ESSAI" ? (
-                        <span className="ml-1 text-xs text-gt-teal-900/60">(essai)</span>
+                        <span className="ml-1 text-xs text-gt-teal-900/75">(essai)</span>
                       ) : null}
                     </td>
                     <td className="py-3 pr-3 text-right">{a.circuits}</td>

@@ -1,8 +1,10 @@
 import { Prisma, type StatutPaiement } from "@/generated/prisma/client";
 import { calendarDate } from "@/lib/dates";
+import { formatDate } from "@/lib/format";
 import { firstBookableDate, placesReservees } from "@/lib/departs";
 import { generateReference, referencePrefix } from "@/lib/reference";
 import { refreshSessionStatut } from "@/lib/services/departs";
+import { notifyAgencyStaff } from "@/lib/services/notifications";
 import { failure, type ServiceResult, success } from "@/lib/services/result";
 import type { TenantDb, TenantTx } from "@/lib/tenant";
 import {
@@ -132,6 +134,12 @@ export async function createReservation(
           data: input.participants.map((p) => ({ ...p, reservationId: reservation.id })),
         });
         await refreshSessionStatut(tx, input.sessionId, now); // RG 11
+        await notifyAgencyStaff(tx, {
+          type: "RESERVATION",
+          titre: `Nouvelle réservation ${reservation.reference}`,
+          message: `${nombrePersonnes} personne${nombrePersonnes > 1 ? "s" : ""} · départ du ${formatDate(session.dateDebut)}`,
+          lienUrl: `/dashboard/reservations/${reservation.id}`,
+        });
         return success(reservation);
       });
     } catch (error: unknown) {
@@ -163,6 +171,7 @@ export async function payReservation(
     const reservation = await tx.reservation.findUnique({
       where: { id: input.reservationId },
       select: {
+        reference: true,
         statut: true,
         montantTotal: true,
         paiements: { select: { montant: true, statut: true } },
@@ -205,6 +214,18 @@ export async function payReservation(
         data: { statut: "CONFIRMEE", confirmeeAt: now },
       });
     }
+    if (statut !== "ECHOUE") {
+      await notifyAgencyStaff(tx, {
+        type: "PAIEMENT",
+        titre: confirmee
+          ? `Réservation ${reservation.reference} payée`
+          : `Paiement à valider · ${reservation.reference}`,
+        message: confirmee
+          ? "Paiement en ligne reçu : la réservation est confirmée."
+          : "Virement ou espèces annoncés par le client : à valider à réception.",
+        lienUrl: `/dashboard/reservations/${input.reservationId}`,
+      });
+    }
     return success({ statut, confirmee });
   });
 }
@@ -226,7 +247,12 @@ export async function cancelReservationByClient(
     }
     const reservation = await tx.reservation.findUnique({
       where: { id: input.reservationId },
-      select: { statut: true, sessionId: true, session: { select: { dateDebut: true } } },
+      select: {
+        reference: true,
+        statut: true,
+        sessionId: true,
+        session: { select: { dateDebut: true } },
+      },
     });
     if (!reservation) return failure("Réservation introuvable.");
     if (reservation.statut !== "EN_ATTENTE" && reservation.statut !== "CONFIRMEE") {
@@ -244,6 +270,12 @@ export async function cancelReservationByClient(
       data: { statut: "ECHOUE" },
     });
     await refreshSessionStatut(tx, reservation.sessionId, now); // places libérées (RG 11)
+    await notifyAgencyStaff(tx, {
+      type: "ANNULATION",
+      titre: `Réservation ${reservation.reference} annulée par le client`,
+      message: "Les places ont été libérées ; vérifiez s'il faut rembourser un paiement.",
+      lienUrl: `/dashboard/reservations/${input.reservationId}`,
+    });
     return success(undefined);
   });
 }
@@ -283,6 +315,7 @@ const reservationSelect = {
       payeLe: true,
     },
   },
+  avis: { select: { note: true, commentaire: true, statut: true } },
 } satisfies Prisma.ReservationSelect;
 
 type ReservationPayload = Prisma.ReservationGetPayload<{ select: typeof reservationSelect }>;
@@ -293,6 +326,8 @@ export type ClientReservation = ReservationPayload & {
   /** Actions possibles pour le client à cet instant. */
   peutPayer: boolean;
   peutAnnuler: boolean;
+  /** RG 17 : séjour terminé et pas encore d'avis. */
+  peutDonnerAvis: boolean;
 };
 
 function toClientReservation(r: ReservationPayload, now: Date): ClientReservation {
@@ -309,7 +344,19 @@ function toClientReservation(r: ReservationPayload, now: Date): ClientReservatio
       paye < r.montantTotal &&
       !r.paiements.some((p) => p.statut === "EN_ATTENTE"),
     peutAnnuler: active && r.session.dateDebut > calendarDate(now),
+    peutDonnerAvis: r.statut === "TERMINEE" && r.avis === null,
   };
+}
+
+/**
+ * Décision B de l'étape E10, limitée aux réservations du client : une réservation confirmée
+ * dont le départ est fini passe à TERMINEE (ce qui ouvre le dépôt d'un avis, RG 17).
+ */
+async function syncClientTerminees(db: TenantDb, clientId: string, now: Date) {
+  await db.reservation.updateMany({
+    where: { clientId, statut: "CONFIRMEE", session: { dateFin: { lt: calendarDate(now) } } },
+    data: { statut: "TERMINEE" },
+  });
 }
 
 /** Réservations d'un client : les siennes uniquement (§7.2), les plus récentes d'abord. */
@@ -318,6 +365,7 @@ export async function listClientReservations(
   clientId: string,
   now: Date = new Date(),
 ): Promise<ClientReservation[]> {
+  await syncClientTerminees(db, clientId, now);
   const items = await db.reservation.findMany({
     where: { clientId },
     orderBy: { createdAt: "desc" },
@@ -333,6 +381,7 @@ export async function getClientReservation(
   clientId: string,
   now: Date = new Date(),
 ): Promise<ClientReservation | null> {
+  await syncClientTerminees(db, clientId, now);
   const r = await db.reservation.findFirst({
     where: { id: reservationId, clientId },
     select: reservationSelect,

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { forbiddenToResult, parseInput, toActionResult } from "@/lib/actions/helpers";
+import { forbiddenToResult, journal, parseInput, toActionResult } from "@/lib/actions/helpers";
 import type { ActionResult } from "@/lib/actions/types";
 import { requireAgencyUser } from "@/lib/auth/session";
 import { assertCan } from "@/lib/permissions";
@@ -42,7 +42,12 @@ export async function createMemberAction(input: unknown): Promise<ActionResult> 
   if (!parsed.ok) return parsed.result;
 
   const result = await createMember(db, user.agenceId, parsed.data);
-  if (result.ok) revalidatePath(TEAM_PATH);
+  if (result.ok) {
+    await journal({ user, db }, "MEMBRE_AJOUTE", "Utilisateur", undefined, {
+      role: parsed.data.role,
+    });
+    revalidatePath(TEAM_PATH);
+  }
   // Formulaire en modale sur la liste : message de succès, pas de redirection.
   return toActionResult(result, "Membre ajouté à l'équipe.");
 }
@@ -73,7 +78,12 @@ export async function setMemberActiveAction(input: unknown): Promise<ActionResul
   if (!parsed.ok) return parsed.result;
 
   const result = await setMemberActive(db, user.id, parsed.data.id, parsed.data.actif);
-  if (result.ok) revalidatePath(TEAM_PATH);
+  if (result.ok) {
+    await journal({ user, db }, "MEMBRE_ACTIVATION", "Utilisateur", parsed.data.id, {
+      actif: parsed.data.actif,
+    });
+    revalidatePath(TEAM_PATH);
+  }
   return toActionResult(result, parsed.data.actif ? "Compte réactivé." : "Compte désactivé.");
 }
 

@@ -12,7 +12,7 @@ import type { LeafletMapProps } from "@/components/map/leaflet-map";
 const LeafletMap = dynamic(() => import("@/components/map/leaflet-map"), {
   ssr: false,
   loading: () => (
-    <div className="grid h-full min-h-[320px] w-full place-items-center bg-[#aad3df] text-sm text-gt-teal-900/70">
+    <div className="grid h-full min-h-[320px] w-full place-items-center bg-[#aad3df] text-sm text-gt-teal-900/75">
       Chargement de la carte…
     </div>
   ),

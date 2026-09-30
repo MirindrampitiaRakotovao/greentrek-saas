@@ -29,7 +29,7 @@ export function InvoiceDocument({ invoice, qr }: { invoice: Invoice; qr?: string
             {[agence.telephone, agence.email].filter(Boolean).join(" · ") || "Coordonnées à venir"}
           </p>
           {/* TODO(données terrain) : NIF et STAT de l'agence (identifiants fiscaux). */}
-          <p className="mt-1 text-xs text-gt-teal-900/55">NIF : à compléter · STAT : à compléter</p>
+          <p className="mt-1 text-xs text-gt-teal-900/75">NIF : à compléter · STAT : à compléter</p>
         </div>
         <div className="text-right">
           <span
@@ -38,8 +38,8 @@ export function InvoiceDocument({ invoice, qr }: { invoice: Invoice; qr?: string
             {ETAT_FACTURE_LABELS[invoice.etat]}
           </span>
           <p className="mt-2 font-mono text-base font-semibold">{invoiceNumber(r.reference)}</p>
-          <p className="text-gt-teal-900/70">Émise le {formatDate(r.confirmeeAt ?? r.createdAt)}</p>
-          <p className="text-gt-teal-900/70">Réservation {r.reference}</p>
+          <p className="text-gt-teal-900/75">Émise le {formatDate(r.confirmeeAt ?? r.createdAt)}</p>
+          <p className="text-gt-teal-900/75">Réservation {r.reference}</p>
         </div>
       </header>
 
@@ -69,7 +69,7 @@ export function InvoiceDocument({ invoice, qr }: { invoice: Invoice; qr?: string
         <table className="w-full min-w-[300px] text-left text-xs sm:text-sm">
           <caption className="sr-only">Détail de la facture</caption>
           <thead>
-            <tr className="border-b border-gt-mist text-xs text-gt-teal-900/60">
+            <tr className="border-b border-gt-mist text-xs text-gt-teal-900/75">
               <th scope="col" className="py-2 font-medium">
                 Désignation
               </th>
@@ -88,7 +88,7 @@ export function InvoiceDocument({ invoice, qr }: { invoice: Invoice; qr?: string
             <tr className="border-b border-gt-mist/70">
               <td className="py-3">
                 Circuit « {r.session.circuit.titre} »
-                <span className="block text-xs text-gt-teal-900/60">
+                <span className="block text-xs text-gt-teal-900/75">
                   Départ du {formatDate(r.session.dateDebut)}, par personne
                 </span>
               </td>
@@ -112,7 +112,7 @@ export function InvoiceDocument({ invoice, qr }: { invoice: Invoice; qr?: string
               // SVG produit sur le serveur par la bibliothèque qrcode à partir de NOTRE adresse.
               dangerouslySetInnerHTML={{ __html: qr }}
             />
-            <figcaption className="max-w-40 text-xs text-gt-teal-900/65">
+            <figcaption className="max-w-40 text-xs text-gt-teal-900/75">
               Scannez pour consulter cette facture en ligne.
             </figcaption>
           </figure>
@@ -121,18 +121,18 @@ export function InvoiceDocument({ invoice, qr }: { invoice: Invoice; qr?: string
         )}
         <dl className="ml-auto w-full max-w-64 space-y-1.5">
           <div className="flex justify-between">
-            <dt className="text-gt-teal-900/70">Total</dt>
+            <dt className="text-gt-teal-900/75">Total</dt>
             <dd className="font-semibold whitespace-nowrap">
               {formatMoney(r.montantTotal, devise)}
             </dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-gt-teal-900/70">Déjà payé</dt>
+            <dt className="text-gt-teal-900/75">Déjà payé</dt>
             <dd className="whitespace-nowrap">{formatMoney(invoice.paye, devise)}</dd>
           </div>
           {invoice.rembourse > 0 ? (
             <div className="flex justify-between">
-              <dt className="text-gt-teal-900/70">Remboursé</dt>
+              <dt className="text-gt-teal-900/75">Remboursé</dt>
               <dd className="whitespace-nowrap">{formatMoney(invoice.rembourse, devise)}</dd>
             </div>
           ) : null}
@@ -164,7 +164,7 @@ export function InvoiceDocument({ invoice, qr }: { invoice: Invoice; qr?: string
         </section>
       ) : null}
 
-      <footer className="mt-10 border-t border-gt-mist pt-4 text-xs text-gt-teal-900/60">
+      <footer className="mt-10 border-t border-gt-mist pt-4 text-xs text-gt-teal-900/75">
         Document généré par la plateforme Green Trek.
         {invoice.etat === "ANNULEE" && r.annuleeAt
           ? ` Réservation annulée le ${formatDate(r.annuleeAt)}.`

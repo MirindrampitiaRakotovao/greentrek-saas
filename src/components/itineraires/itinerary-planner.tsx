@@ -204,7 +204,7 @@ export function ItineraryPlanner({
               <Icon name="pin" className="size-4 text-[#c98a1b]" />
             </div>
             <div className="flex-1 space-y-2">
-              <label htmlFor="it-depart" className="block text-xs font-medium text-gt-teal-900/70">
+              <label htmlFor="it-depart" className="block text-xs font-medium text-gt-teal-900/75">
                 Départ
               </label>
               <select
@@ -220,7 +220,7 @@ export function ItineraryPlanner({
                   </option>
                 ))}
               </select>
-              <label htmlFor="it-arrivee" className="block text-xs font-medium text-gt-teal-900/70">
+              <label htmlFor="it-arrivee" className="block text-xs font-medium text-gt-teal-900/75">
                 Arrivée
               </label>
               <select
@@ -372,7 +372,7 @@ export function ItineraryPlanner({
                 </div>
               </div>
             ) : (
-              <p className="mt-2 text-xs text-gt-teal-900/60">
+              <p className="mt-2 text-xs text-gt-teal-900/75">
                 α = {CRITERIA_PRESETS[critere].alpha}, β = {CRITERIA_PRESETS[critere].beta}, γ ={" "}
                 {CRITERIA_PRESETS[critere].gamma}
               </p>
@@ -396,7 +396,7 @@ export function ItineraryPlanner({
                   role="radio"
                   aria-checked={algorithme === a}
                   onClick={() => setAlgorithme(a)}
-                  className={`rounded-full py-2 text-sm font-medium ${algorithme === a ? "bg-white text-gt-teal-900 shadow-sm" : "text-gt-teal-900/65"}`}
+                  className={`rounded-full py-2 text-sm font-medium ${algorithme === a ? "bg-white text-gt-teal-900 shadow-sm" : "text-gt-teal-900/75"}`}
                 >
                   {ALGO_LABELS[a]}
                 </button>
@@ -462,17 +462,17 @@ function Results({
       <div>
         <p className="text-2xl font-bold text-gt-teal-900">
           {fmtDuree(main.dureeMinutes)}{" "}
-          <span className="text-base font-medium text-gt-teal-900/65">
+          <span className="text-base font-medium text-gt-teal-900/75">
             ({fmtKm(main.distanceKm)})
           </span>
         </p>
-        <p className="text-sm text-gt-teal-900/65">
+        <p className="text-sm text-gt-teal-900/75">
           Difficulté moyenne{" "}
           {main.difficulteMoyenne.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} / 5 · coût{" "}
           {fmtCost(main.cost)}
         </p>
         {main.order.length > 1 ? (
-          <p className="mt-1 text-xs text-gt-teal-900/65">
+          <p className="mt-1 text-xs text-gt-teal-900/75">
             Ordre retenu : {main.order.map(nom).join(" → ")}
           </p>
         ) : null}
@@ -483,7 +483,7 @@ function Results({
           <h2 className="text-sm font-semibold text-gt-teal-900">Comparaison Dijkstra / A*</h2>
           <table className="mt-2 w-full text-left text-sm">
             <caption className="sr-only">Comparaison des deux algorithmes</caption>
-            <thead className="text-xs text-gt-teal-900/60">
+            <thead className="text-xs text-gt-teal-900/75">
               <tr>
                 <th scope="col" className="py-1 font-medium">
                   <span className="sr-only">Mesure</span>
@@ -521,7 +521,7 @@ function Results({
             </tbody>
           </table>
           {d.exploredCount > 0 ? (
-            <p className="mt-2 text-xs text-gt-teal-900/70">
+            <p className="mt-2 text-xs text-gt-teal-900/75">
               Même coût optimal ; A* explore{" "}
               <strong>{Math.round((1 - a.exploredCount / d.exploredCount) * 100)} %</strong> de
               nœuds en moins. Sur un petit réseau, les temps sont de l&apos;ordre de la milliseconde
@@ -529,7 +529,7 @@ function Results({
             </p>
           ) : null}
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-            <span className="text-gt-teal-900/70">Nœuds explorés sur la carte :</span>
+            <span className="text-gt-teal-900/75">Nœuds explorés sur la carte :</span>
             {(["DIJKSTRA", "ASTAR"] as const).map((algo) => (
               <button
                 key={algo}
@@ -551,11 +551,11 @@ function Results({
       ) : (
         <dl className="grid grid-cols-2 gap-2 text-sm">
           <div className="rounded-xl bg-gt-teal-50 p-2.5">
-            <dt className="text-xs text-gt-teal-900/65">Nœuds explorés</dt>
+            <dt className="text-xs text-gt-teal-900/75">Nœuds explorés</dt>
             <dd className="font-semibold">{main.exploredCount}</dd>
           </div>
           <div className="rounded-xl bg-gt-teal-50 p-2.5">
-            <dt className="text-xs text-gt-teal-900/65">Temps de calcul</dt>
+            <dt className="text-xs text-gt-teal-900/75">Temps de calcul</dt>
             <dd className="font-semibold">{fmtMs(main.timeMs)}</dd>
           </div>
         </dl>

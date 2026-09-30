@@ -144,7 +144,7 @@ export function PartenaireForm({
         <legend className="text-sm font-medium text-gt-teal-900">
           Coordonnées GPS (facultatif)
         </legend>
-        <p className="text-sm text-gt-teal-900/70">
+        <p className="text-sm text-gt-teal-900/75">
           En degrés décimaux. Uniquement des relevés réels : sinon, laissez vide (la sélection sur
           carte arrive à l&apos;étape E4).
         </p>

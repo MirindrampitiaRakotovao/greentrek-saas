@@ -2,9 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AvisForm } from "@/components/avis/avis-form";
 import { Card, StatusPill } from "@/components/dashboard/widgets";
 import { InvoicePanel } from "@/components/facture/invoice-panel";
+import { FormModal } from "@/components/ui/form-modal";
 import { Icon } from "@/components/ui/icon";
+import { Stars } from "@/components/ui/stars";
 import { CancelReservationButton } from "@/components/vitrine/cancel-reservation-button";
 import { requireClient } from "@/lib/auth/session";
 import { formatDateRange, formatDateTime, formatMoney } from "@/lib/format";
@@ -12,6 +15,7 @@ import { invoiceLink } from "@/lib/invoice-link";
 import { getVitrineAgency } from "@/lib/public-agency";
 import { getInvoice } from "@/lib/services/factures";
 import { getClientReservation } from "@/lib/services/reservations";
+import { STATUT_AVIS_LABELS } from "@/lib/validators/avis";
 import { METHODE_PAIEMENT_LABELS, STATUT_PAIEMENT_LABELS } from "@/lib/validators/reservations";
 
 export const metadata: Metadata = { title: "Ma réservation" };
@@ -73,11 +77,11 @@ export default async function ReservationPage({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-mono text-sm text-gt-teal-900/60">{reservation.reference}</p>
+          <p className="font-mono text-sm text-gt-teal-900/75">{reservation.reference}</p>
           <h2 className="text-2xl font-semibold text-gt-teal-900">
             {reservation.session.circuit.titre}
           </h2>
-          <p className="text-sm text-gt-teal-900/70">
+          <p className="text-sm text-gt-teal-900/75">
             {formatDateRange(reservation.session.dateDebut, reservation.session.dateFin)} · réservée
             le {formatDateTime(reservation.createdAt)}
           </p>
@@ -90,7 +94,7 @@ export default async function ReservationPage({
           <p className="text-3xl font-semibold text-gt-teal-900">
             {formatMoney(reservation.montantTotal, devise)}
           </p>
-          <p className="mt-1 text-sm text-gt-teal-900/70">
+          <p className="mt-1 text-sm text-gt-teal-900/75">
             Payé : {formatMoney(reservation.paye, devise)} · reste :{" "}
             {formatMoney(reservation.reste, devise)}
           </p>
@@ -116,7 +120,7 @@ export default async function ReservationPage({
                 <span className="font-medium">
                   {p.prenom} {p.nom}
                 </span>
-                <span className="text-gt-teal-900/60">
+                <span className="text-gt-teal-900/75">
                   {[p.age !== null ? `${p.age} ans` : null, p.nationalite]
                     .filter(Boolean)
                     .map((v) => ` · ${v}`)
@@ -129,7 +133,7 @@ export default async function ReservationPage({
 
         <Card title="Paiements" className="min-w-0">
           {reservation.paiements.length === 0 ? (
-            <p className="text-sm text-gt-teal-900/70">Aucun paiement pour l&apos;instant.</p>
+            <p className="text-sm text-gt-teal-900/75">Aucun paiement pour l&apos;instant.</p>
           ) : (
             <ul className="space-y-2 text-sm">
               {reservation.paiements.map((p) => (
@@ -138,14 +142,14 @@ export default async function ReservationPage({
                     <span className="font-medium text-gt-teal-900">
                       {METHODE_PAIEMENT_LABELS[p.methode]}
                     </span>
-                    <span className="block text-xs text-gt-teal-900/60">
+                    <span className="block text-xs text-gt-teal-900/75">
                       {p.referenceExterne ?? "—"}
                       {p.payeLe ? ` · ${formatDateTime(p.payeLe)}` : ""}
                     </span>
                   </span>
                   <span className="text-right">
                     {formatMoney(p.montant, devise)}
-                    <span className="block text-xs text-gt-teal-900/60">
+                    <span className="block text-xs text-gt-teal-900/75">
                       {STATUT_PAIEMENT_LABELS[p.statut]}
                     </span>
                   </span>
@@ -162,11 +166,41 @@ export default async function ReservationPage({
         </Card>
       ) : null}
 
+      {reservation.peutDonnerAvis ? (
+        <Card title="Votre avis">
+          <p className="mb-4 text-sm text-gt-teal-900/80">
+            Votre séjour est terminé : partagez votre expérience avec les futurs voyageurs.
+          </p>
+          <FormModal
+            triggerLabel="Donner mon avis"
+            triggerIcon="star"
+            title="Votre avis sur le séjour"
+            description={reservation.session.circuit.titre}
+          >
+            <AvisForm reservationId={reservation.id} />
+          </FormModal>
+        </Card>
+      ) : reservation.avis ? (
+        <Card title="Votre avis">
+          <div className="flex flex-wrap items-center gap-3">
+            <Stars note={reservation.avis.note} size="md" />
+            <span className="rounded-full bg-gt-teal-50 px-2.5 py-0.5 text-xs font-medium text-gt-teal-800">
+              {STATUT_AVIS_LABELS[reservation.avis.statut]}
+            </span>
+          </div>
+          {reservation.avis.commentaire ? (
+            <p className="mt-3 text-sm whitespace-pre-line text-gt-teal-900/80">
+              {reservation.avis.commentaire}
+            </p>
+          ) : null}
+        </Card>
+      ) : null}
+
       {invoice ? <InvoicePanel invoice={invoice} link={link} /> : null}
 
       {reservation.peutAnnuler ? (
         <Card title="Annulation">
-          <p className="mb-3 text-sm text-gt-teal-900/70">
+          <p className="mb-3 text-sm text-gt-teal-900/75">
             Possible jusqu&apos;à la veille du départ (RG 15). Les paiements déjà validés sont
             remboursés par l&apos;agence.
           </p>

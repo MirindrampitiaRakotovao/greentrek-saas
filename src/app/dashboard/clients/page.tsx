@@ -83,7 +83,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/dashboar
                     >
                       {c.prenom} {c.nom}
                     </Link>
-                    <p className="text-xs text-gt-teal-900/60">{c.email}</p>
+                    <p className="text-xs text-gt-teal-900/75">{c.email}</p>
                   </td>
                   <td>{c.telephone ?? "—"}</td>
                   <td>{c.reservations}</td>
