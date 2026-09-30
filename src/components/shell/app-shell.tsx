@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 
+import { RealtimeBridge, SoundToggle, useSoundPreference } from "@/components/shell/realtime";
 import { Icon } from "@/components/ui/icon";
 import { logoutAction } from "@/lib/actions/auth";
 import { markNotificationsReadAction } from "@/lib/actions/avis";
@@ -74,6 +75,7 @@ export function AppShell({
 }: ShellProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [soundOn, toggleSound] = useSoundPreference();
   const current = activeHref(pathname, nav);
   const title = nav.find((item) => item.href === current)?.label ?? brand.name;
   // La zone défilante n'est pas la fenêtre : Next.js ne la remet pas en haut lors d'un
@@ -87,6 +89,7 @@ export function AppShell({
     // Sur ordinateur, la page entière ne défile pas : barre latérale et en-tête restent fixes,
     // seul le contenu du milieu défile (demande de l'étudiant).
     <div className="min-h-screen bg-gt-canvas lg:flex lg:h-dvh lg:overflow-hidden">
+      <RealtimeBridge soundOn={soundOn} />
       {/* Fond assombri derrière le menu mobile */}
       {menuOpen ? (
         <button
@@ -204,6 +207,7 @@ export function AppShell({
             </button>
             <h1 className="mr-auto text-xl font-semibold text-gt-teal-900 sm:text-2xl">{title}</h1>
             <PageSearch nav={nav} />
+            <SoundToggle on={soundOn} onToggle={toggleSound} />
             {notifications ? <Notifications {...notifications} /> : null}
             <div className="flex items-center gap-3">
               <div className="hidden text-right sm:block">

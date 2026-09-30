@@ -33,7 +33,7 @@ export type ConfirmOptions = {
 };
 
 type Pending = ConfirmOptions & { resolve: (value: boolean) => void };
-type Toast = { id: number; message: string; tone: "success" | "error" };
+type Toast = { id: number; message: string; tone: "success" | "error" | "info" };
 
 const DialogsContext = createContext<{
   confirm: (options: ConfirmOptions) => Promise<boolean>;
@@ -142,7 +142,10 @@ function ToastItem({ toast, onDone }: { toast: Toast; onDone: (id: number) => vo
           : "bg-gt-teal-900 text-white ring-gt-teal-800"
       }`}
     >
-      <Icon name={toast.tone === "error" ? "xCircle" : "check"} className="mt-0.5 size-4" />
+      <Icon
+        name={toast.tone === "error" ? "xCircle" : toast.tone === "info" ? "bell" : "check"}
+        className="mt-0.5 size-4"
+      />
       <p className="flex-1">{toast.message}</p>
       <button
         type="button"

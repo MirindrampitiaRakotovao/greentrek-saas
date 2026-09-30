@@ -1,10 +1,12 @@
 import type { PrismaClient } from "@/generated/prisma/client";
+import { publish } from "@/lib/realtime/bus";
 import type { TenantDb, TenantTx } from "@/lib/tenant";
 
 /**
  * Notifications internes (in-app, §7.6, P2, étape E12) : aucune notification n'est envoyée
  * par e-mail ou SMS (hors périmètre, §2). Créées dans la même transaction que l'événement :
- * pas de notification pour une action annulée.
+ * pas de notification pour une action annulée. Elles sont aussi poussées en temps réel aux
+ * destinataires connectés, après le commit (`publish`).
  */
 
 type Db = TenantDb | TenantTx;
@@ -34,6 +36,15 @@ export async function notifyAgencyStaff(db: Db, input: NotificationInput): Promi
   await db.notification.createMany({
     data: equipe.map((u) => ({ ...input, agenceId: agence.id, utilisateurId: u.id })),
   });
+  publish(
+    equipe.map((u) => u.id),
+    {
+      type: "notification",
+      titre: input.titre,
+      message: input.message,
+      lienUrl: input.lienUrl ?? null,
+    },
+  );
 }
 
 /** Notifie le client d'une réservation (lien vers sa réservation dans son espace). */
@@ -47,13 +58,15 @@ export async function notifyReservationClient(
     db.reservation.findUnique({ where: { id: reservationId }, select: { clientId: true } }),
   ]);
   if (!reservation) return;
+  const lienUrl = `/a/${agence.slug}/mon-compte/reservations/${reservationId}`;
   await db.notification.create({
-    data: {
-      ...input,
-      agenceId: agence.id,
-      utilisateurId: reservation.clientId,
-      lienUrl: `/a/${agence.slug}/mon-compte/reservations/${reservationId}`,
-    },
+    data: { ...input, agenceId: agence.id, utilisateurId: reservation.clientId, lienUrl },
+  });
+  publish([reservation.clientId], {
+    type: "notification",
+    titre: input.titre,
+    message: input.message,
+    lienUrl,
   });
 }
 

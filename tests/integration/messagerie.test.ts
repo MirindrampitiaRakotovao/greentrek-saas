@@ -2,6 +2,9 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import type { Role } from "@/generated/prisma/client";
 import { parseIsoDate } from "@/lib/departs";
+import { subscribe } from "@/lib/realtime/bus";
+import type { RealtimeEvent } from "@/lib/realtime/events";
+import { notifyAgencyStaff } from "@/lib/services/notifications";
 import {
   countUnreadConversations,
   getConversation,
@@ -285,5 +288,67 @@ describe("contraintes CHECK", () => {
     await expect(
       raw.conversation.create({ data: { agenceId: agenceA.id, clientId: client1.id, sujet: "" } }),
     ).rejects.toThrow();
+  });
+});
+
+describe("temps réel", () => {
+  /** Écoute les événements reçus par chaque utilisateur pendant `fn`. */
+  async function capture(users: Viewer[], fn: () => Promise<unknown>) {
+    const recus = new Map<string, RealtimeEvent[]>(users.map((u) => [u.id, []]));
+    const offs = users.map((u) => subscribe(u.id, (e) => recus.get(u.id)!.push(e)));
+    try {
+      await fn();
+    } finally {
+      offs.forEach((off) => off());
+    }
+    return recus;
+  }
+
+  it("un message est poussé à l'équipe, au client et au guide du départ, pas à l'auteur", async () => {
+    const tous = [admin, staff, guide1, guide2, client1, client2];
+    const recus = await capture(tous, () => start(client1, resa1, "Bonjour,\n à quelle heure ?"));
+    const ont = tous.filter((u) => recus.get(u.id)!.length > 0).map((u) => u.id);
+    expect(ont.sort()).toEqual([admin.id, staff.id, guide1.id].sort());
+    expect(recus.get(staff.id)![0]).toMatchObject({
+      type: "message",
+      auteur: "Hery T.",
+      extrait: "Bonjour, à quelle heure ?",
+      sujet: "Sentier côtier · GTM-2026-0001",
+    });
+  });
+
+  it("une réponse de l'agence est poussée au client (et au collègue), pas à son auteur", async () => {
+    const { conversationId } = unwrap(await start(client1, resa1, "Bonjour"));
+    const recus = await capture([staff, admin, client1], () =>
+      sendMessage(dbA, staff, { conversationId, contenu: "Bonjour !" }),
+    );
+    expect(recus.get(client1.id)).toHaveLength(1);
+    expect(recus.get(admin.id)).toHaveLength(1);
+    expect(recus.get(staff.id)).toHaveLength(0);
+  });
+
+  it("l'événement part après le commit, et pas du tout si la transaction échoue", async () => {
+    const recus: RealtimeEvent[] = [];
+    const off = subscribe(staff.id, (e) => recus.push(e));
+    try {
+      await expect(
+        dbA.$tenantTransaction(async (tx) => {
+          await notifyAgencyStaff(tx, { type: "RESERVATION", titre: "T", message: "M" });
+          expect(recus).toHaveLength(0); // pas encore : transaction en cours
+          throw new Error("échec simulé");
+        }),
+      ).rejects.toThrow("échec simulé");
+      expect(recus).toHaveLength(0);
+      expect(await raw.notification.count()).toBe(0);
+
+      await dbA.$tenantTransaction((tx) =>
+        notifyAgencyStaff(tx, { type: "RESERVATION", titre: "Nouvelle réservation", message: "M" }),
+      );
+      expect(recus).toEqual([
+        { type: "notification", titre: "Nouvelle réservation", message: "M", lienUrl: null },
+      ]);
+    } finally {
+      off();
+    }
   });
 });

@@ -60,6 +60,20 @@ export default async function CreditsPhotosPage({ params }: PageProps<"/a/[slug]
           <li key={p.chemin}>{p.sujet}</li>
         ))}
       </ul>
+
+      <h2 className="mt-10 text-xl font-medium text-gt-teal-800">Sons</h2>
+      <p className="mt-2 text-sm text-gt-teal-900/75">
+        Sons des notifications et des messages : pack « Interface Sounds » de Kenney, domaine public
+        (CC0 1.0) ·{" "}
+        <a
+          href="https://kenney.nl/assets/interface-sounds"
+          className="underline"
+          rel="noreferrer"
+          target="_blank"
+        >
+          kenney.nl
+        </a>
+      </p>
     </div>
   );
 }

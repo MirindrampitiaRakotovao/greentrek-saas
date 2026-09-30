@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
 import type { PrismaClient } from "@/generated/prisma/client";
+import { runWithCommitHooks } from "@/lib/after-commit";
 import { db } from "@/lib/db";
 import {
   type ModelConfig,
@@ -286,9 +287,13 @@ export function getTenantDb(agenceId: string, base: PrismaClient = db): TenantDb
   return extended.$extends({
     name: "tenant-transaction",
     client: {
-      $tenantTransaction<R>(fn: (tx: TenantTx) => Promise<R>): Promise<R> {
-        return extended.$transaction((tx) => currentTx.run(tx, () => fn(tx)));
+      async $tenantTransaction<R>(fn: (tx: TenantTx) => Promise<R>): Promise<R> {
+        return runWithCommitHooks(() =>
+          extended.$transaction((tx) => currentTx.run(tx, () => fn(tx))),
+        );
       },
     },
   });
 }
+
+export { afterCommit } from "@/lib/after-commit";

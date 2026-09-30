@@ -1,5 +1,7 @@
 import { Prisma, type Role } from "@/generated/prisma/client";
 import { isUnread } from "@/lib/messagerie";
+import { publish } from "@/lib/realtime/bus";
+import { excerpt } from "@/lib/realtime/events";
 import { type Paginated, pageArgs, pageCount } from "@/lib/pagination";
 import { can } from "@/lib/permissions";
 import { failure, type ServiceResult, success } from "@/lib/services/result";
@@ -60,6 +62,52 @@ async function markRead(
   });
 }
 
+/**
+ * Diffuse un nouveau message en temps réel à tous les participants sauf l'auteur : l'équipe
+ * de l'agence (comptes actifs), le client et le guide du départ (s'il a un compte). Envoi
+ * après le commit (`publish`).
+ */
+async function publishMessage(
+  db: TenantDb | TenantTx,
+  conversationId: string,
+  auteurId: string,
+  contenu: string,
+) {
+  const [conversation, equipe, auteur] = await Promise.all([
+    db.conversation.findUniqueOrThrow({
+      where: { id: conversationId },
+      select: {
+        sujet: true,
+        clientId: true,
+        reservation: {
+          select: { session: { select: { guide: { select: { utilisateurId: true } } } } },
+        },
+      },
+    }),
+    db.utilisateur.findMany({
+      where: { actif: true, role: { in: ["ADMIN_AGENCE", "STAFF"] } },
+      select: { id: true },
+    }),
+    db.utilisateur.findUniqueOrThrow({
+      where: { id: auteurId },
+      select: { prenom: true, nom: true },
+    }),
+  ]);
+  const guideId = conversation.reservation?.session.guide?.utilisateurId ?? null;
+  const destinataires = [
+    conversation.clientId,
+    ...equipe.map((u) => u.id),
+    ...(guideId ? [guideId] : []),
+  ].filter((id) => id !== auteurId);
+  publish(destinataires, {
+    type: "message",
+    conversationId,
+    sujet: conversation.sujet,
+    auteur: `${auteur.prenom} ${auteur.nom.charAt(0)}.`,
+    extrait: excerpt(contenu),
+  });
+}
+
 async function appendMessage(
   db: TenantDb,
   viewer: Viewer,
@@ -76,6 +124,7 @@ async function appendMessage(
       data: { dernierMessageAt: now },
     });
     await markRead(tx, conversationId, viewer.id, now);
+    await publishMessage(tx, conversationId, viewer.id, contenu);
     return message.id;
   });
 }
@@ -164,6 +213,7 @@ export async function startConversation(
         },
       });
       await markRead(tx, conversation.id, viewer.id, now);
+      await publishMessage(tx, conversation.id, viewer.id, input.contenu);
       return success({ conversationId: conversation.id, messageId: message.id });
     });
   } catch (error: unknown) {

@@ -19,7 +19,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E10 Back-office opérationnel | Fait | 2026-09-29 | Validé par l'étudiant (réservations, paiements, clients, export CSV, facture avec QR code scannable sur le Wi-Fi), puis refonte de l'interface demandée (modales, confirmations, listes, pagination numérotée, défilement du contenu seul) ; typecheck, lint, 486 tests, build et parcours dans le navigateur verts |
 | E11 Super admin, plans | Fait | 2026-09-30 | Validé par l'étudiant : console agences et plans, attribution, suspension, limites RG 18, page Abonnement, landing SaaS, Tarifs ; typecheck, lint, 501 tests, build et parcours dans le navigateur verts |
 | E12 Finition | Fait | 2026-09-30 | Validé par l'étudiant : données réalistes (seed complet), avis et modération, notifications, journal d'activité, accessibilité, script de démonstration ; typecheck, lint, 518 tests, build et parcours dans le navigateur verts |
-| Messagerie temps réel (hors plan) | En cours | 2026-09-30 | M1 (données, règles, tests) terminé, en attente de validation ; M2 (canal temps réel, son) et M3 (interface) à faire |
+| Messagerie temps réel (hors plan) | En cours | 2026-09-30 | M1 (données, règles, tests) validé ; M2 (canal temps réel, notifications instantanées, son) terminé, en attente de validation ; M3 (interface) à faire |
 
 ## Décisions et justifications
 
@@ -389,6 +389,19 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - **Simultanéité** : deux premiers messages envoyés en même temps sur une réservation créent une seule conversation (l'index unique tranche, le second message rejoint la conversation créée).
 - **Seed** : 8 échanges réalistes par agence sur des réservations récentes ou à venir, générés par une fonction pure testée. L'un concerne le compte client de connexion, et certains finissent par une question du voyageur, donc à traiter pour l'agence.
 - **Choix technique du temps réel (lot M2, à venir)** : Server-Sent Events (route Next.js, standard du navigateur, reconnexion automatique), l'envoi passant par une action serveur classique. Ont été écartés : l'interrogation périodique (pas instantanée), les WebSocket (serveur séparé) et les services externes (compte, clé et Internet obligatoires pour la démo). Limite assumée : la diffusion est en mémoire, dans un seul processus. En production, il faudrait un relais (Redis, par exemple).
+- **Lot M2 : canal temps réel et son** :
+  - route `/api/temps-reel` (Server-Sent Events, d'après la documentation de Next.js 16) : la session est relue en base à l'ouverture (401 sinon) ; chaque onglet reçoit uniquement les événements de SON utilisateur ; un signal de maintien part toutes les 25 s ; le navigateur se reconnecte seul après une coupure ;
+  - bus d'événements en mémoire (`src/lib/realtime/bus.ts`), sur `globalThis` pour être partagé par la route et les actions ;
+  - **publication après le commit** (`afterCommit`, `src/lib/after-commit.ts`, utilisé par `$tenantTransaction`) : un événement n'est envoyé qu'une fois la donnée enregistrée, et jamais si la transaction échoue. Sans cela, le navigateur pourrait relire la base avant le commit et afficher un état périmé ;
+  - notifications poussées aux destinataires (équipe ou client) ; messages poussés à tous les participants sauf l'auteur (équipe active, client, guide du départ) ;
+  - dans le navigateur (`src/components/shell/realtime.tsx`, dans la coque commune) : son, notification à l'écran, puis relecture des données de la page (cloche, compteurs) sans rechargement ;
+  - **son** : pack « Interface Sounds » de Kenney, domaine public (CC0). « glass_001 » (ding clair, 0,28 s) pour une notification, « drop_002 » (goutte grave, 0,19 s) pour un message, choisis sur leur durée et leur hauteur (analyse du signal) pour être brefs et faciles à distinguer. Convertis en WAV (lu par tous les navigateurs, Safari compris), volume réduit ; licence dans `public/sons/LICENCE.txt`, crédit sur la page des crédits ;
+  - bouton « son activé / coupé » dans l'en-tête, retenu par le navigateur (stockage local) ; au plus un son toutes les 1,2 s. Les navigateurs n'autorisent un son qu'après une première interaction avec la page (règle des navigateurs) ;
+  - limites connues : un seul processus serveur (sinon, relais Redis) ; une agence suspendue en cours de connexion reçoit encore des événements jusqu'au rechargement de sa page (ses actions, elles, sont refusées aussitôt) ; plusieurs onglets ouverts jouent chacun le son.
+- **Tests du lot M2** :
+  - 6 tests unitaires : bus (destinataires, onglet en erreur, désabonnement), extrait, report après commit et abandon en cas d'échec ;
+  - 3 tests d'intégration : destinataires d'un message, d'une réponse de l'agence, notification envoyée seulement après le commit ;
+  - parcours dans le navigateur (build de production) : `/api/temps-reel` sans session → 401 ; le personnel reçoit l'annulation d'un client en 0,5 s (notification à l'écran, cloche de 4 à 5 non lues sans recharger, son joué) ; son coupé conservé après rechargement ; en-tête sur mobile ; aucune erreur.
 - **Tests du lot M1** :
   - 14 tests d'intégration : ouverture, réutilisation de la conversation d'une réservation, réservation d'un autre client refusée, question générale, agence et guide du départ, guide d'un autre départ refusé, simultanéité, portée de chaque rôle, ordre du fil, non-lus en boîte partagée et pour le guide, isolation entre agences, contraintes CHECK ;
   - 4 tests unitaires des règles pures ;
@@ -397,6 +410,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 
 ## Captures d'écran à prendre
 
+- Messagerie M2 : notification apparue à l'écran chez le personnel pendant qu'un client annule (deux fenêtres côte à côte) ; bouton du son dans l'en-tête ; page des crédits (sons).
 - E12 : site vitrine avec les notes sur les cartes et la section « Ils ont randonné avec nous » ; fiche circuit avec la note et les avis ; modale « Votre avis sur le séjour » ; page « Avis » du back-office (à modérer) ; cloche des notifications ouverte ; journal d'activité de l'agence et de la console ; lien « Aller au contenu » visible après Tab.
 
 - E11 : landing SaaS (ordinateur et mobile) ; page Tarifs ; console : liste des agences, fiche d'une agence (jauges, historique), modale d'attribution d'un plan, confirmation de suspension, site vitrine d'une agence suspendue (404) ; page Plans ; page Abonnement d'une agence ; message « Limite du plan atteinte ».

@@ -1,0 +1,6 @@
+Sons des notifications et des messages de la plateforme Green Trek.
+
+notification.wav : « glass_001 », message.wav : « drop_002 »
+Pack « Interface Sounds » (1.0) de Kenney (www.kenney.nl), https://kenney.nl/assets/interface-sounds
+Licence : Creative Commons Zero (CC0 1.0), http://creativecommons.org/publicdomain/zero/1.0/
+Fichiers convertis de OGG en WAV (mono, 44,1 kHz) et volume réduit (70 % et 80 %).
