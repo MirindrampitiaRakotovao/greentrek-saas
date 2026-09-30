@@ -7,6 +7,10 @@ import type { Role } from "@/generated/prisma/client";
  * La portée (« la sienne », « les siens », « publiés ») est vérifiée ailleurs :
  * - l'agence : par le helper tenant (`src/lib/tenant.ts`) ;
  * - le propriétaire (client, guide) : par la requête elle-même (filtre sur `clientId`, `guideId`).
+ *
+ * Messagerie (ajoutée après E12, hors §3) : l'équipe de l'agence, le guide (conversations de
+ * ses départs) et le client (les siennes) écrivent et lisent. Le super admin n'y a pas accès :
+ * ce sont des échanges privés entre une agence et ses voyageurs.
  */
 
 export const ACTIONS = ["creer", "lire", "modifier", "supprimer", "annuler", "moderer"] as const;
@@ -26,6 +30,7 @@ export const RESOURCES = [
   "reservation",
   "paiement",
   "avis",
+  "message",
 ] as const;
 export type Resource = (typeof RESOURCES)[number];
 
@@ -65,6 +70,7 @@ export const PERMISSIONS: Matrix = {
     reservation: [...CLMS, "annuler"],
     paiement: CLMS,
     avis: ["lire", "moderer"],
+    message: ["creer", "lire"],
   },
   STAFF: {
     utilisateur: L,
@@ -77,6 +83,7 @@ export const PERMISSIONS: Matrix = {
     reservation: [...CLM, "annuler"],
     paiement: CLM,
     avis: ["lire", "moderer"],
+    message: ["creer", "lire"],
   },
   GUIDE: {
     circuit: L,
@@ -84,6 +91,7 @@ export const PERMISSIONS: Matrix = {
     troncon: L,
     sessionDepart: L, // les siens
     reservation: L, // de ses départs
+    message: ["creer", "lire"], // conversations de ses départs
   },
   CLIENT: {
     circuit: L, // publiés
@@ -93,6 +101,7 @@ export const PERMISSIONS: Matrix = {
     reservation: ["creer", "lire", "annuler"], // les siennes
     paiement: L, // les siens
     avis: ["creer", "lire"],
+    message: ["creer", "lire"], // les siennes
   },
 };
 

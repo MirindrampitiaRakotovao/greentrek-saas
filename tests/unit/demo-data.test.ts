@@ -5,6 +5,7 @@ import {
   exampleEmail,
   generateAgencyDemo,
   generateClients,
+  generateConversations,
   generateDemoEdges,
   GREEN_TREK_CIRCUITS,
   GREEN_TREK_GRAPH,
@@ -133,6 +134,31 @@ describe("données de démonstration", () => {
           expect(r.avis.createdAt.getTime()).toBeLessThanOrEqual(NOW.getTime());
         }
         references.add(r.reference);
+      }
+    });
+
+    it(`${label} — messagerie : conversations cohérentes avec les réservations`, () => {
+      const conversations = generateConversations(data, NOW);
+      expect(conversations.length).toBeGreaterThanOrEqual(3);
+      // Au plus une conversation par réservation, dont une du compte client de connexion.
+      const reservations = conversations.map((c) => c.reservationIndex);
+      expect(new Set(reservations).size).toBe(reservations.length);
+      expect(
+        conversations.some((c) => data.reservations[c.reservationIndex]!.clientIndex === 0),
+      ).toBe(true);
+      // Au moins une question du voyageur reste « à traiter » pour l'agence.
+      expect(conversations.some((c) => c.messages.at(-1)!.auteur === "CLIENT")).toBe(true);
+      for (const c of conversations) {
+        const r = data.reservations[c.reservationIndex]!;
+        expect(r.statut).not.toBe("ANNULEE");
+        let previous = r.createdAt.getTime();
+        for (const m of c.messages) {
+          expect(m.createdAt.getTime()).toBeGreaterThan(previous);
+          expect(m.createdAt.getTime()).toBeLessThanOrEqual(NOW.getTime());
+          expect(m.contenu).not.toMatch(/d[ée]mo|fictif|fictive|TODO/i);
+          if (m.auteur === "GUIDE") expect(data.sessions[r.sessionIndex]!.withGuide).toBe(true);
+          previous = m.createdAt.getTime();
+        }
       }
     });
 

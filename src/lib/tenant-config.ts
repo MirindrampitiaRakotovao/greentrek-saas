@@ -9,7 +9,14 @@ export type ModelName = Prisma.ModelName;
 
 /** Tables pouvant être la cible d'une clé étrangère contrôlée. */
 export type ReferenceTarget =
-  "Utilisateur" | "Etape" | "Circuit" | "Guide" | "SessionDepart" | "Reservation" | "Partenaire";
+  | "Utilisateur"
+  | "Etape"
+  | "Circuit"
+  | "Guide"
+  | "SessionDepart"
+  | "Reservation"
+  | "Partenaire"
+  | "Conversation";
 
 type Scope =
   /** Table portant `agenceId`. */
@@ -93,5 +100,17 @@ export const TENANT_CONFIG: Readonly<Record<ModelName, ModelConfig>> = {
   Paiement: {
     scope: { kind: "child", relation: "reservation" },
     references: { reservationId: "Reservation" },
+  },
+  Conversation: {
+    scope: { kind: "tenant" },
+    references: { clientId: "Utilisateur", reservationId: "Reservation" },
+  },
+  Message: {
+    scope: { kind: "child", relation: "conversation" },
+    references: { conversationId: "Conversation", auteurId: "Utilisateur" },
+  },
+  LectureConversation: {
+    scope: { kind: "child", relation: "conversation" },
+    references: { conversationId: "Conversation", utilisateurId: "Utilisateur" },
   },
 };

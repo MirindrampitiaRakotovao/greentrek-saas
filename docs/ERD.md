@@ -1,6 +1,6 @@
 # Modèle entité-association (ERD) — Green Trek SaaS
 
-Reflet fidèle de `prisma/schema.prisma` (migration `init`, étape E1) : 19 tables. Seuls les clés et les champs structurants sont affichés ; le détail complet est dans le schéma Prisma.
+Reflet fidèle de `prisma/schema.prisma` : 19 tables du cahier des charges (migration `init`, étape E1), plus 3 tables de messagerie ajoutées après E12 (migration `messagerie`), soit 22 tables. Seuls les clés et les champs structurants sont affichés ; le détail complet est dans le schéma Prisma.
 
 Notation : `PK` clé primaire, `FK` clé étrangère, `UK` unique. Les identifiants sont des `cuid` (texte).
 
@@ -47,6 +47,13 @@ erDiagram
   ETAPE |o--o{ ITINERAIRE_CALCULE : "depart"
   ETAPE |o--o{ ITINERAIRE_CALCULE : "arrivee"
   UTILISATEUR |o--o{ ITINERAIRE_CALCULE : "calcule"
+  AGENCE ||--o{ CONVERSATION : "echange"
+  UTILISATEUR ||--o{ CONVERSATION : "client"
+  RESERVATION |o--o| CONVERSATION : "concerne"
+  CONVERSATION ||--o{ MESSAGE : "contient"
+  UTILISATEUR ||--o{ MESSAGE : "ecrit"
+  CONVERSATION ||--o{ LECTURE_CONVERSATION : "lue_par"
+  UTILISATEUR ||--o{ LECTURE_CONVERSATION : "lit"
 
   AGENCE {
     string id PK
@@ -198,6 +205,27 @@ erDiagram
     int noeudsExplores
     float tempsCalculMs
   }
+  CONVERSATION {
+    string id PK
+    string agenceId FK
+    string clientId FK
+    string reservationId FK,UK "nullable"
+    string sujet
+    datetime dernierMessageAt
+  }
+  MESSAGE {
+    string id PK
+    string conversationId FK
+    string auteurId FK
+    text contenu
+    datetime createdAt
+  }
+  LECTURE_CONVERSATION {
+    string id PK
+    string conversationId FK
+    string utilisateurId FK
+    datetime luJusqua
+  }
 ```
 
 ## Écarts avec le cahier des charges §5.2 (à reporter dans le mémoire)
@@ -209,6 +237,7 @@ erDiagram
 | `ItineraireCalcule.difficulteCumulee` | absent de la table | ajouté | Sortie exigée au §6.3 |
 | `ItineraireCalcule.creePar` | `creePar` | `creeParId` (clé étrangère vers `Utilisateur`) | Convention de nommage des clés étrangères |
 | `CircuitPartenaire.etapeId` | nullable | nullable, suppression de l'étape refusée | Cohérence avec RG 8 |
+| `Conversation`, `Message`, `LectureConversation` | absentes | ajoutées après E12 | Messagerie en temps réel entre voyageurs, agence et guides, demandée par l'étudiant ; `Message` et `LectureConversation` héritent de l'agence de la conversation (comme `Participant`) |
 
 ## Règles de gestion garanties par la base
 
@@ -223,5 +252,8 @@ erDiagram
 | RG 10 fin ≥ début | CHECK `SessionDepart_dates_check` |
 | RG 12 au moins une personne | CHECK `Reservation_nombrePersonnes_check` |
 | RG 17 un avis par réservation | index unique `Avis.reservationId` |
+| Messagerie : une conversation par réservation | index unique `Conversation.reservationId` |
+| Messagerie : pas de message ni de sujet vide | CHECK `Message_contenu_check`, `Conversation_sujet_check` |
+| Messagerie : une lecture par utilisateur et conversation | index unique `(conversationId, utilisateurId)` |
 
 Les autres règles (RG 2, 5, 6 « même agence », 9, 11, 13 à 16, 17 « réservation terminée », 18 à 20) relèvent de l'application : helper tenant, transactions, validations Zod.

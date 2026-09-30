@@ -31,6 +31,7 @@ import {
   type DemoPerson,
   exampleEmail,
   generateAgencyDemo,
+  generateConversations,
   generateClients,
   generateDemoEdges,
   GREEN_TREK_CIRCUITS,
@@ -50,6 +51,9 @@ const DAY = 86_400_000;
 async function clearDatabase(): Promise<void> {
   // Ordre inverse des dépendances (les enfants avant les parents).
   await db.$transaction([
+    db.lectureConversation.deleteMany(),
+    db.message.deleteMany(),
+    db.conversation.deleteMany(),
     db.journalActivite.deleteMany(),
     db.notification.deleteMany(),
     db.avis.deleteMany(),
@@ -517,6 +521,45 @@ async function seedAgence(
     }
   }
 
+  // Messagerie : quelques échanges sur des réservations récentes ou à venir.
+  const auteurs = { AGENCE: staff.id, GUIDE: guideCompte.id } as const;
+  for (const conversation of generateConversations(data, now)) {
+    const r = data.reservations[conversation.reservationIndex]!;
+    const clientId = clientIds[r.clientIndex]!;
+    const titre = data.circuits[data.sessions[r.sessionIndex]!.circuitIndex]!.titre;
+    const messages = conversation.messages.map((m) => ({
+      ...m,
+      auteurId: m.auteur === "CLIENT" ? clientId : auteurs[m.auteur],
+    }));
+    const created = await db.conversation.create({
+      data: {
+        agenceId,
+        clientId,
+        reservationId: reservationIds[conversation.reservationIndex]!,
+        sujet: `${titre} · ${r.reference}`,
+        createdAt: messages[0]!.createdAt,
+        dernierMessageAt: messages.at(-1)!.createdAt,
+      },
+    });
+    await db.message.createMany({
+      data: messages.map((m) => ({
+        conversationId: created.id,
+        auteurId: m.auteurId,
+        contenu: m.contenu,
+        createdAt: m.createdAt,
+      })),
+    });
+    // Chaque auteur a lu la conversation jusqu'à son dernier message.
+    const lectures = new Map(messages.map((m) => [m.auteurId, m.createdAt]));
+    await db.lectureConversation.createMany({
+      data: [...lectures].map(([utilisateurId, luJusqua]) => ({
+        conversationId: created.id,
+        utilisateurId,
+        luJusqua,
+      })),
+    });
+  }
+
   // Journal d'activité des 90 derniers jours, déduit des données ci-dessus (mêmes codes
   // d'action que l'application) : paiements reçus à l'agence et validés, avis modérés.
   const depuis = now.getTime() - 90 * 24 * 3_600_000;
@@ -621,7 +664,7 @@ async function main(): Promise<void> {
   const now = new Date();
   for (const agence of AGENCES) await seedAgence(agence, plans, motDePasseHash, now);
 
-  const [agences, utilisateurs, circuits, departs, reservations, paiements, avis] =
+  const [agences, utilisateurs, circuits, departs, reservations, paiements, avis, messages] =
     await Promise.all([
       db.agence.count(),
       db.utilisateur.count(),
@@ -630,10 +673,11 @@ async function main(): Promise<void> {
       db.reservation.count(),
       db.paiement.count(),
       db.avis.count(),
+      db.message.count(),
     ]);
   console.log(
     `Seed terminé : ${agences} agences, ${utilisateurs} utilisateurs, ${circuits} circuits, ` +
-      `${departs} départs, ${reservations} réservations, ${paiements} paiements, ${avis} avis.`,
+      `${departs} départs, ${reservations} réservations, ${paiements} paiements, ${avis} avis, ${messages} messages.`,
   );
 }
 

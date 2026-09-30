@@ -19,6 +19,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E10 Back-office opérationnel | Fait | 2026-09-29 | Validé par l'étudiant (réservations, paiements, clients, export CSV, facture avec QR code scannable sur le Wi-Fi), puis refonte de l'interface demandée (modales, confirmations, listes, pagination numérotée, défilement du contenu seul) ; typecheck, lint, 486 tests, build et parcours dans le navigateur verts |
 | E11 Super admin, plans | Fait | 2026-09-30 | Validé par l'étudiant : console agences et plans, attribution, suspension, limites RG 18, page Abonnement, landing SaaS, Tarifs ; typecheck, lint, 501 tests, build et parcours dans le navigateur verts |
 | E12 Finition | Fait | 2026-09-30 | Validé par l'étudiant : données réalistes (seed complet), avis et modération, notifications, journal d'activité, accessibilité, script de démonstration ; typecheck, lint, 518 tests, build et parcours dans le navigateur verts |
+| Messagerie temps réel (hors plan) | En cours | 2026-09-30 | M1 (données, règles, tests) terminé, en attente de validation ; M2 (canal temps réel, son) et M3 (interface) à faire |
 
 ## Décisions et justifications
 
@@ -371,6 +372,28 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
   - journal isolé par agence, écriture refusée pour une autre agence.
   S'y ajoute 1 test unitaire sur l'historique du compte client de connexion.
 - **Parcours dans le navigateur** (build de production) : premier Tab sur le lien d'évitement ; étoiles et avis sur l'accueil et la fiche circuit (ordinateur et mobile) ; dépôt d'un avis par le client (note obligatoire) ; bandeau « À traiter » et cloche du personnel ; ouverture de la page Avis depuis la notification et publication ; journal de l'administrateur ; guide refusé sur la page Avis ; journal de la console ; aucune erreur navigateur.
+
+### Messagerie en temps réel (hors cahier des charges, demandée par l'étudiant après E12)
+
+- **Écart signalé et accepté** : la messagerie ne figure pas au cahier des charges. Elle ajoute 3 tables (22 au total) : `Conversation`, `Message`, `LectureConversation`. Le mémoire devra la décrire (dictionnaire de données, cas d'utilisation, diagramme de séquence de l'envoi d'un message).
+- **Chauffeurs** : pas de compte (ce sont des partenaires de type `TRANSPORT`) ; leur accès à la messagerie est présenté en **perspective** (décision de l'étudiant).
+- **Qui parle à qui** :
+  - une conversation relie un voyageur et l'agence, au sujet d'une réservation (au plus une par réservation, index unique) ou d'une question générale posée par le voyageur ;
+  - côté agence, **boîte partagée** : l'administrateur et le personnel répondent au nom de l'agence ;
+  - le **guide** participe aux conversations des réservations de SES départs, et peut en ouvrir une ;
+  - le **super admin n'y a pas accès** : ce sont des échanges privés entre une agence et ses voyageurs.
+- **Non-lus** : on retient, par utilisateur et par conversation, la date jusqu'à laquelle il a lu (`LectureConversation.luJusqua`). Une conversation est non lue si son dernier message vient d'un autre interlocuteur et est postérieur à cette date. La réponse d'un collègue n'est pas signalée comme non lue (boîte partagée). Règle pure dans `src/lib/messagerie.ts`, testée unitairement.
+- **Sécurité** :
+  - portée de chaque rôle appliquée à chaque lecture et écriture (`conversationAccess`, `src/lib/services/messagerie.ts`), en plus du filtre d'agence du helper tenant ; `Message` et `LectureConversation` héritent de l'agence de leur conversation ;
+  - texte seul (pas de pièce jointe), 2 000 caractères au plus (Zod) ; message et sujet non vides (CHECK en base).
+- **Simultanéité** : deux premiers messages envoyés en même temps sur une réservation créent une seule conversation (l'index unique tranche, le second message rejoint la conversation créée).
+- **Seed** : 8 échanges réalistes par agence sur des réservations récentes ou à venir, générés par une fonction pure testée. L'un concerne le compte client de connexion, et certains finissent par une question du voyageur, donc à traiter pour l'agence.
+- **Choix technique du temps réel (lot M2, à venir)** : Server-Sent Events (route Next.js, standard du navigateur, reconnexion automatique), l'envoi passant par une action serveur classique. Ont été écartés : l'interrogation périodique (pas instantanée), les WebSocket (serveur séparé) et les services externes (compte, clé et Internet obligatoires pour la démo). Limite assumée : la diffusion est en mémoire, dans un seul processus. En production, il faudrait un relais (Redis, par exemple).
+- **Tests du lot M1** :
+  - 14 tests d'intégration : ouverture, réutilisation de la conversation d'une réservation, réservation d'un autre client refusée, question générale, agence et guide du départ, guide d'un autre départ refusé, simultanéité, portée de chaque rôle, ordre du fil, non-lus en boîte partagée et pour le guide, isolation entre agences, contraintes CHECK ;
+  - 4 tests unitaires des règles pures ;
+  - 1 test du générateur de conversations par agence ;
+  - 4 cas de validation de formulaire, dont le formulaire d'avis d'E12, qui manquait.
 
 ## Captures d'écran à prendre
 

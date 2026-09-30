@@ -517,6 +517,106 @@ export function generateAgencyDemo(spec: AgencySpec, now: Date): DemoAgencyData 
   return { circuits: spec.circuits, sessions, reservations };
 }
 
+/* ─── Messagerie ─────────────────────────────────────────────────────────────── */
+
+export type DemoMessage = {
+  auteur: "CLIENT" | "AGENCE" | "GUIDE";
+  contenu: string;
+  createdAt: Date;
+};
+export type DemoConversation = { reservationIndex: number; messages: DemoMessage[] };
+
+/** Échanges types entre un voyageur, l'agence et le guide (sans donnée personnelle). */
+const ECHANGES: readonly (readonly [DemoMessage["auteur"], string][])[] = [
+  [
+    ["CLIENT", "Bonjour, faut-il prévoir des chaussures de randonnée ou des sandales suffisent ?"],
+    [
+      "AGENCE",
+      "Bonjour ! Prévoyez des chaussures fermées : certains passages sont boueux après la pluie. Des sandales sont pratiques pour les traversées.",
+    ],
+    ["CLIENT", "Merci beaucoup, c'est noté."],
+  ],
+  [
+    ["CLIENT", "Est-il possible d'avoir des repas végétariens pendant le circuit ?"],
+    [
+      "AGENCE",
+      "Oui, nous prévenons nos partenaires pour les repas. Rappelez-le au guide le jour du départ.",
+    ],
+  ],
+  [
+    ["CLIENT", "À quelle heure est le rendez-vous le jour du départ ?"],
+    [
+      "GUIDE",
+      "Bonjour, rendez-vous à 7 h 30 devant l'agence. Pensez à la crème solaire, à un chapeau et à une gourde.",
+    ],
+    ["CLIENT", "Parfait, à bientôt !"],
+  ],
+  [
+    ["CLIENT", "Nous venons avec notre fille de 9 ans : le rythme est-il adapté ?"],
+    [
+      "AGENCE",
+      "Oui, le rythme reste tranquille et le guide adapte les pauses. Prévoyez un petit sac à dos pour elle.",
+    ],
+  ],
+  [
+    [
+      "AGENCE",
+      "Bonjour, nous avons bien reçu votre acompte. Le solde peut être réglé jusqu'au jour du départ.",
+    ],
+    ["CLIENT", "Très bien, merci pour la confirmation."],
+  ],
+  [["CLIENT", "Bonjour, peut-on laisser une valise à l'agence pendant le circuit ?"]],
+  [
+    ["GUIDE", "Bonjour, la météo annonce des averses : prévoyez un vêtement de pluie léger."],
+    ["CLIENT", "Merci pour l'information, nous en prendrons un."],
+  ],
+  [["CLIENT", "Est-il encore possible d'ajouter une personne à notre réservation ?"]],
+];
+
+/**
+ * Conversations de démonstration : quelques réservations récentes ou à venir (non annulées)
+ * par agence, dont une du compte client de connexion. Déterministe (pas de hasard) ; les
+ * messages s'échelonnent après la réservation, sans jamais dépasser `now`. Les échanges
+ * qui finissent par une question du voyageur restent « à traiter » pour l'agence.
+ */
+export function generateConversations(
+  data: DemoAgencyData,
+  now: Date,
+  count = 8,
+): DemoConversation[] {
+  const recent = data.reservations
+    .map((r, index) => ({ r, index }))
+    .filter(
+      ({ r }) =>
+        r.statut !== "ANNULEE" &&
+        r.createdAt.getTime() < now.getTime() - 2 * HOUR &&
+        data.sessions[r.sessionIndex]!.dateDebut.getTime() > now.getTime() - 20 * DAY,
+    )
+    .sort((a, b) => b.r.createdAt.getTime() - a.r.createdAt.getTime());
+  const compte = recent.find(({ r }) => r.clientIndex === 0);
+  const choisies = [...(compte ? [compte] : []), ...recent.filter((item) => item !== compte)].slice(
+    0,
+    count,
+  );
+
+  return choisies.map(({ r, index }, i) => {
+    const echange = ECHANGES[i % ECHANGES.length]!;
+    const avecGuide = data.sessions[r.sessionIndex]!.withGuide;
+    // Écart entre deux messages : 4 h, resserré si la réservation est très récente.
+    const fin = now.getTime() - 10 * 60_000;
+    const step = Math.min(4 * HOUR, (fin - r.createdAt.getTime()) / (echange.length + 1));
+    const debut = Math.min(r.createdAt.getTime() + 2 * HOUR, fin - step * (echange.length - 1));
+    return {
+      reservationIndex: index,
+      messages: echange.map(([auteur, contenu], k) => ({
+        auteur: auteur === "GUIDE" && !avecGuide ? "AGENCE" : auteur,
+        contenu,
+        createdAt: new Date(Math.round(debut + k * step)),
+      })),
+    };
+  });
+}
+
 /* ─── Étapes (nœuds du graphe) et itinéraires ────────────────────────────────── */
 
 export type DemoEtape = {

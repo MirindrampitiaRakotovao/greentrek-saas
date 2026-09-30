@@ -9,7 +9,9 @@ import {
   updateMemberSchema,
   updateProfileSchema,
 } from "@/lib/validators/team";
+import { avisSchema } from "@/lib/validators/avis";
 import { departSchema, updateDepartSchema } from "@/lib/validators/departs";
+import { messageSchema, startConversationSchema } from "@/lib/validators/messagerie";
 
 /**
  * Non-régression : chaque formulaire est validé dans le navigateur PUIS sur le serveur, et le
@@ -126,7 +128,27 @@ const cases: [string, ZodType, Record<string, unknown>][] = [
       notes: "Départ matinal",
     },
   ],
+  [
+    "avis (note saisie en texte, sans commentaire)",
+    avisSchema,
+    { reservationId: "r1", note: "4", commentaire: "" },
+  ],
+  ["message", messageSchema, { conversationId: "c1", contenu: "  Bonjour  " }],
+  [
+    "nouvelle conversation (sans réservation ni sujet)",
+    startConversationSchema,
+    { reservationId: "", sujet: "", contenu: "Bonjour" },
+  ],
 ];
+
+describe("messagerie", () => {
+  it("refuse un message vide ou trop long", () => {
+    expect(messageSchema.safeParse({ conversationId: "c1", contenu: "   " }).success).toBe(false);
+    expect(
+      messageSchema.safeParse({ conversationId: "c1", contenu: "a".repeat(2001) }).success,
+    ).toBe(false);
+  });
+});
 
 describe("schémas de formulaire : validation idempotente (navigateur puis serveur)", () => {
   it.each(cases)("%s", (_name, schema, raw) => {

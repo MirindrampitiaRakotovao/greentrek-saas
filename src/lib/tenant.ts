@@ -132,7 +132,14 @@ function writtenId(value: unknown): string | null {
 /** Accès minimal utilisé par le contrôle des références : un `count` par table cible. */
 type Counter = { count(args: { where: { id: string } }): Promise<number> };
 type ReferenceReader = Record<
-  "utilisateur" | "etape" | "circuit" | "guide" | "sessionDepart" | "reservation" | "partenaire",
+  | "utilisateur"
+  | "etape"
+  | "circuit"
+  | "guide"
+  | "sessionDepart"
+  | "reservation"
+  | "partenaire"
+  | "conversation",
   Counter
 >;
 
@@ -144,6 +151,7 @@ const TARGET_DELEGATE: Record<ReferenceTarget, keyof ReferenceReader> = {
   SessionDepart: "sessionDepart",
   Reservation: "reservation",
   Partenaire: "partenaire",
+  Conversation: "conversation",
 };
 
 /**

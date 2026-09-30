@@ -147,6 +147,7 @@ model Agence {
   journalActivites    JournalActivite[]
   itinerairesCalcules ItineraireCalcule[]
   abonnements         Abonnement[]
+  conversations       Conversation[]
 }
 
 // ─── 2. Utilisateur ────────────────────────────────────────────────────────────
@@ -164,13 +165,16 @@ model Utilisateur {
   dernierLoginAt DateTime?
   createdAt      DateTime  @default(now())
 
-  agence              Agence?             @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  agence              Agence?               @relation(fields: [agenceId], references: [id], onDelete: Restrict)
   guide               Guide?
   reservations        Reservation[]
   avis                Avis[]
   notifications       Notification[]
   journalActivites    JournalActivite[]
   itinerairesCalcules ItineraireCalcule[]
+  conversations       Conversation[]
+  messages            Message[]
+  lectures            LectureConversation[]
 
   // RG 3. L'unicité de l'e-mail du personnel sur toute la plateforme (connexion via
   // /connexion) est vérifiée par l'application : MySQL n'a pas d'index unique partiel.
@@ -319,6 +323,7 @@ model Reservation {
   participants Participant[]
   paiements    Paiement[]
   avis         Avis?
+  conversation Conversation?
 
   @@index([agenceId, statut])
   @@index([clientId])
@@ -552,5 +557,60 @@ model JournalActivite {
   utilisateur Utilisateur? @relation(fields: [utilisateurId], references: [id], onDelete: SetNull)
 
   @@index([agenceId, createdAt])
+  @@index([utilisateurId])
+}
+
+// ─── Messagerie (hors cahier des charges, ajoutée après E12 à la demande de l'étudiant) ─
+
+// Conversation entre un client et l'agence (boîte partagée par l'administrateur et le
+// personnel), éventuellement liée à une réservation (au plus une conversation par
+// réservation). Le guide du départ de la réservation y participe.
+model Conversation {
+  id               String   @id @default(cuid())
+  agenceId         String
+  clientId         String
+  reservationId    String?  @unique
+  sujet            String   @db.VarChar(200)
+  dernierMessageAt DateTime @default(now())
+  createdAt        DateTime @default(now())
+
+  agence      Agence                @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  client      Utilisateur           @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  reservation Reservation?          @relation(fields: [reservationId], references: [id], onDelete: Restrict)
+  messages    Message[]
+  lectures    LectureConversation[]
+
+  @@index([agenceId, dernierMessageAt])
+  @@index([clientId])
+}
+
+// Message d'une conversation (texte seul, pas de pièce jointe). Hérite de l'agence de la
+// conversation.
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  auteurId       String
+  contenu        String   @db.Text
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  auteur       Utilisateur  @relation(fields: [auteurId], references: [id], onDelete: Restrict)
+
+  @@index([conversationId, createdAt])
+  @@index([auteurId])
+}
+
+// Jusqu'où chaque utilisateur a lu une conversation (messages non lus = messages plus
+// récents que `luJusqua`, écrits par quelqu'un d'autre).
+model LectureConversation {
+  id             String   @id @default(cuid())
+  conversationId String
+  utilisateurId  String
+  luJusqua       DateTime
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  utilisateur  Utilisateur  @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, utilisateurId])
   @@index([utilisateurId])
 }
