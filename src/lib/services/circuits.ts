@@ -1,5 +1,6 @@
 import { Prisma, type StatutCircuit } from "@/generated/prisma/client";
 import { type Paginated, pageArgs, pageCount } from "@/lib/pagination";
+import { checkPlanLimit } from "@/lib/services/abonnements";
 import { failure, type ServiceResult, success } from "@/lib/services/result";
 import type { TenantDb, TenantTx } from "@/lib/tenant";
 import type {
@@ -98,6 +99,8 @@ export async function createCircuit(
   if (await db.circuit.findFirst({ where: { slug: input.slug }, select: { id: true } })) {
     return failure(SLUG_TAKEN, "slug");
   }
+  const limite = await checkPlanLimit(db, "circuits"); // RG 18
+  if (limite) return limite;
   try {
     // Un nouveau circuit est un brouillon : il n'a pas encore d'étapes (RG 4).
     const created = await db.circuit.create({ data: { ...input, agenceId, statut: "BROUILLON" } });
@@ -135,9 +138,14 @@ export async function setCircuitStatut(
 ): Promise<ServiceResult> {
   const circuit = await db.circuit.findUnique({
     where: { id },
-    select: { _count: { select: { etapes: true } } },
+    select: { statut: true, _count: { select: { etapes: true } } },
   });
   if (!circuit) return failure("Circuit introuvable.");
+  if (circuit.statut === "ARCHIVE" && statut !== "ARCHIVE") {
+    // Un circuit sorti des archives compte de nouveau dans la limite du plan (RG 18).
+    const limite = await checkPlanLimit(db, "circuits");
+    if (limite) return limite;
+  }
   if (statut === "PUBLIE" && circuit._count.etapes < MIN_ETAPES_PUBLICATION) {
     return failure(
       `Publication impossible : un circuit doit comporter au moins ${MIN_ETAPES_PUBLICATION} étapes (RG 4).`,

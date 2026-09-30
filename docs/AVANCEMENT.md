@@ -17,7 +17,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E8 Site vitrine | Fait | 2026-09-29 | Validé par l'étudiant : E8a (données publiques, recherche, détail d'un circuit), E8b (accueil d'après la maquette), E8c (photos sous licence libre avec crédits, partenaires illustrés, titre script, cercles flous) ; typecheck, lint, 436 tests, build et parcours dans le navigateur verts |
 | E9 Réservation client | Fait | 2026-09-29 | Validé par l'étudiant : inscription, tunnel, anti-surbooking testé en simultané, paiement simulé, annulation ; typecheck, lint, 459 tests, build et parcours dans le navigateur verts |
 | E10 Back-office opérationnel | Fait | 2026-09-29 | Validé par l'étudiant (réservations, paiements, clients, export CSV, facture avec QR code scannable sur le Wi-Fi), puis refonte de l'interface demandée (modales, confirmations, listes, pagination numérotée, défilement du contenu seul) ; typecheck, lint, 486 tests, build et parcours dans le navigateur verts |
-| E11 Super admin, plans | À faire | | |
+| E11 Super admin, plans | En cours | 2026-09-30 | Implémenté (console agences et plans, attribution, suspension, limites RG 18, page Abonnement, landing SaaS, Tarifs) : typecheck, lint, 501 tests, build et parcours dans le navigateur verts ; en attente de la validation de l'étudiant |
 | E12 Finition | À faire | | |
 
 ## Décisions et justifications
@@ -323,7 +323,24 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - **Défilement** : sur ordinateur, la barre latérale et l'en-tête restent fixes, seul le contenu du milieu défile ; la zone de contenu revient en haut à chaque changement de page (Next.js ne le fait que pour la fenêtre). Sur mobile, défilement normal.
 - **Vérifications** dans le navigateur : fenêtre non défilante, contenu défilant, en-tête fixe ; modale avec focus et fermeture par Échap ; création d'un partenaire (modale fermée, notification, ligne ajoutée) ; confirmation de suppression ouverte par-dessus la modale, suppression effective ; aucune boîte native du navigateur ; mobile sans débordement.
 
+### E11 — Console super admin, plans et abonnements simulés, landing et tarifs (2026-09-30)
+
+- **Console super admin** (`/admin`, SUPER_ADMIN seulement ; page et action vérifient le rôle, relu en base) :
+  - `/admin/agences` : recherche, pagination, statut, plan courant, nombre de circuits, de comptes du personnel et de réservations ;
+  - fiche d'une agence : abonnement et jauges d'utilisation, activité, historique des abonnements ; suspension et réactivation après confirmation ; attribution d'un plan (modale : plan, durée de 1 à 12 mois ou sans échéance, statut) ;
+  - `/admin/plans` : création et modification (fonctionnalités une par ligne), activation / désactivation.
+  Opérations de plateforme par le client non confiné (`getAdminDb`), réservé au super admin ; les chiffres propres à une agence passent par son client confiné.
+- **Suspension (RG 19)** : effet immédiat, sans attendre l'expiration de la session (session relue en base à chaque requête) : l'équipe est renvoyée à la connexion, les clients aussi, le site vitrine renvoie 404, l'agence disparaît de la landing. Aucune donnée supprimée ; réactivation possible.
+- **Attribution d'un plan** : dans une transaction, l'abonnement en cours (essai ou actif) passe ANNULE avec fin au jour même, le nouvel abonnement commence aujourd'hui ; date de fin = début + durée − 1 jour (dernier jour inclus). Un plan désactivé ne peut plus être attribué.
+- **Limites du plan (RG 18)**, vérifiées par le serveur (`checkPlanLimit`) à la création d'un circuit, d'un compte du personnel et d'un départ, ainsi qu'à la sortie d'archive d'un circuit et à la réactivation d'un compte. Décisions validées : A, on compte les circuits non archivés, les comptes du personnel actifs (pas les clients), les départs ouverts ou complets non terminés ; B, abonnement expiré ou annulé → créations bloquées, consultation et réservations toujours possibles ; C, agence sans abonnement → pas de limite (toute agence inscrite reçoit un essai) ; D, plan attribué par le super admin, page Abonnement de l'agence en lecture ; E, pas de suppression d'un plan, seulement la désactivation. Un essai ou abonnement arrivé à échéance passe EXPIRE à la lecture.
+- **Limite connue** : le contrôle de limite compte puis crée hors verrou ; deux créations exactement simultanées à la limite pourraient la dépasser d'une unité (conséquence mineure pour un abonnement simulé, contrairement au surbooking, traité par verrou en E9).
+- **Page Abonnement** de l'agence (`/dashboard/abonnement`, ADMIN_AGENCE) : plan, statut, dates, jauges d'utilisation avec « limite atteinte », fonctionnalités, alerte si expiré.
+- **Landing SaaS `/`** (§7.5) : hero photo, atouts réels de la plateforme (site vitrine, réservation sans surbooking, itinéraires Dijkstra / A*, back-office, isolation des données, équipe), « Comment ça marche », agences actives (lien vers leur site), appel à l'inscription ; aucun chiffre ni témoignage inventé. **`/tarifs`** : plans actifs lus en base (tarifs fictifs), plan payant le moins cher mis en avant (« Recommandé »). Pages dynamiques : une modification du super admin s'affiche aussitôt. L'ancienne page d'accueil provisoire d'E0 est remplacée.
+- **Tests** : 11 tests d'intégration (limites de circuits avec archivage, de comptes avec réactivation et clients exclus, de départs avec annulation ; essai expiré ; agence sans abonnement ; attribution et nouvelles limites ; plan désactivé ; date de fin ; suspension : connexion, session, site vitrine, réactivation ; liste des agences ; validation des plans) et 4 tests unitaires des règles pures. Parcours dans le navigateur : landing et tarifs (ordinateur et mobile) ; inscription d'une agence de test → essai ; 4e circuit refusé par la limite ; attribution du plan Pro (essai clôturé) ; suspension (site vitrine 404, session de l'équipe renvoyée à la connexion) puis réactivation ; page Plans ; administrateur d'agence refusé sur `/admin` ; aucune erreur. Agence de test supprimée ensuite.
+
 ## Captures d'écran à prendre
+
+- E11 : landing SaaS (ordinateur et mobile) ; page Tarifs ; console : liste des agences, fiche d'une agence (jauges, historique), modale d'attribution d'un plan, confirmation de suspension, site vitrine d'une agence suspendue (404) ; page Plans ; page Abonnement d'une agence ; message « Limite du plan atteinte ».
 
 - Interface : modale de création (ex. « Ajouter un partenaire ») ; modale de confirmation « danger » ; notification après enregistrement ; liste épurée avec pagination numérotée ; comparaison avec la maquette de modale fournie.
 

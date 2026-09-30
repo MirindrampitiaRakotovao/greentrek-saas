@@ -42,3 +42,16 @@ export function findVitrineAgency(base: PrismaClient, slug: string) {
 export const getVitrineAgency = cache((slug: string) => findVitrineAgency(getAdminDb(), slug));
 
 export type VitrineAgency = NonNullable<Awaited<ReturnType<typeof findVitrineAgency>>>;
+
+/**
+ * Agences présentées sur la landing de la plateforme : agences ACTIVES seulement (RG 19),
+ * champs publics (nom, ville, lien du site vitrine).
+ */
+export const listPublicAgencies = cache(() =>
+  getAdminDb().agence.findMany({
+    where: { statut: "ACTIVE" },
+    orderBy: { createdAt: "asc" },
+    take: 6,
+    select: { id: true, nom: true, slug: true, ville: true, description: true },
+  }),
+);

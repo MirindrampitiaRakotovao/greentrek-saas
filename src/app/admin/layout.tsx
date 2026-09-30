@@ -6,7 +6,11 @@ import type { NavItem } from "@/lib/navigation";
 import { ROLE_LABELS } from "@/lib/roles";
 
 /** Console du super administrateur (§7.4) : même coque que le back-office. */
-const ADMIN_NAV: readonly NavItem[] = [{ href: "/admin", label: "Vue plateforme", icon: "home" }];
+const ADMIN_NAV: readonly NavItem[] = [
+  { href: "/admin", label: "Vue plateforme", icon: "home" },
+  { href: "/admin/agences", label: "Agences", icon: "building" },
+  { href: "/admin/plans", label: "Plans et tarifs", icon: "coins" },
+];
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const user = await requireUser({ roles: ["SUPER_ADMIN"] });
@@ -23,7 +27,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         text: "Les agences Démo Alpha et Démo Beta, ainsi que toutes les réservations, sont fictives. Plans et abonnements simulés.",
       }}
       notifications={notifications}
-      footerNote="Gestion des plans et suspension des agences : étape E11."
+      footerNote="Plans et abonnements simulés : aucune facturation réelle."
     >
       {children}
     </AppShell>

@@ -4,6 +4,7 @@ import { Prisma, type PrismaClient } from "@/generated/prisma/client";
 import { getAdminDb } from "@/lib/admin-db";
 import { isStaffEmailTaken } from "@/lib/auth/authenticate";
 import { type Paginated, pageArgs, pageCount } from "@/lib/pagination";
+import { checkPlanLimit } from "@/lib/services/abonnements";
 import { failure, type ServiceResult, success } from "@/lib/services/result";
 import type { TenantDb } from "@/lib/tenant";
 import {
@@ -80,6 +81,9 @@ export async function createMember(
 ): Promise<ServiceResult<{ id: string }>> {
   // Contrôle sur toute la plateforme : nécessite le client non confiné.
   if (await isStaffEmailTaken(input.email, platformDb)) return failure(EMAIL_TAKEN, "email");
+  // RG 18 : nombre de comptes du personnel limité par le plan.
+  const limite = await checkPlanLimit(db, "utilisateurs");
+  if (limite) return limite;
 
   const motDePasseHash = await bcrypt.hash(input.password, BCRYPT_COST);
   try {
@@ -170,6 +174,11 @@ export async function setMemberActive(
 ): Promise<ServiceResult> {
   const member = await getTeamMember(db, id);
   if (!member) return failure("Membre introuvable.");
+  if (actif && !member.actif) {
+    // Réactiver un compte le recompte dans la limite du plan (RG 18).
+    const limite = await checkPlanLimit(db, "utilisateurs");
+    if (limite) return limite;
+  }
   if (!actif) {
     if (member.id === actorId) return failure("Vous ne pouvez pas désactiver votre propre compte.");
     if (member.role === "ADMIN_AGENCE" && member.actif && (await countActiveAdmins(db)) <= 1) {

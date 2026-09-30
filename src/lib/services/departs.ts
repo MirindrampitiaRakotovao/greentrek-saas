@@ -8,6 +8,7 @@ import {
   toIsoDate,
 } from "@/lib/departs";
 import { type Paginated, pageArgs, pageCount } from "@/lib/pagination";
+import { checkPlanLimit } from "@/lib/services/abonnements";
 import { failure, type ServiceResult, success } from "@/lib/services/result";
 import type { TenantDb, TenantTx } from "@/lib/tenant";
 import type { DepartFilters, DepartInput, UpdateDepartInput } from "@/lib/validators/departs";
@@ -260,6 +261,8 @@ export async function createDepart(
   if (periode.dateDebut < calendarDate(now)) {
     return failure("La date de début ne peut pas être dans le passé.", "dateDebut");
   }
+  const limite = await checkPlanLimit(db, "departs", now); // RG 18
+  if (limite) return limite;
   return db.$tenantTransaction(async (tx) => {
     const circuit = await tx.circuit.findUnique({
       where: { id: input.circuitId },

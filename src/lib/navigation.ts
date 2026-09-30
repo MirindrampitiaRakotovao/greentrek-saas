@@ -85,6 +85,12 @@ const NAVIGATION: readonly NavEntry[] = [
     permission: ["lire", "partenaire"],
   },
   {
+    href: "/dashboard/abonnement",
+    label: "Abonnement",
+    icon: "coins",
+    permission: ["modifier", "agence"],
+  },
+  {
     href: "/dashboard/parametres",
     label: "Paramètres",
     icon: "settings",
