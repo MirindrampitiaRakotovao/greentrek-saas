@@ -46,7 +46,6 @@ export default async function AbonnementPage() {
     <div className="space-y-6">
       <PageHeader
         title="Abonnement"
-        description="Abonnement simulé : aucune facturation réelle."
         actions={
           <Link
             href="/tarifs"
@@ -78,7 +77,7 @@ export default async function AbonnementPage() {
             </Badge>
           </div>
           <p className="mt-1 text-sm text-gt-teal-900/70">
-            {formatMoney(sub.plan.prixMensuel, "MGA")} par mois (fictif)
+            {formatMoney(sub.plan.prixMensuel, "MGA")} par mois
           </p>
           <dl className="mt-4 space-y-1 text-sm">
             <div className="flex justify-between">

@@ -28,7 +28,7 @@ const FEATURES: { icon: IconName; title: string; text: string }[] = [
   {
     icon: "ticket",
     title: "Réservation en ligne",
-    text: "Tunnel de réservation, participants, paiement simulé et facture avec QR code ; jamais de surbooking.",
+    text: "Tunnel de réservation, participants, paiement en ligne et facture avec QR code ; jamais de surbooking.",
   },
   {
     icon: "navigation",
@@ -206,8 +206,8 @@ export default async function HomePage() {
                 ? `Commencez par l'essai gratuit, puis choisissez un plan à partir de ${formatMoney(
                     plans.find((p) => p.prixMensuel > 0)?.prixMensuel ?? 0,
                     "MGA",
-                  )} par mois (tarifs fictifs de démonstration).`
-                : "Découvrez nos plans (tarifs fictifs de démonstration)."}
+                  )} par mois.`
+                : "Découvrez nos plans."}
             </p>
           </div>
           <div className="flex flex-wrap gap-3">

@@ -78,8 +78,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
           </ul>
         </div>
         <div className="bg-gt-sand-300 px-4 py-3 text-center text-xs text-gt-teal-900">
-          Projet de fin d&apos;études (Master 2, ENI Fianarantsoa) · démonstration locale : tarifs,
-          abonnements et paiements fictifs.
+          © Green Trek · Plateforme de gestion et de réservation pour les agences de randonnée.
         </div>
       </footer>
     </div>

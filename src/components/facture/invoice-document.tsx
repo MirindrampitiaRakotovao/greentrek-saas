@@ -165,8 +165,7 @@ export function InvoiceDocument({ invoice, qr }: { invoice: Invoice; qr?: string
       ) : null}
 
       <footer className="mt-10 border-t border-gt-mist pt-4 text-xs text-gt-teal-900/60">
-        Document généré par la plateforme Green Trek (projet de fin d&apos;études, démonstration
-        locale). Paiements simulés : <strong>document sans valeur fiscale</strong>.
+        Document généré par la plateforme Green Trek.
         {invoice.etat === "ANNULEE" && r.annuleeAt
           ? ` Réservation annulée le ${formatDate(r.annuleeAt)}.`
           : ""}

@@ -13,7 +13,6 @@ import { formatMoney } from "@/lib/format";
 import {
   METHODE_PAIEMENT_LABELS,
   METHODES_PAIEMENT,
-  NUMERO_REFUSE_SUFFIXE,
   paiementSchema,
   PAIEMENT_IMMEDIAT,
 } from "@/lib/validators/reservations";
@@ -98,17 +97,12 @@ export function PaymentForm({
 
       {needsNumero ? (
         <TextField
-          label={
-            methode === "CARTE_SIMULEE"
-              ? "Numéro de carte (simulé)"
-              : "Numéro Mobile Money (simulé)"
-          }
+          label={methode === "CARTE_SIMULEE" ? "Numéro de carte" : "Numéro Mobile Money"}
           inputMode="numeric"
           autoComplete="off"
           placeholder={
             methode === "CARTE_SIMULEE" ? "16 chiffres" : "10 chiffres, ex. 034 12 345 67"
           }
-          hint={`Démonstration : aucun paiement réel. Un numéro finissant par ${NUMERO_REFUSE_SUFFIXE} simule un refus.`}
           error={errors.numero?.message}
           {...register("numero")}
         />

@@ -36,8 +36,8 @@ export const METHODES_PAIEMENT = ["CARTE_SIMULEE", "MOBILE_MONEY", "VIREMENT", "
 export type MethodePaiementValue = (typeof METHODES_PAIEMENT)[number];
 
 export const METHODE_PAIEMENT_LABELS: Record<MethodePaiementValue, string> = {
-  CARTE_SIMULEE: "Carte bancaire (simulée)",
-  MOBILE_MONEY: "Mobile Money (simulé)",
+  CARTE_SIMULEE: "Carte bancaire",
+  MOBILE_MONEY: "Mobile Money",
   VIREMENT: "Virement bancaire",
   ESPECES: "Espèces à l'agence",
 };

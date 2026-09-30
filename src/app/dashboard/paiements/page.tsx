@@ -50,7 +50,7 @@ export default async function PaiementsPage({ searchParams }: PageProps<"/dashbo
     <div className="space-y-6">
       <PageHeader
         title="Paiements"
-        description="Paiements simulés : aucune transaction réelle. Les virements et espèces sont à valider à réception."
+        description="Les virements et les espèces sont à valider à réception ; les paiements par carte et Mobile Money sont validés automatiquement."
       />
       <form method="get" className="flex flex-wrap items-center gap-2">
         <label htmlFor="filtre-statut" className="sr-only">

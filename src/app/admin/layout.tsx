@@ -23,11 +23,11 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       nav={ADMIN_NAV}
       user={{ name: user.name, subtitle: ROLE_LABELS[user.role] }}
       promo={{
-        title: "Démonstration",
-        text: "Les agences Démo Alpha et Démo Beta, ainsi que toutes les réservations, sont fictives. Plans et abonnements simulés.",
+        title: "Console plateforme",
+        text: "Supervisez les agences, leurs abonnements et les plans proposés sur la page Tarifs.",
       }}
       notifications={notifications}
-      footerNote="Plans et abonnements simulés : aucune facturation réelle."
+      footerNote="Green Trek · console d'administration"
     >
       {children}
     </AppShell>

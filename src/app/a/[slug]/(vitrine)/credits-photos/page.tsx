@@ -21,8 +21,7 @@ export default async function CreditsPhotosPage({ params }: PageProps<"/a/[slug]
       <h1 className="text-3xl font-medium text-gt-teal-800">Crédits photos</h1>
       <p className="mt-3 text-gt-teal-900/75">
         Les photos des circuits proviennent de Wikimedia Commons et sont publiées sous licence
-        libre. Elles illustrent des paysages réels de Madagascar ; les circuits des agences de
-        démonstration sont fictifs.
+        libre. Elles illustrent des paysages de Madagascar.
       </p>
 
       <ul className="mt-8 divide-y divide-gt-mist/70 rounded-3xl bg-white/80 px-5 ring-1 ring-gt-mist/60 backdrop-blur">
@@ -54,8 +53,7 @@ export default async function CreditsPhotosPage({ params }: PageProps<"/a/[slug]
 
       <h2 className="mt-10 text-xl font-medium text-gt-teal-800">Autres photos du site</h2>
       <p className="mt-2 text-sm text-gt-teal-900/70">
-        Photos de l&apos;accueil et des partenaires fournies pour la démonstration ; source et
-        licence en cours de vérification.
+        Photos de l&apos;accueil et des partenaires : crédits en cours de vérification.
       </p>
       <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-gt-teal-900/75">
         {PHOTOS_FOURNIES.map((p) => (

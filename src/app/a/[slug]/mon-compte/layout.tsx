@@ -48,7 +48,7 @@ export default async function MonCompteLayout({
           : undefined,
       }}
       notifications={notifications}
-      footerNote="Paiements simulés : aucune transaction réelle."
+      footerNote="Paiement sécurisé · facture disponible pour chaque réservation"
     >
       {children}
     </AppShell>

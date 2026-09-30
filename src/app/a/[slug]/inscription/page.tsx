@@ -40,7 +40,7 @@ export default async function ClientRegistrationPage({
           </Link>
           <br />
           <span className="text-xs text-gt-teal-900/60">
-            Données personnelles réduites au minimum (§12) ; démonstration : aucun e-mail envoyé.
+            Nous ne collectons que les informations nécessaires à vos réservations.
           </span>
         </>
       }

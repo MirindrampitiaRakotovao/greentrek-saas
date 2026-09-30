@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Tarifs — Green Trek",
-  description: "Plans de la plateforme Green Trek (tarifs fictifs de démonstration).",
+  description: "Plans de la plateforme Green Trek pour les agences de randonnée.",
 };
 
 /**
@@ -33,8 +33,8 @@ export default async function TarifsPage() {
           Un plan pour chaque agence
         </h1>
         <p className="mt-4 text-gt-teal-900/70">
-          Toutes les agences commencent par un essai gratuit de {TRIAL_DAYS} jours. Tarifs fictifs :
-          projet de démonstration, aucune facturation réelle.
+          Toutes les agences commencent par un essai gratuit de {TRIAL_DAYS} jours, sans engagement.
+          Choisissez ensuite le plan adapté à la taille de votre agence.
         </p>
       </div>
 

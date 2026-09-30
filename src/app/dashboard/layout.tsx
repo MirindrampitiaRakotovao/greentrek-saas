@@ -47,7 +47,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
       user={{ name: user.name, subtitle: ROLE_LABELS[user.role] }}
       promo={promo}
       notifications={notifications}
-      footerNote="Démonstration : réservations et voyageurs fictifs ; circuits Green Trek marqués [DÉMO]."
+      footerNote="Green Trek · plateforme des agences de randonnée"
     >
       {children}
     </AppShell>

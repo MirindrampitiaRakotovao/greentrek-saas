@@ -1,13 +1,21 @@
 /**
- * Générateur des données de DÉMONSTRATION (cahier des charges §11) : circuits, départs,
- * réservations, participants et paiements, pour que les tableaux de bord soient lisibles.
+ * Générateur des données de démonstration (cahier des charges §11, étape E12) : clients,
+ * circuits, départs sur 12 mois, réservations, participants, paiements et avis, pour que les
+ * tableaux de bord, les listes et le site vitrine soient remplis de façon réaliste.
  *
  * - Fonction PURE et DÉTERMINISTE : même graine + même date → mêmes données (testée).
- * - Toutes les personnes sont FICTIVES. Les circuits de Green Trek Mada sont marqués
- *   « [DÉMO] » et leurs prix, durées et capacités sont fictifs : TODO(données terrain).
+ * - Textes affichés sans mention « démo » ni « fictif » (décision de l'étudiant, étape E12) ;
+ *   l'honnêteté est assurée dans le mémoire et dans docs/AVANCEMENT.md :
+ *   · personnes (clients, participants, équipe) : INVENTÉES ; adresses en @example.com,
+ *     domaine réservé (RFC 2606) qui ne peut appartenir à personne ; aucun téléphone ;
+ *   · Green Trek Mada : entreprise réelle ; lieux réels (OpenStreetMap) ; circuits, prix,
+ *     durées et capacités = HYPOTHÈSES à valider avec l'agence, TODO(données terrain) ;
+ *   · « Tanety Trek » et « Ranohira Sentiers » : agences INVENTÉES (preuve de l'isolation
+ *     multi-agences), sur des lieux réels d'OpenStreetMap (Antsirabe, Isalo).
  * - Respecte les règles de gestion : RG 10 (fin ≥ début), RG 11 (COMPLETE quand plein),
  *   RG 13 (jamais plus de personnes que de places), RG 14 (montant = prix × personnes,
- *   figé), RG 16 (paiements validés ≤ montant). Vérifié par `tests/unit/demo-data.test.ts`.
+ *   figé), RG 16 (paiements validés ≤ montant), RG 17 (avis seulement pour une réservation
+ *   TERMINEE, un seul). Vérifié par `tests/unit/demo-data.test.ts`.
  *
  * Les références entre objets sont des index (circuit n°, départ n°, client n°) : le seed
  * les remplace par les identifiants créés en base.
@@ -43,7 +51,15 @@ export type DemoPaiement = {
   montant: number;
   methode: "ESPECES" | "MOBILE_MONEY" | "VIREMENT" | "CARTE_SIMULEE";
   statut: "EN_ATTENTE" | "VALIDE" | "ECHOUE" | "REMBOURSE";
+  referenceExterne: string | null;
   payeLe: Date | null;
+};
+
+export type DemoAvis = {
+  note: number;
+  commentaire: string;
+  statut: "EN_ATTENTE" | "PUBLIE";
+  createdAt: Date;
 };
 
 export type DemoReservation = {
@@ -56,8 +72,10 @@ export type DemoReservation = {
   createdAt: Date;
   confirmeeAt: Date | null;
   annuleeAt: Date | null;
-  participants: { nom: string; prenom: string; age: number }[];
+  remarques: string | null;
+  participants: { nom: string; prenom: string; age: number; nationalite: string }[];
   paiements: DemoPaiement[];
+  avis: DemoAvis | null;
 };
 
 export type DemoAgencyData = {
@@ -66,12 +84,14 @@ export type DemoAgencyData = {
   reservations: DemoReservation[];
 };
 
+export type DemoPerson = { prenom: string; nom: string; nationalite: string };
+
 type AgencySpec = {
   /** Préfixe des références de réservation (ex. « GT »). */
   prefix: string;
   circuits: DemoCircuit[];
-  /** Nombre de clients fictifs disponibles (index 0 = le client de démonstration). */
-  clientCount: number;
+  /** Clients de l'agence (index 0 = le compte client de démonstration). */
+  clients: readonly DemoPerson[];
   seed: number;
 };
 
@@ -105,32 +125,164 @@ function dayAt(date: Date, offsetDays: number): Date {
   return new Date(start + offsetDays * DAY);
 }
 
-/** Décalages (en jours, depuis aujourd'hui) des départs de chaque circuit. */
-const SESSION_OFFSETS: readonly (readonly number[])[] = [
-  [-280, -150, -40, 12, 55],
-  [-220, -95, -18, 26],
-  [-120, -9, 40],
-  [-60, 20, 75],
+/* ─── Personnes inventées ────────────────────────────────────────────────────── */
+
+const PRENOMS_MG = [
+  "Hery",
+  "Lalao",
+  "Mialy",
+  "Tojo",
+  "Anja",
+  "Fara",
+  "Niry",
+  "Voahirana",
+  "Sitraka",
+  "Tahina",
+  "Rivo",
+  "Fanja",
+  "Haja",
+  "Nomena",
+  "Andry",
+  "Mamy",
+  "Zo",
+  "Tiana",
+  "Njaka",
+  "Lova",
+];
+const NOMS_MG = [
+  "Rakotomalala",
+  "Randrianarisoa",
+  "Rasoanaivo",
+  "Andriamanana",
+  "Razafindrakoto",
+  "Rabemananjara",
+  "Ramanantsoa",
+  "Rakotondrabe",
+  "Randriamampionona",
+  "Ravelojaona",
+  "Rasolofonirina",
+  "Andrianjafy",
+];
+const ETRANGERS: readonly (readonly [string, string, string])[] = [
+  ["Claire", "Martin", "Française"],
+  ["Julien", "Bernard", "Française"],
+  ["Élodie", "Petit", "Française"],
+  ["Thomas", "Dubois", "Française"],
+  ["Camille", "Lefebvre", "Française"],
+  ["Nicolas", "Moreau", "Française"],
+  ["Sophie", "Laurent", "Belge"],
+  ["Lukas", "Schneider", "Allemande"],
+  ["Anna", "Weber", "Allemande"],
+  ["Marco", "Rossi", "Italienne"],
+  ["Giulia", "Bianchi", "Italienne"],
+  ["Emma", "Wilson", "Britannique"],
+  ["Daniel", "Meier", "Suisse"],
+  ["Laura", "Fischer", "Suisse"],
+  ["Pierre", "Hoarau", "Française"],
+  ["Nathalie", "Payet", "Française"],
 ];
 
-const PRENOMS = ["Hery", "Lalao", "Mialy", "Tojo", "Anja", "Fara", "Niry", "Voahirana", "Sitraka"];
+/**
+ * Clients inventés d'une agence : environ deux tiers de voyageurs malgaches, un tiers de
+ * visiteurs étrangers. Noms uniques dans l'agence. Déterministe.
+ */
+export function generateClients(count: number, seed: number): DemoPerson[] {
+  const random = createRandom(seed * 7919);
+  const seen = new Set<string>();
+  const people: DemoPerson[] = [];
+  while (people.length < count) {
+    const person: DemoPerson =
+      random.next() < 0.62
+        ? {
+            prenom: random.pick(PRENOMS_MG),
+            nom: random.pick(NOMS_MG),
+            nationalite: "Malagasy",
+          }
+        : (([prenom, nom, nationalite]) => ({ prenom, nom, nationalite }))(random.pick(ETRANGERS));
+    const key = `${person.prenom} ${person.nom}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    people.push(person);
+  }
+  return people;
+}
+
+/** Adresse e-mail d'une personne inventée : domaine réservé `example.com` (RFC 2606). */
+export function exampleEmail(person: { prenom: string; nom: string }, suffix = ""): string {
+  const slug = (value: string) =>
+    value
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase()
+      .replace(/[^a-z]+/g, "");
+  return `${slug(person.prenom)}.${slug(person.nom)}${suffix}@example.com`;
+}
+
+/* ─── Réservations ───────────────────────────────────────────────────────────── */
+
+const COMMENTAIRES: Record<number, readonly string[]> = {
+  5: [
+    "Un séjour magnifique, le guide connaît chaque village et partage beaucoup.",
+    "Organisation parfaite du début à la fin, paysages superbes. À refaire !",
+    "Accueil chaleureux dans les villages, repas délicieux. Merci à toute l'équipe.",
+    "La meilleure façon de découvrir la région, loin des sentiers battus.",
+    "Guide attentionné et très disponible, rythme adapté à tout le groupe.",
+  ],
+  4: [
+    "Très belle randonnée, quelques passages plus difficiles que prévu.",
+    "Très bonne expérience, hébergement simple mais propre.",
+    "Superbe circuit, on aurait aimé une pause de plus pour les photos.",
+    "Belles rencontres et beaux paysages, organisation sérieuse.",
+  ],
+  3: [
+    "Bon circuit dans l'ensemble, le départ a pris un peu de retard.",
+    "Paysages très beaux, mais la journée était longue pour les enfants.",
+  ],
+  2: ["Sentier glissant après la pluie, prévoir de meilleures chaussures."],
+};
+
+const REMARQUES = [
+  "Régime végétarien pour une personne.",
+  "Nous arrivons la veille, merci de nous indiquer un hébergement.",
+  "Une personne est allergique aux arachides.",
+  "Possible de prévoir un transfert depuis Toamasina ?",
+  null,
+  null,
+  null,
+  null,
+] as const;
+
+/** Moyens de paiement, pondérés : le Mobile Money domine à Madagascar. */
+const METHODES = [
+  "MOBILE_MONEY",
+  "MOBILE_MONEY",
+  "MOBILE_MONEY",
+  "ESPECES",
+  "VIREMENT",
+  "CARTE_SIMULEE",
+] as const;
 
 export function generateAgencyDemo(spec: AgencySpec, now: Date): DemoAgencyData {
   const random = createRandom(spec.seed);
   const sessions: DemoSession[] = [];
   const reservations: DemoReservation[] = [];
+  const today = dayAt(now, 0);
 
+  // Départs : sur les 12 derniers mois et les 5 prochains, tous les 3 à 6 semaines.
   spec.circuits.forEach((circuit, circuitIndex) => {
-    const offsets = SESSION_OFFSETS[circuitIndex % SESSION_OFFSETS.length] ?? [];
-    for (const offset of offsets) {
+    let offset = -360 + random.int(0, 25);
+    let futureCount = 0;
+    while (offset <= 150) {
       const dateDebut = dayAt(now, offset);
       const dateFin = dayAt(now, offset + circuit.dureeJours - 1); // RG 10 : fin ≥ début
-      const isPast = dateFin.getTime() < dayAt(now, 0).getTime();
-      const placesTotal = Math.min(circuit.capaciteMax, random.pick([6, 8, 10, 12]));
-      // Un départ sur cinq a un prix spécifique (ex. haute saison), remplaçant celui du circuit.
+      const isPast = dateFin.getTime() < today.getTime();
+      const placesTotal = Math.min(circuit.capaciteMax, random.pick([6, 8, 8, 10, 10, 12]));
+      // Un départ sur cinq a un prix spécifique (haute saison), qui remplace celui du circuit.
       const prixParPersonne =
         random.next() < 0.2 ? Math.round((circuit.prixParPersonne * 1.15) / 1000) * 1000 : null;
-      const annule = !isPast && offset === 75; // un départ futur annulé, pour la démonstration
+      if (!isPast) futureCount += 1;
+      // Le 4e départ à venir du premier circuit est annulé (cas d'annulation d'un départ).
+      const annule = !isPast && circuitIndex === 0 && futureCount === 4;
       sessions.push({
         circuitIndex,
         dateDebut,
@@ -138,79 +290,196 @@ export function generateAgencyDemo(spec: AgencySpec, now: Date): DemoAgencyData 
         placesTotal,
         prixParPersonne,
         statut: annule ? "ANNULEE" : isPast ? "TERMINEE" : "OUVERTE",
-        withGuide: random.next() < 0.8,
+        withGuide: random.next() < 0.85,
       });
+      offset += random.int(21, 42);
     }
   });
 
   sessions.forEach((session, sessionIndex) => {
-    if (session.statut === "ANNULEE") return;
+    if (session.statut === "ANNULEE") return; // aucune réservation sur un départ annulé
     const circuit = spec.circuits[session.circuitIndex];
     if (!circuit) return;
     const isPast = session.statut === "TERMINEE";
     const prix = session.prixParPersonne ?? circuit.prixParPersonne;
+    // Remplissage visé : départs passés bien remplis, départs lointains moins.
+    const joursAvantDepart = (session.dateDebut.getTime() - today.getTime()) / DAY;
+    const cible = isPast
+      ? random.int(Math.ceil(session.placesTotal * 0.5), session.placesTotal)
+      : joursAvantDepart < 45
+        ? random.int(Math.ceil(session.placesTotal * 0.4), session.placesTotal)
+        : random.int(0, Math.ceil(session.placesTotal * 0.5));
     let placesRestantes = session.placesTotal;
-    const wanted = random.int(1, 4);
+    let reservees = 0;
 
-    for (let i = 0; i < wanted && placesRestantes > 0; i += 1) {
+    for (let guard = 0; reservees < cible && placesRestantes > 0 && guard < 12; guard += 1) {
       // RG 13 : on ne réserve jamais plus que les places restantes.
-      const nombrePersonnes = Math.min(random.int(1, 4), placesRestantes);
-      // Réservation faite 3 à 45 jours avant le départ ; pour un départ proche, cette date
-      // tomberait dans le futur : on l'étale alors sur les 4 dernières semaines.
-      const joursAvant = random.int(3, 45);
-      const ideal = session.dateDebut.getTime() - joursAvant * DAY - random.int(2, 14) * HOUR;
+      const nombrePersonnes = Math.min(random.pick([1, 2, 2, 2, 3, 4]), placesRestantes);
+      // Réservation faite 5 à 75 jours avant le départ, jamais dans le futur.
+      const ideal =
+        session.dateDebut.getTime() - random.int(5, 75) * DAY - random.int(2, 20) * HOUR;
       const createdAt = new Date(
-        ideal < now.getTime() - DAY
+        ideal < now.getTime() - HOUR
           ? ideal
-          : now.getTime() - random.int(0, 27) * DAY - random.int(1, 20) * HOUR,
+          : now.getTime() - random.int(0, 20) * DAY - random.int(1, 20) * HOUR,
       );
       const roll = random.next();
       const statut: DemoReservation["statut"] = isPast
-        ? roll < 0.12
+        ? roll < 0.1
           ? "ANNULEE"
           : "TERMINEE"
-        : roll < 0.1
+        : roll < 0.08
           ? "ANNULEE"
-          : roll < 0.4
+          : roll < 0.33
             ? "EN_ATTENTE"
             : "CONFIRMEE";
-      if (statut !== "ANNULEE") placesRestantes -= nombrePersonnes;
+      if (statut !== "ANNULEE") {
+        placesRestantes -= nombrePersonnes;
+        reservees += nombrePersonnes;
+      }
 
       const montantTotal = prix * nombrePersonnes; // RG 14 : figé à la création
-      // Aucun événement dans le futur : confirmation et annulation au plus tard « maintenant ».
+      // Aucun événement dans le futur : au plus tard « maintenant ».
       const notAfterNow = (time: number) => new Date(Math.min(time, now.getTime() - 5 * 60_000));
       const confirmeeAt =
         statut === "CONFIRMEE" || statut === "TERMINEE"
-          ? notAfterNow(createdAt.getTime() + DAY / 2)
+          ? notAfterNow(createdAt.getTime() + random.int(1, 36) * HOUR)
           : null;
-      const annuleeAt = statut === "ANNULEE" ? notAfterNow(createdAt.getTime() + 2 * DAY) : null;
+      const annuleeAt =
+        statut === "ANNULEE" ? notAfterNow(createdAt.getTime() + random.int(1, 10) * DAY) : null;
 
+      const methode = random.pick(METHODES);
+      const reference = () =>
+        methode === "MOBILE_MONEY" || methode === "CARTE_SIMULEE"
+          ? `•••• ${String(random.int(0, 9999)).padStart(4, "0")}`
+          : null;
+      const acompte = Math.round((montantTotal * 0.3) / 1000) * 1000;
       const paiements: DemoPaiement[] = [];
-      const methode = random.pick([
-        "ESPECES",
-        "MOBILE_MONEY",
-        "VIREMENT",
-        "CARTE_SIMULEE",
-      ] as const);
+      const p = random.next();
       if (statut === "TERMINEE") {
-        paiements.push({ montant: montantTotal, methode, statut: "VALIDE", payeLe: confirmeeAt });
+        if (p < 0.55) {
+          paiements.push({
+            montant: montantTotal,
+            methode,
+            statut: "VALIDE",
+            referenceExterne: reference(),
+            payeLe: confirmeeAt,
+          });
+        } else {
+          // Acompte à la réservation, solde réglé en espèces le jour du départ.
+          paiements.push(
+            {
+              montant: acompte,
+              methode,
+              statut: "VALIDE",
+              referenceExterne: reference(),
+              payeLe: confirmeeAt,
+            },
+            {
+              montant: montantTotal - acompte,
+              methode: "ESPECES",
+              statut: "VALIDE",
+              referenceExterne: null,
+              payeLe: notAfterNow(session.dateDebut.getTime() + 8 * HOUR),
+            },
+          );
+        }
       } else if (statut === "CONFIRMEE") {
-        // Acompte de 30 % validé ; le solde reste à régler (RG 16 : total validé ≤ montant).
-        const acompte = Math.round((montantTotal * 0.3) / 1000) * 1000;
-        paiements.push({ montant: acompte, methode, statut: "VALIDE", payeLe: confirmeeAt });
-      } else if (statut === "EN_ATTENTE" && random.next() < 0.5) {
+        if (p < 0.5) {
+          paiements.push({
+            montant: montantTotal,
+            methode,
+            statut: "VALIDE",
+            referenceExterne: reference(),
+            payeLe: confirmeeAt,
+          });
+        } else if (p < 0.85) {
+          // Acompte de 30 % validé ; le solde reste à régler (RG 16 : total validé ≤ montant).
+          paiements.push({
+            montant: acompte,
+            methode,
+            statut: "VALIDE",
+            referenceExterne: reference(),
+            payeLe: confirmeeAt,
+          });
+        } // sinon : confirmée par l'agence, paiement sur place
+      } else if (statut === "EN_ATTENTE") {
+        if (p < 0.35) {
+          // Virement ou espèces annoncés, à valider par l'agence.
+          paiements.push({
+            montant: montantTotal,
+            methode: random.pick(["VIREMENT", "ESPECES"] as const),
+            statut: "EN_ATTENTE",
+            referenceExterne: null,
+            payeLe: null,
+          });
+        } else if (p < 0.5) {
+          // Paiement refusé (carte ou Mobile Money) : la réservation reste à payer.
+          paiements.push({
+            montant: montantTotal,
+            methode: random.pick(["MOBILE_MONEY", "CARTE_SIMULEE"] as const),
+            statut: "ECHOUE",
+            referenceExterne: `•••• ${String(random.int(0, 9999)).padStart(4, "0")}`,
+            payeLe: null,
+          });
+        }
+      } else if (p < 0.45) {
+        // Annulée après un acompte : remboursé, ou encore à rembourser par l'agence.
         paiements.push({
-          montant: montantTotal,
-          methode: "MOBILE_MONEY",
-          statut: "EN_ATTENTE",
-          payeLe: null,
+          montant: acompte,
+          methode,
+          statut: p < 0.33 ? "REMBOURSE" : "VALIDE",
+          referenceExterne: reference(),
+          payeLe: notAfterNow(createdAt.getTime() + HOUR),
         });
+      }
+
+      // Client : un tiers des réservations pour le compte client de démonstration (index 0).
+      const clientIndex = random.next() < 0.2 ? 0 : random.int(1, spec.clients.length - 1);
+      const client = spec.clients[clientIndex]!;
+      const participants = Array.from({ length: nombrePersonnes }, (_, n) => {
+        const person =
+          n === 0
+            ? client
+            : random.next() < 0.5
+              ? {
+                  ...client,
+                  prenom: random.pick(
+                    client.nationalite === "Malagasy" ? PRENOMS_MG : ETRANGERS.map((e) => e[0]),
+                  ),
+                }
+              : random.pick(generateClients(1, spec.seed * 100 + sessionIndex * 10 + n));
+        return {
+          nom: person.nom,
+          prenom: person.prenom,
+          age: n === 0 ? random.int(22, 66) : random.int(8, 70),
+          nationalite: person.nationalite,
+        };
+      });
+
+      // RG 17 : avis seulement pour une réservation terminée, un seul, après le séjour.
+      let avis: DemoAvis | null = null;
+      if (statut === "TERMINEE" && random.next() < 0.6) {
+        const r = random.next();
+        const note = r < 0.5 ? 5 : r < 0.85 ? 4 : r < 0.97 ? 3 : 2;
+        const createdAtAvis = session.dateFin.getTime() + random.int(1, 12) * DAY + 10 * HOUR;
+        if (createdAtAvis < now.getTime()) {
+          avis = {
+            note,
+            commentaire: random.pick(COMMENTAIRES[note]!),
+            // Avis récents encore à modérer par l'agence.
+            statut:
+              now.getTime() - createdAtAvis < 25 * DAY && random.next() < 0.6
+                ? "EN_ATTENTE"
+                : "PUBLIE",
+            createdAt: new Date(createdAtAvis),
+          };
+        }
       }
 
       reservations.push({
         sessionIndex,
-        // Le client de démonstration (index 0) reçoit une réservation sur trois.
-        clientIndex: random.next() < 0.33 ? 0 : random.int(1, spec.clientCount - 1),
+        clientIndex,
         reference: "",
         nombrePersonnes,
         montantTotal,
@@ -218,12 +487,10 @@ export function generateAgencyDemo(spec: AgencySpec, now: Date): DemoAgencyData 
         createdAt,
         confirmeeAt,
         annuleeAt,
-        participants: Array.from({ length: nombrePersonnes }, (_, n) => ({
-          nom: "Démo",
-          prenom: `${random.pick(PRENOMS)} ${n + 1}`,
-          age: random.int(12, 68),
-        })),
+        remarques: random.pick(REMARQUES),
+        participants,
         paiements,
+        avis,
       });
     }
 
@@ -242,7 +509,7 @@ export function generateAgencyDemo(spec: AgencySpec, now: Date): DemoAgencyData 
   return { circuits: spec.circuits, sessions, reservations };
 }
 
-/* ─── Étapes (nœuds du graphe) et itinéraires de démonstration ───────────────── */
+/* ─── Étapes (nœuds du graphe) et itinéraires ────────────────────────────────── */
 
 export type DemoEtape = {
   nom: string;
@@ -253,25 +520,27 @@ export type DemoEtape = {
 };
 
 /**
- * Graphe de démonstration d'une agence : ses étapes, et pour chaque circuit (même index que
- * la liste des circuits) la suite ordonnée des étapes (index dans `etapes`). RG 4 : au moins
- * deux étapes par circuit (les circuits de démonstration sont publiés).
+ * Graphe d'une agence : ses étapes, et pour chaque circuit (même index que la liste des
+ * circuits) la suite ordonnée des étapes (index dans `etapes`). RG 4 : au moins deux étapes
+ * par circuit (les circuits sont publiés).
  */
 export type DemoGraph = { etapes: DemoEtape[]; itineraires: number[][] };
 
-const ITINERAIRE_DEMO = "TODO(données terrain) : itinéraire de démonstration.";
+/** Source des lieux (licence ODbL : attribution obligatoire). */
+const OSM_SOURCE = "Source : OpenStreetMap (© contributeurs OpenStreetMap, ODbL).";
 
-/** Green Trek Mada : lieux RÉELS d'OpenStreetMap (voir prisma/osm-mahambo.ts). */
+/**
+ * Green Trek Mada : lieux RÉELS d'OpenStreetMap (voir prisma/osm-mahambo.ts).
+ * TODO(données terrain) : vérifier que chaque lieu est bien sur les sentiers de l'agence.
+ */
 function fromOsm(place: OsmPlace): DemoEtape {
+  const embarcadere = place.nom === "Soanierana Ivongo"; // port vers l'île Sainte-Marie
   return {
     nom: place.nom,
-    // Soanierana Ivongo est le port d'embarquement vers l'île Sainte-Marie.
-    type: place.nom === "Soanierana Ivongo" ? "EMBARCADERE" : "VILLAGE",
+    type: embarcadere ? "EMBARCADERE" : "VILLAGE",
     latitude: place.latitude,
     longitude: place.longitude,
-    description:
-      `Lieu OpenStreetMap (nœud ${place.osmId}, « ${place.osmPlace} ») ; © contributeurs OpenStreetMap, ODbL. ` +
-      "TODO(données terrain) : vérifier que ce lieu est sur les sentiers de l'agence.",
+    description: `${embarcadere ? "Port d'embarquement vers l'île Sainte-Marie" : "Localité de la côte Est"}. ${OSM_SOURCE}`,
   };
 }
 
@@ -282,144 +551,161 @@ export const GREEN_TREK_GRAPH: DemoGraph = {
   // 0 Mahambo, 1 Mahambo Doany, 2 Morafeno, 3 Agnalambany, 4 Antsikafoka,
   // 5 Ambinany Iazafo, 6 Tanambao Sahorana, 7 Namahoaka
   itineraires: [
-    [1, 0], // Sentier Mahambo Doany – Ambodiforaha (Ambodiforaha reste à placer)
+    [1, 0], // Sentier Mahambo Doany – Ambodiforaha (Ambodiforaha absent d'OSM : à placer)
     [0, 2, 3, 7], // Randonnée côtière et pirogue
     [0, 4, 5, 6], // Immersion au village
     [1, 0, 2], // Journée découverte
   ],
 };
 
-const LIEU_FICTIF = "Lieu FICTIF de l'agence de démonstration (coordonnées fictives).";
-
-export const DEMO_ALPHA_GRAPH: DemoGraph = {
+/**
+ * Tanety Trek (agence inventée) : lieux RÉELS autour d'Antsirabe, relevés dans OpenStreetMap
+ * via Nominatim le 2026-09-30 (identifiant OSM entre parenthèses).
+ */
+export const TANETY_GRAPH: DemoGraph = {
   etapes: [
     {
-      nom: "Col des Brumes (fictif)",
-      type: "POINT_INTERET",
-      latitude: -19.82,
-      longitude: 47.05,
-      description: LIEU_FICTIF,
-    },
-    {
-      nom: "Lac Bleu (fictif)",
-      type: "POINT_INTERET",
-      latitude: -19.86,
-      longitude: 47.09,
-      description: LIEU_FICTIF,
-    },
-    {
-      nom: "Village du Plateau (fictif)",
+      nom: "Antsirabe",
       type: "VILLAGE",
-      latitude: -19.9,
-      longitude: 47.03,
-      description: LIEU_FICTIF,
+      latitude: -19.871403,
+      longitude: 47.034667,
+      description: `Ville thermale des Hautes Terres (nœud OSM 300272255). ${OSM_SOURCE}`,
     },
     {
-      nom: "Camp du Volcan (fictif)",
-      type: "HEBERGEMENT",
-      latitude: -19.94,
-      longitude: 47.07,
-      description: LIEU_FICTIF,
-    },
-    {
-      nom: "Cascade Haute (fictif)",
+      nom: "Lac Andraikiba",
       type: "POINT_INTERET",
-      latitude: -19.84,
-      longitude: 46.99,
-      description: LIEU_FICTIF,
+      latitude: -19.873766,
+      longitude: 46.969381,
+      description: `Lac proche d'Antsirabe (chemin OSM 31289531). ${OSM_SOURCE}`,
+    },
+    {
+      nom: "Lac Tritriva",
+      type: "POINT_INTERET",
+      latitude: -19.928834,
+      longitude: 46.924759,
+      description: `Lac de cratère volcanique (chemin OSM 31290039). ${OSM_SOURCE}`,
+    },
+    {
+      nom: "Betafo",
+      type: "VILLAGE",
+      latitude: -19.838545,
+      longitude: 46.856229,
+      description: `Bourg entouré de rizières (nœud OSM 727308344). ${OSM_SOURCE}`,
+    },
+    {
+      nom: "Vinaninkarena",
+      type: "VILLAGE",
+      latitude: -19.955724,
+      longitude: 47.042129,
+      description: `Village au sud d'Antsirabe (nœud OSM 727298908). ${OSM_SOURCE}`,
     },
   ],
   itineraires: [
-    [0, 1, 2, 3],
-    [1, 4, 2],
-    [2, 0],
+    [0, 4, 2, 3], // Traversée des Hautes Terres
+    [0, 1, 2], // Lacs et volcans
+    [0, 4], // Forêts et rizières
   ],
 };
 
-export const DEMO_BETA_GRAPH: DemoGraph = {
+/**
+ * Ranohira Sentiers (agence inventée) : lieux RÉELS autour du massif de l'Isalo, relevés dans
+ * OpenStreetMap via Nominatim le 2026-09-30.
+ */
+export const RANOHIRA_GRAPH: DemoGraph = {
   etapes: [
     {
-      nom: "Entrée du Canyon (fictif)",
-      type: "POINT_INTERET",
-      latitude: -22.52,
-      longitude: 45.38,
-      description: LIEU_FICTIF,
-    },
-    {
-      nom: "Piscine naturelle (fictif)",
-      type: "POINT_INTERET",
-      latitude: -22.55,
-      longitude: 45.41,
-      description: LIEU_FICTIF,
-    },
-    {
-      nom: "Embarcadère de la rivière (fictif)",
-      type: "EMBARCADERE",
-      latitude: -22.58,
-      longitude: 45.36,
-      description: LIEU_FICTIF,
-    },
-    {
-      nom: "Village des Orchidées (fictif)",
+      nom: "Ranohira",
       type: "VILLAGE",
-      latitude: -22.5,
-      longitude: 45.44,
-      description: LIEU_FICTIF,
+      latitude: -22.556748,
+      longitude: 45.414119,
+      description: `Porte d'entrée du parc de l'Isalo (nœud OSM 316844298). ${OSM_SOURCE}`,
+    },
+    {
+      nom: "Namaza",
+      type: "POINT_INTERET",
+      latitude: -22.539172,
+      longitude: 45.379942,
+      description: `Site de Namaza, dans le massif de l'Isalo (nœud OSM 13912215901). ${OSM_SOURCE}`,
+    },
+    {
+      nom: "Parc national de l'Isalo",
+      type: "POINT_INTERET",
+      latitude: -22.426461,
+      longitude: 45.283851,
+      description: `Canyons et plateaux de grès (relation OSM 1155249). ${OSM_SOURCE}`,
+    },
+    {
+      nom: "Ilakaka",
+      type: "VILLAGE",
+      latitude: -22.700384,
+      longitude: 45.214739,
+      description: `Bourg au sud-ouest de l'Isalo, nommé Andohanilakaka dans OSM (nœud OSM 316844748). ${OSM_SOURCE}`,
     },
   ],
   itineraires: [
-    [0, 1, 3],
-    [3, 2],
-    [2, 1, 0],
+    [0, 1, 2], // Grande traversée de l'Isalo
+    [0, 1], // Canyons et piscines naturelles
+    [0, 3], // Ranohira – Ilakaka par les crêtes
   ],
 };
 
-export { ITINERAIRE_DEMO };
+/** Notes d'étape d'un itinéraire : aucune (à compléter par l'agence). */
+export const ITINERAIRE_NOTES = null;
 
-/* ─── Circuits de démonstration par agence ───────────────────────────────────── */
+/* ─── Circuits ───────────────────────────────────────────────────────────────── */
 
-const TODO_TERRAIN =
-  "TODO(données terrain) : durée, prix et capacité FICTIFS, pour la démonstration uniquement.";
-
-/** Green Trek Mada : seul le sentier « Mahambo Doany – Ambodiforaha » est connu (§11). */
+/**
+ * Green Trek Mada : seul le sentier « Mahambo Doany – Ambodiforaha » est connu par la
+ * présentation de l'agence (§11). TODO(données terrain) : durées, prix, capacités et
+ * programmes de ces quatre circuits sont des HYPOTHÈSES, à valider avec l'agence (écart
+ * assumé à la règle 6, décision de l'étudiant à l'étape E12).
+ */
 export const GREEN_TREK_CIRCUITS: DemoCircuit[] = [
   {
-    titre: "[DÉMO] Sentier Mahambo Doany – Ambodiforaha",
-    slug: "demo-mahambo-doany-ambodiforaha",
+    titre: "Sentier Mahambo Doany – Ambodiforaha",
+    slug: "sentier-mahambo-doany-ambodiforaha",
     resume: "Le sentier emblématique de l'agence, entre villages et littoral.",
     description:
-      `${TODO_TERRAIN} Itinéraire incomplet : Ambodiforaha, extrémité du sentier, est absent ` +
-      "d'OpenStreetMap et reste à placer sur la carte à partir d'un relevé de terrain.",
+      "Deux jours de marche le long de la côte Est, de Mahambo Doany à Ambodiforaha : " +
+      "sentiers de village, plages et forêt littorale, avec une nuit chez l'habitant. " +
+      "Un guide local accompagne le groupe et présente la vie des villages traversés.",
     difficulte: "MOYENNE",
     dureeJours: 2,
     prixParPersonne: 180_000,
     capaciteMax: 10,
   },
   {
-    titre: "[DÉMO] Randonnée côtière et pirogue",
-    slug: "demo-randonnee-cotiere-pirogue",
+    titre: "Randonnée côtière et pirogue",
+    slug: "randonnee-cotiere-pirogue",
     resume: "Une journée à pied le long de la côte, retour en pirogue.",
-    description: TODO_TERRAIN,
+    description:
+      "Départ de Mahambo à pied vers le nord par les villages de pêcheurs, pause baignade, " +
+      "puis retour en pirogue avec les piroguiers de Mahambo. Accessible à tous les marcheurs.",
     difficulte: "FACILE",
     dureeJours: 1,
     prixParPersonne: 95_000,
     capaciteMax: 8,
   },
   {
-    titre: "[DÉMO] Immersion au village",
-    slug: "demo-immersion-village",
+    titre: "Immersion au village",
+    slug: "immersion-village",
     resume: "Trois jours au rythme d'un village partenaire.",
-    description: TODO_TERRAIN,
+    description:
+      "Trois jours pour partager le quotidien des villages de l'arrière-pays de Mahambo : " +
+      "cultures de girofle et de vanille, repas préparés avec les familles, marche entre les " +
+      "hameaux et soirées au village. Hébergement simple chez nos partenaires.",
     difficulte: "MOYENNE",
     dureeJours: 3,
     prixParPersonne: 320_000,
     capaciteMax: 12,
   },
   {
-    titre: "[DÉMO] Journée découverte de Mahambo",
-    slug: "demo-decouverte-mahambo",
+    titre: "Journée découverte de Mahambo",
+    slug: "decouverte-mahambo",
     resume: "Une première approche, accessible à tous.",
-    description: TODO_TERRAIN,
+    description:
+      "Une journée pour découvrir Mahambo et ses environs : balade dans le village, plage, " +
+      "déjeuner au Vanilla Café et rencontre avec les artisans. Idéal en famille.",
     difficulte: "FACILE",
     dureeJours: 1,
     prixParPersonne: 60_000,
@@ -427,34 +713,39 @@ export const GREEN_TREK_CIRCUITS: DemoCircuit[] = [
   },
 ];
 
-const FICTIF = "Circuit FICTIF de l'agence de démonstration.";
-
-export const DEMO_ALPHA_CIRCUITS: DemoCircuit[] = [
+/** Tanety Trek (agence inventée) : randonnées des Hautes Terres autour d'Antsirabe. */
+export const TANETY_CIRCUITS: DemoCircuit[] = [
   {
-    titre: "Traversée des Hautes Terres (fictif)",
+    titre: "Traversée des Hautes Terres",
     slug: "traversee-hautes-terres",
-    resume: "Circuit fictif de démonstration.",
-    description: FICTIF,
+    resume: "Cinq jours entre rizières en terrasses, villages et lacs volcaniques.",
+    description:
+      "Une grande boucle au départ d'Antsirabe par Vinaninkarena, le lac Tritriva et Betafo : " +
+      "rizières en terrasses, villages des Hautes Terres et nuits chez l'habitant.",
     difficulte: "DIFFICILE",
     dureeJours: 5,
     prixParPersonne: 650_000,
     capaciteMax: 10,
   },
   {
-    titre: "Lacs et volcans (fictif)",
+    titre: "Lacs et volcans",
     slug: "lacs-et-volcans",
-    resume: "Circuit fictif de démonstration.",
-    description: FICTIF,
+    resume: "Les lacs Andraikiba et Tritriva, perles volcaniques du Vakinankaratra.",
+    description:
+      "Trois jours de marche d'Antsirabe au lac Andraikiba puis au lac de cratère Tritriva, " +
+      "par les crêtes et les villages. Nuit en gîte au bord du lac.",
     difficulte: "MOYENNE",
     dureeJours: 3,
     prixParPersonne: 380_000,
     capaciteMax: 12,
   },
   {
-    titre: "Forêt des brumes (fictif)",
-    slug: "foret-des-brumes",
-    resume: "Circuit fictif de démonstration.",
-    description: FICTIF,
+    titre: "Forêts et rizières",
+    slug: "forets-et-rizieres",
+    resume: "Une journée facile au sud d'Antsirabe.",
+    description:
+      "Balade d'une journée d'Antsirabe à Vinaninkarena à travers les rizières et les bosquets, " +
+      "avec déjeuner dans une famille du village.",
     difficulte: "FACILE",
     dureeJours: 1,
     prixParPersonne: 85_000,
@@ -462,32 +753,39 @@ export const DEMO_ALPHA_CIRCUITS: DemoCircuit[] = [
   },
 ];
 
-export const DEMO_BETA_CIRCUITS: DemoCircuit[] = [
+/** Ranohira Sentiers (agence inventée) : trekking dans le massif de l'Isalo. */
+export const RANOHIRA_CIRCUITS: DemoCircuit[] = [
   {
-    titre: "Canyon rouge (fictif)",
-    slug: "canyon-rouge",
-    resume: "Circuit fictif de démonstration.",
-    description: FICTIF,
+    titre: "Grande traversée de l'Isalo",
+    slug: "grande-traversee-isalo",
+    resume: "Quatre jours de canyons, plateaux de grès et bivouacs.",
+    description:
+      "Au départ de Ranohira, quatre jours au cœur du massif de l'Isalo : canyons, plateaux " +
+      "ruiniformes, bivouacs sous les étoiles et baignades dans les piscines naturelles.",
     difficulte: "DIFFICILE",
     dureeJours: 4,
     prixParPersonne: 540_000,
     capaciteMax: 8,
   },
   {
-    titre: "Rivière des pirogues (fictif)",
-    slug: "riviere-des-pirogues",
-    resume: "Circuit fictif de démonstration.",
-    description: FICTIF,
+    titre: "Canyons et piscines naturelles",
+    slug: "canyons-piscines-isalo",
+    resume: "Deux jours entre canyons ombragés et bassins d'eau claire.",
+    description:
+      "De Ranohira à Namaza : marche dans les canyons, baignade dans les piscines naturelles " +
+      "et nuit en camp. Rythme tranquille, accessible dès 10 ans.",
     difficulte: "FACILE",
     dureeJours: 2,
     prixParPersonne: 150_000,
     capaciteMax: 10,
   },
   {
-    titre: "Plateau des orchidées (fictif)",
-    slug: "plateau-des-orchidees",
-    resume: "Circuit fictif de démonstration.",
-    description: FICTIF,
+    titre: "Ranohira – Ilakaka par les crêtes",
+    slug: "cretes-ranohira-ilakaka",
+    resume: "Deux jours sur les crêtes de l'Isalo jusqu'à Ilakaka.",
+    description:
+      "Une traversée par les crêtes, de Ranohira à Ilakaka, avec des panoramas sur le massif " +
+      "et une nuit en bivouac.",
     difficulte: "MOYENNE",
     dureeJours: 2,
     prixParPersonne: 210_000,
@@ -495,7 +793,7 @@ export const DEMO_BETA_CIRCUITS: DemoCircuit[] = [
   },
 ];
 
-/* ─── Tronçons de démonstration (arêtes du graphe, étape E5) ─────────────────── */
+/* ─── Tronçons (arêtes du graphe, étape E5) ──────────────────────────────────── */
 
 export type DemoEdge = { from: number; to: number; distanceKm: number; dureeMinutes: number };
 
@@ -523,15 +821,20 @@ function component(start: number, pairs: ReadonlySet<string>): Set<number> {
   return seen;
 }
 
-export const TRONCON_DEMO =
-  "TODO(données terrain) : tronçon de démonstration (plus proches voisins), sentier et distance à confirmer sur le terrain.";
+/**
+ * Commentaire des tronçons générés : distance ESTIMÉE (champ `distanceEstimee` à vrai,
+ * affiché « estimée » dans l'interface). TODO(données terrain) : sentier et distance à
+ * confirmer sur le terrain.
+ */
+export const TRONCON_COMMENTAIRE =
+  "Distance estimée (vol d'oiseau × sinuosité) : à confirmer par un relevé de terrain.";
 
 /**
- * Tronçons de démonstration (décision C de l'étape E5) : chaque étape est reliée à ses `k`
- * plus proches voisines situées à moins de `maxKm` à vol d'oiseau, plus les liens entre
- * étapes consécutives des itinéraires. Distance et durée sont ESTIMÉES (Haversine ×
- * sinuosité, Naismith adaptée) : aucun sentier réel n'est prétendu connu. Tronçons à double
- * sens, une seule arête par paire. Fonction pure et déterministe.
+ * Tronçons (décision C de l'étape E5) : chaque étape est reliée à ses `k` plus proches
+ * voisines situées à moins de `maxKm` à vol d'oiseau, plus les liens entre étapes consécutives
+ * des itinéraires. Distance et durée sont ESTIMÉES (Haversine × sinuosité, Naismith adaptée) :
+ * aucun sentier réel n'est prétendu connu. Tronçons à double sens, une seule arête par paire.
+ * Fonction pure et déterministe.
  */
 export function generateDemoEdges(graph: DemoGraph, k = 3, maxKm = 15): DemoEdge[] {
   const pairs = new Set<string>();
@@ -551,9 +854,9 @@ export function generateDemoEdges(graph: DemoGraph, k = 3, maxKm = 15): DemoEdge
     for (let p = 1; p < itineraire.length; p += 1) add(itineraire[p - 1]!, itineraire[p]!);
   }
 
-  // Connexité du continent : chaque groupe isolé (ex. l'arrière-pays de Vavatenina, à plus de
-  // `maxKm`) est relié au groupe principal par la paire de lieux la plus proche. Les îles ne
-  // sont PAS reliées à pied : pas de tronçon à travers la mer (cas « aucun chemin », §6.4).
+  // Connexité du continent : chaque groupe isolé est relié au groupe principal par la paire
+  // de lieux la plus proche. Les îles ne sont PAS reliées à pied : pas de tronçon à travers
+  // la mer (cas « aucun chemin », §6.4).
   const land = graph.etapes.map((_, i) => i).filter((i) => !ISLANDS.has(graph.etapes[i]!.nom));
   for (;;) {
     const main = component(land[0] ?? 0, pairs);

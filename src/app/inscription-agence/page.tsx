@@ -10,7 +10,7 @@ export default function InscriptionAgencePage() {
   return (
     <AuthCard
       title="Inscrire votre agence"
-      subtitle="Créez votre espace et votre site vitrine. Période d'essai de 30 jours (simulée)."
+      subtitle="Créez votre espace et votre site vitrine. Période d'essai gratuite de 30 jours."
       footer={
         <>
           Déjà inscrit ?{" "}

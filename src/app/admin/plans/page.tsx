@@ -23,7 +23,7 @@ export default async function PlansPage() {
     <div className="space-y-6">
       <PageHeader
         title="Plans et tarifs"
-        description="Tarifs fictifs (projet de démonstration) ; affichés sur la page publique Tarifs."
+        description="Plans proposés aux agences et affichés sur la page publique Tarifs."
         actions={
           <div className="flex flex-wrap gap-2">
             <Link

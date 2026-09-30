@@ -1,16 +1,18 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  DEMO_ALPHA_CIRCUITS,
-  DEMO_ALPHA_GRAPH,
-  DEMO_BETA_CIRCUITS,
-  DEMO_BETA_GRAPH,
   type DemoGraph,
+  exampleEmail,
   generateAgencyDemo,
+  generateClients,
   generateDemoEdges,
   GREEN_TREK_CIRCUITS,
   GREEN_TREK_GRAPH,
   ISLANDS,
+  RANOHIRA_CIRCUITS,
+  RANOHIRA_GRAPH,
+  TANETY_CIRCUITS,
+  TANETY_GRAPH,
 } from "../../prisma/demo-data";
 import { estimateDistanceKm } from "@/lib/graph/estimation";
 import { COTE_EST_OSM_PLACES, MAHAMBO_OSM_PLACES } from "../../prisma/osm-mahambo";
@@ -21,28 +23,51 @@ import { COTE_EST_OSM_PLACES, MAHAMBO_OSM_PLACES } from "../../prisma/osm-mahamb
  */
 const NOW = new Date("2026-09-28T09:00:00Z");
 const specs = [
-  { prefix: "GT", circuits: GREEN_TREK_CIRCUITS, clientCount: 9, seed: 1 },
-  { prefix: "ALP", circuits: DEMO_ALPHA_CIRCUITS, clientCount: 9, seed: 2 },
-  { prefix: "BET", circuits: DEMO_BETA_CIRCUITS, clientCount: 9, seed: 3 },
+  { prefix: "GT", circuits: GREEN_TREK_CIRCUITS, clients: generateClients(40, 1), seed: 1 },
+  { prefix: "TT", circuits: TANETY_CIRCUITS, clients: generateClients(20, 2), seed: 2 },
+  { prefix: "RS", circuits: RANOHIRA_CIRCUITS, clients: generateClients(20, 3), seed: 3 },
 ];
 const all = specs.map((spec) => generateAgencyDemo(spec, NOW));
 
 describe("données de démonstration", () => {
-  it("volumes du §11 : une dizaine de circuits, ≥ 20 départs, ≥ 50 réservations", () => {
+  it("volumes : une dizaine de circuits, 12 mois d'historique, au moins 200 réservations", () => {
     expect(all.reduce((n, d) => n + d.circuits.length, 0)).toBe(10);
-    expect(all.reduce((n, d) => n + d.sessions.length, 0)).toBeGreaterThanOrEqual(20);
-    expect(all.reduce((n, d) => n + d.reservations.length, 0)).toBeGreaterThanOrEqual(50);
+    expect(all.reduce((n, d) => n + d.sessions.length, 0)).toBeGreaterThanOrEqual(80);
+    expect(all.reduce((n, d) => n + d.reservations.length, 0)).toBeGreaterThanOrEqual(200);
+    const avis = all.flatMap((d) => d.reservations.filter((r) => r.avis));
+    expect(avis.length).toBeGreaterThanOrEqual(40);
   });
 
   it("est déterministe (même graine, même date → mêmes données)", () => {
     expect(generateAgencyDemo(specs[0]!, NOW)).toEqual(all[0]);
   });
 
-  it("les circuits de Green Trek sont marqués [DÉMO] et TODO(données terrain)", () => {
-    for (const circuit of GREEN_TREK_CIRCUITS) {
-      expect(circuit.titre.startsWith("[DÉMO]")).toBe(true);
-      expect(circuit.description).toContain("TODO(données terrain)");
-    }
+  it("textes affichés sans mention « démo », « fictif » ni TODO (décision de l'étape E12)", () => {
+    const visibles = [
+      ...[...GREEN_TREK_CIRCUITS, ...TANETY_CIRCUITS, ...RANOHIRA_CIRCUITS].flatMap((c) => [
+        c.titre,
+        c.resume,
+        c.description,
+      ]),
+      ...[GREEN_TREK_GRAPH, TANETY_GRAPH, RANOHIRA_GRAPH].flatMap((g) =>
+        g.etapes.flatMap((e) => [e.nom, e.description]),
+      ),
+      ...all.flatMap((d) =>
+        d.reservations.flatMap((r) => [
+          r.remarques ?? "",
+          r.avis?.commentaire ?? "",
+          ...r.participants.flatMap((p) => [p.nom, p.prenom]),
+        ]),
+      ),
+    ];
+    for (const texte of visibles) expect(texte).not.toMatch(/d[ée]mo|fictif|fictive|TODO|\[/i);
+  });
+
+  it("clients inventés : noms uniques, adresses sur le domaine réservé example.com", () => {
+    const clients = generateClients(40, 1);
+    expect(new Set(clients.map((c) => `${c.prenom} ${c.nom}`)).size).toBe(40);
+    expect(exampleEmail({ prenom: "Élodie", nom: "Petit" })).toBe("elodie.petit@example.com");
+    expect(generateClients(40, 1)).toEqual(clients); // déterministe
   });
 
   for (const [index, data] of all.entries()) {
@@ -96,6 +121,17 @@ describe("données de démonstration", () => {
         expect(session.statut).not.toBe("ANNULEE"); // pas de réservation sur un départ annulé
         if (r.statut === "TERMINEE") expect(session.statut).toBe("TERMINEE");
         expect(references.has(r.reference)).toBe(false);
+        // Le premier participant est le client qui réserve.
+        const client = specs[index]!.clients[r.clientIndex]!;
+        expect(r.participants[0]).toMatchObject({ prenom: client.prenom, nom: client.nom });
+        // RG 17 : avis seulement pour une réservation terminée, après le séjour, note 1 à 5.
+        if (r.avis) {
+          expect(r.statut).toBe("TERMINEE");
+          expect(r.avis.note).toBeGreaterThanOrEqual(1);
+          expect(r.avis.note).toBeLessThanOrEqual(5);
+          expect(r.avis.createdAt.getTime()).toBeGreaterThan(session.dateFin.getTime());
+          expect(r.avis.createdAt.getTime()).toBeLessThanOrEqual(NOW.getTime());
+        }
         references.add(r.reference);
       }
     });
@@ -116,8 +152,8 @@ describe("données de démonstration", () => {
   describe("graphes de démonstration (étapes et itinéraires)", () => {
     const graphs = [
       ["GT", GREEN_TREK_GRAPH, GREEN_TREK_CIRCUITS],
-      ["ALP", DEMO_ALPHA_GRAPH, DEMO_ALPHA_CIRCUITS],
-      ["BET", DEMO_BETA_GRAPH, DEMO_BETA_CIRCUITS],
+      ["TT", TANETY_GRAPH, TANETY_CIRCUITS],
+      ["RS", RANOHIRA_GRAPH, RANOHIRA_CIRCUITS],
     ] as const;
 
     for (const [label, graph, circuits] of graphs) {
@@ -160,9 +196,10 @@ describe("données de démonstration", () => {
       expect(GREEN_TREK_GRAPH.etapes.some((e) => e.nom.includes("Ambodiforaha"))).toBe(false);
     });
 
-    it("agences fictives : toutes les étapes sont marquées (fictif)", () => {
-      for (const e of [...DEMO_ALPHA_GRAPH.etapes, ...DEMO_BETA_GRAPH.etapes]) {
-        expect(e.nom).toContain("(fictif)");
+    it("toutes les agences : lieux réels, source OpenStreetMap citée (licence ODbL)", () => {
+      for (const e of [...TANETY_GRAPH.etapes, ...RANOHIRA_GRAPH.etapes]) {
+        expect(e.description).toContain("OpenStreetMap");
+        expect(e.description).toMatch(/OSM \d+/); // identifiant de l'objet OpenStreetMap
       }
     });
   });
@@ -181,8 +218,8 @@ describe("données de démonstration", () => {
 
     for (const [label, graph] of [
       ["GT", GREEN_TREK_GRAPH],
-      ["ALP", DEMO_ALPHA_GRAPH],
-      ["BET", DEMO_BETA_GRAPH],
+      ["TT", TANETY_GRAPH],
+      ["RS", RANOHIRA_GRAPH],
     ] as const) {
       it(`${label} — arêtes valides : pas de boucle, une seule par paire, distance estimée`, () => {
         const edges = generateDemoEdges(graph);
@@ -220,9 +257,9 @@ describe("données de démonstration", () => {
       expect(groups.find((g) => g.length === ISLANDS.size)?.sort()).toEqual([...ISLANDS].sort());
     });
 
-    it("agences fictives : graphe connexe", () => {
-      expect(components(DEMO_ALPHA_GRAPH)).toHaveLength(1);
-      expect(components(DEMO_BETA_GRAPH)).toHaveLength(1);
+    it("Tanety Trek et Ranohira Sentiers : graphe connexe", () => {
+      expect(components(TANETY_GRAPH)).toHaveLength(1);
+      expect(components(RANOHIRA_GRAPH)).toHaveLength(1);
     });
   });
 });

@@ -172,7 +172,7 @@ export function AssignPlanForm({
         <SelectField
           label="Statut"
           options={[
-            { value: "ACTIF", label: "Actif (payé, simulation)" },
+            { value: "ACTIF", label: "Actif" },
             { value: "ESSAI", label: "Essai" },
           ]}
           error={errors.statut?.message}
@@ -181,7 +181,7 @@ export function AssignPlanForm({
       </div>
       <p className="text-xs text-gt-teal-900/60">
         L&apos;abonnement en cours est clôturé aujourd&apos;hui ; le nouveau commence
-        aujourd&apos;hui. Abonnements simulés : aucune facturation réelle.
+        aujourd&apos;hui.
       </p>
       <Button type="submit" disabled={pending}>
         {pending ? "Attribution…" : "Attribuer le plan"}
@@ -254,7 +254,7 @@ export function PlanForm({ plan, devise }: { plan?: PlanValues; devise: string }
         />
         <TextField label="Nom affiché" error={errors.nom?.message} {...register("nom")} />
         <TextField
-          label={`Prix mensuel (${devise}, fictif)`}
+          label={`Prix mensuel (${devise})`}
           inputMode="numeric"
           error={errors.prixMensuel?.message}
           {...register("prixMensuel")}

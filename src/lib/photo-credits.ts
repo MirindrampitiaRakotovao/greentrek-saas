@@ -20,28 +20,28 @@ export type PhotoCredit = {
 const COMMONS = "https://commons.wikimedia.org/wiki/File:";
 
 export const PHOTO_CREDITS: Record<string, PhotoCredit> = {
-  "/images/circuits/demo-mahambo-doany-ambodiforaha.jpg": {
+  "/images/circuits/sentier-mahambo-doany-ambodiforaha.jpg": {
     sujet: "Coucher de soleil sur la plage de Mahambo",
     auteur: "NalyRATOVO",
     licence: "CC BY-SA 4.0",
     licenceUrl: "https://creativecommons.org/licenses/by-sa/4.0",
     source: `${COMMONS}Mahambo_sunset_waves.jpg`,
   },
-  "/images/circuits/demo-randonnee-cotiere-pirogue.jpg": {
+  "/images/circuits/randonnee-cotiere-pirogue.jpg": {
     sujet: "Pirogue aux environs de Toamasina",
     auteur: "agamitsudo",
     licence: "CC0 (domaine public)",
     licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
     source: `${COMMONS}Pirogue-environs-tamatave-madagascar.jpg`,
   },
-  "/images/circuits/demo-immersion-village.jpg": {
+  "/images/circuits/immersion-village.jpg": {
     sujet: "Habitation traditionnelle au bord du canal des Pangalanes",
     auteur: "Andopascalou",
     licence: "CC BY-SA 4.0",
     licenceUrl: "https://creativecommons.org/licenses/by-sa/4.0",
     source: `${COMMONS}Madagascar._canal_des_pangalanes._Habitation_traditionnelle.jpg`,
   },
-  "/images/circuits/demo-decouverte-mahambo.jpg": {
+  "/images/circuits/decouverte-mahambo.jpg": {
     sujet: "Caméléon panthère (Furcifer pardalis) photographié à Mahambo",
     auteur: "Bernard Dupont",
     licence: "CC BY-SA 2.0",
@@ -62,33 +62,33 @@ export const PHOTO_CREDITS: Record<string, PhotoCredit> = {
     licenceUrl: "https://creativecommons.org/licenses/by-sa/3.0",
     source: `${COMMONS}Lake_Tritriva_01.jpg`,
   },
-  "/images/circuits/foret-des-brumes.jpg": {
+  "/images/circuits/forets-et-rizieres.jpg": {
     sujet: "Parc national d'Andasibe-Mantadia",
     auteur: "Rod Waddington",
     licence: "CC BY-SA 2.0",
     licenceUrl: "https://creativecommons.org/licenses/by-sa/2.0",
     source: `${COMMONS}Ansicht_Nationalpark_Andasibe-Mantadia_in_Madagaskar.jpg`,
   },
-  "/images/circuits/canyon-rouge.jpg": {
+  "/images/circuits/grande-traversee-isalo.jpg": {
     sujet: "Parc national de l'Isalo",
     auteur: "Bernard Gagnon",
     licence: "CC BY-SA 3.0",
     licenceUrl: "https://creativecommons.org/licenses/by-sa/3.0",
     source: `${COMMONS}Isalo_National_Park_06.jpg`,
   },
-  "/images/circuits/riviere-des-pirogues.jpg": {
-    sujet: "Canal des Pangalanes à Mananjary",
-    auteur: "Privatemajory",
+  "/images/circuits/canyons-piscines-isalo.jpg": {
+    sujet: "Piscine naturelle dans un canyon du parc national de l'Isalo",
+    auteur: "Smiley.toerist",
     licence: "CC BY-SA 4.0",
     licenceUrl: "https://creativecommons.org/licenses/by-sa/4.0",
-    source: `${COMMONS}Canal_des_Pangalanes_%C3%A0_Mananjary.jpg`,
+    source: `${COMMONS}Isalo_National_Park_2013_39.jpg`,
   },
-  "/images/circuits/plateau-des-orchidees.jpg": {
-    sujet: "Orchidée du parc Mitsinjo, station forestière d'Analamazaotra",
-    auteur: "Sitrakiniavo261",
+  "/images/circuits/cretes-ranohira-ilakaka.jpg": {
+    sujet: "Canyon rocheux du parc national de l'Isalo",
+    auteur: "Smiley.toerist",
     licence: "CC BY-SA 4.0",
     licenceUrl: "https://creativecommons.org/licenses/by-sa/4.0",
-    source: `${COMMONS}Orchid_from_Mitsinjo_Park_at_Analamazaotra_Forest_Station,_Madagascar_-_Oct_2023.jpg`,
+    source: `${COMMONS}Isalo_National_Park_2013_36.jpg`,
   },
 };
 

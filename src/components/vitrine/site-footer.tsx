@@ -87,8 +87,7 @@ export function SiteFooter({
         </div>
       </div>
       <div className="bg-gt-sand-300 px-4 py-3 text-center text-xs text-gt-teal-900">
-        © {agence.nom} · Site propulsé par la plateforme Green Trek (projet de fin d&apos;études,
-        démonstration locale : paiements simulés).
+        © {agence.nom} · Site propulsé par Green Trek.
       </div>
     </footer>
   );

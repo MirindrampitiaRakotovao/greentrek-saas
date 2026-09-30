@@ -204,7 +204,7 @@ describe("paiement simulé (RG 16)", () => {
     });
     expect(r.statut).toBe("CONFIRMEE");
     expect(r.paiements).toMatchObject([
-      { montant: 200_000, statut: "VALIDE", referenceExterne: "SIM-1010" },
+      { montant: 200_000, statut: "VALIDE", referenceExterne: "•••• 1010" },
     ]);
     // Déjà payée : un second paiement est refusé (la somme ne dépasserait plus le montant).
     expect((await payReservation(dbA, { reservationId: id, methode: "ESPECES" }, NOW)).ok).toBe(

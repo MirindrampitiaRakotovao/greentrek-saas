@@ -194,7 +194,7 @@ export async function payReservation(
         montant: reste,
         methode: input.methode,
         statut,
-        referenceExterne: input.numero ? `SIM-${input.numero.slice(-4)}` : null,
+        referenceExterne: input.numero ? `•••• ${input.numero.slice(-4)}` : null,
         payeLe: statut === "VALIDE" ? now : null,
       },
     });

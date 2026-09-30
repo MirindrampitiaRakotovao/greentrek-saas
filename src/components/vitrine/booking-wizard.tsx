@@ -236,7 +236,7 @@ export function BookingWizard({
           />
           <p className="text-xs text-gt-teal-900/60">
             Le montant est confirmé par l&apos;agence à la validation et ne change plus ensuite. Les
-            places sont réservées dès la validation ; le paiement (simulé) suit.
+            places sont réservées dès la validation ; le paiement suit.
           </p>
         </section>
       ) : null}
