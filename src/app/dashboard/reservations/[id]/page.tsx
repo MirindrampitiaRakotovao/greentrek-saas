@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, StatusPill } from "@/components/dashboard/widgets";
 import { InvoicePanel } from "@/components/facture/invoice-panel";
+import { ReservationMessageButton } from "@/components/messagerie/reservation-message-button";
 import { ActionButton } from "@/components/reservations/action-button";
 import { EncaissementForm } from "@/components/reservations/encaissement-form";
 import { FormModal } from "@/components/ui/form-modal";
@@ -119,6 +120,16 @@ export default async function ReservationPage({
               {r.remarques}
             </p>
           ) : null}
+          <div className="mt-4">
+            <ReservationMessageButton
+              reservationId={r.id}
+              conversationId={r.conversation?.id ?? null}
+              threadBase="/dashboard/messages"
+              label="Écrire au voyageur"
+              title={`Écrire à ${r.client.prenom} ${r.client.nom}`}
+              description={`Réservation ${r.reference} : le voyageur répond depuis son espace.`}
+            />
+          </div>
         </Card>
 
         <Card title="Départ" className="min-w-0">

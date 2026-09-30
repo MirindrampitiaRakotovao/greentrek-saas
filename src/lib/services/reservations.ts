@@ -297,6 +297,7 @@ const reservationSelect = {
       id: true,
       dateDebut: true,
       dateFin: true,
+      guideId: true,
       circuit: { select: { titre: true, slug: true, imagePrincipaleUrl: true } },
     },
   },
@@ -316,6 +317,7 @@ const reservationSelect = {
     },
   },
   avis: { select: { note: true, commentaire: true, statut: true } },
+  conversation: { select: { id: true } },
 } satisfies Prisma.ReservationSelect;
 
 type ReservationPayload = Prisma.ReservationGetPayload<{ select: typeof reservationSelect }>;

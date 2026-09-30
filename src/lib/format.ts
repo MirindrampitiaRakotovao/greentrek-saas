@@ -26,6 +26,25 @@ export function formatShortDate(date: Date | null | undefined, fallback = "—")
   return date ? shortDateFormat.format(date) : fallback;
 }
 
+const timeFormat = new Intl.DateTimeFormat("fr-FR", { timeStyle: "short", timeZone: TIME_ZONE });
+const numericDayMonthFormat = new Intl.DateTimeFormat("fr-FR", {
+  day: "2-digit",
+  month: "2-digit",
+  timeZone: TIME_ZONE,
+});
+
+/** « 14:05 » : heure seule (messages). */
+export function formatTime(date: Date): string {
+  return timeFormat.format(date);
+}
+
+/** Liste des conversations : l'heure si c'est aujourd'hui, sinon « 29/09 ». */
+export function formatMessageDate(date: Date, now: Date = new Date()): string {
+  return shortDateFormat.format(date) === shortDateFormat.format(now)
+    ? timeFormat.format(date)
+    : numericDayMonthFormat.format(date);
+}
+
 export function formatDate(date: Date | null | undefined, fallback = "—"): string {
   // Usage français : « 1er novembre », pas « 1 novembre ».
   return date ? dateFormat.format(date).replace(/^1 /, "1er ") : fallback;

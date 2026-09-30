@@ -4,6 +4,7 @@ import { AppShell } from "@/components/shell/app-shell";
 import { requireUser } from "@/lib/auth/session";
 import { getShellNotifications } from "@/lib/dashboard/notifications";
 import type { NavItem } from "@/lib/navigation";
+import { countUnreadConversations } from "@/lib/services/messagerie";
 import { getTenantDb } from "@/lib/tenant";
 
 /**
@@ -18,17 +19,24 @@ export default async function MonCompteLayout({
   const user = await requireUser({ roles: ["CLIENT"], agenceSlug: slug });
   if (!user.agenceId) notFound();
   const db = getTenantDb(user.agenceId);
-  const [agence, notifications] = await Promise.all([
+  const [agence, notifications, messagesNonLus] = await Promise.all([
     db.agence.findUniqueOrThrow({
       where: { id: user.agenceId },
       select: { nom: true, email: true, telephone: true },
     }),
     getShellNotifications(db, user.id),
+    countUnreadConversations(db, { id: user.id, role: user.role }),
   ]);
 
   const nav: NavItem[] = [
     { href: `/a/${slug}/mon-compte`, label: "Mon espace", icon: "home" },
     { href: `/a/${slug}/mon-compte/reservations`, label: "Mes réservations", icon: "ticket" },
+    {
+      href: `/a/${slug}/mon-compte/messages`,
+      label: "Messages",
+      icon: "message",
+      badge: messagesNonLus,
+    },
     { href: `/a/${slug}/circuits`, label: "Réserver un circuit", icon: "mountain" },
   ];
   const contact = [agence.telephone, agence.email].filter(Boolean).join(" · ");
@@ -41,11 +49,9 @@ export default async function MonCompteLayout({
       promo={{
         title: "Une question sur votre voyage ?",
         text: contact
-          ? `Contactez ${agence.nom} : ${contact}.`
-          : `Contactez ${agence.nom} en mentionnant la référence de votre réservation.`,
-        cta: agence.email
-          ? { label: "Écrire à l'agence", href: `mailto:${agence.email}` }
-          : undefined,
+          ? `Écrivez à ${agence.nom} dans la messagerie, ou contactez l'agence : ${contact}.`
+          : `Écrivez à ${agence.nom} dans la messagerie : réponse de l'équipe ou de votre guide.`,
+        cta: { label: "Écrire à l'agence", href: `/a/${slug}/mon-compte/messages` },
       }}
       notifications={notifications}
       footerNote="Paiement sécurisé · facture disponible pour chaque réservation"

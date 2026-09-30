@@ -22,9 +22,11 @@ describe("navigationFor : menu selon le rôle", () => {
   });
 
   it("GUIDE ne voit ni l'équipe, ni les guides, ni les partenaires, ni les paramètres", () => {
-    // Le guide consulte les circuits et les étapes (lecture seule, matrice §3) et ses départs.
+    // Le guide consulte les circuits et les étapes (lecture seule, matrice §3) et ses départs,
+    // et échange avec les voyageurs de ses départs (messagerie, après E12).
     expect(hrefs("GUIDE")).toEqual([
       "/dashboard",
+      "/dashboard/messages",
       "/dashboard/circuits",
       "/dashboard/departs",
       "/dashboard/etapes",

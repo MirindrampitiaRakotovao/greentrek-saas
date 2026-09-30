@@ -211,6 +211,7 @@ const reservationDetailSelect = {
       payeLe: true,
     },
   },
+  conversation: { select: { id: true } },
 } satisfies Prisma.ReservationSelect;
 
 type ReservationDetailPayload = Prisma.ReservationGetPayload<{

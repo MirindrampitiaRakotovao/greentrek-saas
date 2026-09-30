@@ -549,14 +549,24 @@ async function seedAgence(
         createdAt: m.createdAt,
       })),
     });
-    // Chaque auteur a lu la conversation jusqu'à son dernier message.
-    const lectures = new Map(messages.map((m) => [m.auteurId, m.createdAt]));
+    // Lectures : les participants ont lu jusqu'au dernier message, sauf une question du
+    // voyageur restée sans réponse, encore « à traiter » pour l'équipe et le guide.
+    const dernier = messages.at(-1)!;
+    const sansReponse = messages.length === 1 && dernier.auteur === "CLIENT";
+    const participants = [
+      clientId,
+      admin.id,
+      staff.id,
+      ...(data.sessions[r.sessionIndex]!.withGuide ? [guideCompte.id] : []),
+    ];
     await db.lectureConversation.createMany({
-      data: [...lectures].map(([utilisateurId, luJusqua]) => ({
-        conversationId: created.id,
-        utilisateurId,
-        luJusqua,
-      })),
+      data: participants
+        .filter((id) => !sansReponse || id === clientId)
+        .map((utilisateurId) => ({
+          conversationId: created.id,
+          utilisateurId,
+          luJusqua: dernier.createdAt,
+        })),
     });
   }
 

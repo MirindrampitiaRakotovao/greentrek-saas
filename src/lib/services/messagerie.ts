@@ -244,7 +244,11 @@ export async function startConversation(
 const lastMessageSelect = {
   orderBy: [{ createdAt: "desc" }, { id: "desc" }],
   take: 1,
-  select: { contenu: true, createdAt: true, auteur: { select: { prenom: true, role: true } } },
+  select: {
+    contenu: true,
+    createdAt: true,
+    auteur: { select: { id: true, prenom: true, role: true } },
+  },
 } satisfies Prisma.Conversation$messagesArgs;
 
 function conversationListSelect(viewerId: string) {
@@ -273,6 +277,7 @@ export type ConversationSummary = Omit<ConversationListPayload, "messages" | "le
   dernierMessage: {
     contenu: string;
     createdAt: Date;
+    auteurId: string;
     auteurPrenom: string;
     auteurRole: Role;
   } | null;
@@ -286,6 +291,7 @@ function toSummary(viewer: Viewer, c: ConversationListPayload): ConversationSumm
     ? {
         contenu: last.contenu,
         createdAt: last.createdAt,
+        auteurId: last.auteur.id,
         auteurPrenom: last.auteur.prenom,
         auteurRole: last.auteur.role,
       }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AvisForm } from "@/components/avis/avis-form";
+import { ReservationMessageButton } from "@/components/messagerie/reservation-message-button";
 import { Card, StatusPill } from "@/components/dashboard/widgets";
 import { InvoicePanel } from "@/components/facture/invoice-panel";
 import { FormModal } from "@/components/ui/form-modal";
@@ -159,6 +160,23 @@ export default async function ReservationPage({
           )}
         </Card>
       </div>
+
+      <Card title="Une question sur ce voyage ?">
+        <p className="mb-4 text-sm text-gt-teal-900/80">
+          Écrivez à {agence?.nom ?? "l'agence"} : l&apos;équipe
+          {reservation.session.guideId ? " et votre guide" : ""} vous répondent dans votre
+          messagerie.
+        </p>
+        <ReservationMessageButton
+          reservationId={reservation.id}
+          conversationId={reservation.conversation?.id ?? null}
+          threadBase={`/a/${slug}/mon-compte/messages`}
+          label="Contacter l'agence"
+          title="Écrire à l'agence"
+          description={`${reservation.session.circuit.titre} · ${reservation.reference}`}
+          placeholder="Votre question sur ce voyage…"
+        />
+      </Card>
 
       {reservation.remarques ? (
         <Card title="Vos remarques">

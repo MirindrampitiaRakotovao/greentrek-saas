@@ -19,7 +19,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E10 Back-office opérationnel | Fait | 2026-09-29 | Validé par l'étudiant (réservations, paiements, clients, export CSV, facture avec QR code scannable sur le Wi-Fi), puis refonte de l'interface demandée (modales, confirmations, listes, pagination numérotée, défilement du contenu seul) ; typecheck, lint, 486 tests, build et parcours dans le navigateur verts |
 | E11 Super admin, plans | Fait | 2026-09-30 | Validé par l'étudiant : console agences et plans, attribution, suspension, limites RG 18, page Abonnement, landing SaaS, Tarifs ; typecheck, lint, 501 tests, build et parcours dans le navigateur verts |
 | E12 Finition | Fait | 2026-09-30 | Validé par l'étudiant : données réalistes (seed complet), avis et modération, notifications, journal d'activité, accessibilité, script de démonstration ; typecheck, lint, 518 tests, build et parcours dans le navigateur verts |
-| Messagerie temps réel (hors plan) | En cours | 2026-09-30 | M1 (données, règles, tests) validé ; M2 (canal temps réel, notifications instantanées, son) terminé, en attente de validation ; M3 (interface) à faire |
+| Messagerie temps réel (hors plan) | En attente de validation | 2026-09-30 | M1 (données, règles) et M2 (temps réel, son) validés ; M3 (interface : back-office, guide, espace client) terminé ; typecheck, lint, 560 tests, build et parcours à trois sessions verts |
 
 ## Décisions et justifications
 
@@ -402,6 +402,18 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
   - 6 tests unitaires : bus (destinataires, onglet en erreur, désabonnement), extrait, report après commit et abandon en cas d'échec ;
   - 3 tests d'intégration : destinataires d'un message, d'une réponse de l'agence, notification envoyée seulement après le commit ;
   - parcours dans le navigateur (build de production) : `/api/temps-reel` sans session → 401 ; le personnel reçoit l'annulation d'un client en 0,5 s (notification à l'écran, cloche de 4 à 5 non lues sans recharger, son joué) ; son coupé conservé après rechargement ; en-tête sur mobile ; aucune erreur.
+- **Lot M3 : interface** :
+  - page « Messages » en deux volets (conversations à gauche, fil à droite ; un seul volet à la fois sur mobile), dans le back-office (administrateur, personnel, guide) et dans l'espace voyageur, avec une pastille de non-lus dans le menu ;
+  - fil : bulles (« mon côté » à droite : moi, ou mes collègues de l'agence), séparateurs de jour, heure, auteur et rôle ; défilement en bas à chaque nouveau message ; zone de saisie (Entrée pour envoyer, Maj + Entrée pour aller à la ligne) validée par Zod ; liste des messages annoncée aux lecteurs d'écran (`role="log"`) ;
+  - un message reçu dans la conversation ouverte s'affiche directement (son, sans notification à l'écran) ; ailleurs, notification à l'écran et son ;
+  - la conversation est marquée comme lue par le navigateur à l'ouverture (action serveur), pas pendant l'affichage de la page : l'affichage n'écrit rien en base ;
+  - points d'entrée : « Contacter l'agence » sur une réservation du voyageur, « Nouvelle question » dans sa messagerie, « Écrire au voyageur » sur la fiche de réservation du back-office, « Écrire » / « Messages » sur chaque réservation d'un départ (utile au guide) ; « Voir la conversation » si elle existe déjà ;
+  - l'encart de l'espace voyageur « Écrire à l'agence » ouvre la messagerie (au lieu d'un lien e-mail).
+- **Parcours du lot M3 dans le navigateur** (build de production, trois sessions en parallèle) :
+  - personnel sur sa messagerie (2 conversations à traiter), guide (7 conversations de ses départs), client ;
+  - le client écrit depuis sa réservation : le personnel et le guide du départ sont notifiés en 0,2 s (son de message, pastille de 2 à 3) ;
+  - le personnel ouvre le fil (pastille de 3 à 2) et répond avec Entrée : la réponse apparaît chez le client en 0,5 s, sans rechargement ni notification superflue ;
+  - message vide refusé ; fil d'une autre agence → 404 ; affichage mobile ; aucune erreur.
 - **Tests du lot M1** :
   - 14 tests d'intégration : ouverture, réutilisation de la conversation d'une réservation, réservation d'un autre client refusée, question générale, agence et guide du départ, guide d'un autre départ refusé, simultanéité, portée de chaque rôle, ordre du fil, non-lus en boîte partagée et pour le guide, isolation entre agences, contraintes CHECK ;
   - 4 tests unitaires des règles pures ;
@@ -410,6 +422,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 
 ## Captures d'écran à prendre
 
+- Messagerie M3 : messagerie du personnel (deux volets, pastille de non-lus) ; fil ouvert avec la réponse ; modale « Écrire à l'agence » depuis une réservation ; fil sur mobile ; démonstration à deux fenêtres (le message apparaît en direct).
 - Messagerie M2 : notification apparue à l'écran chez le personnel pendant qu'un client annule (deux fenêtres côte à côte) ; bouton du son dans l'en-tête ; page des crédits (sons).
 - E12 : site vitrine avec les notes sur les cartes et la section « Ils ont randonné avec nous » ; fiche circuit avec la note et les avis ; modale « Votre avis sur le séjour » ; page « Avis » du back-office (à modérer) ; cloche des notifications ouverte ; journal d'activité de l'agence et de la console ; lien « Aller au contenu » visible après Tab.
 

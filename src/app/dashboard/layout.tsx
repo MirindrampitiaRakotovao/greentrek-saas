@@ -3,6 +3,8 @@ import { requireAgencyUser } from "@/lib/auth/session";
 import { getShellNotifications } from "@/lib/dashboard/notifications";
 import { daysUntil } from "@/lib/dates";
 import { navigationFor } from "@/lib/navigation";
+import { can } from "@/lib/permissions";
+import { countUnreadConversations } from "@/lib/services/messagerie";
 import { ROLE_LABELS } from "@/lib/roles";
 
 /**
@@ -12,14 +14,20 @@ import { ROLE_LABELS } from "@/lib/roles";
  */
 export default async function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
   const { user, db } = await requireAgencyUser();
-  const [agence, abonnement, notifications] = await Promise.all([
+  const [agence, abonnement, notifications, messagesNonLus] = await Promise.all([
     db.agence.findUniqueOrThrow({ where: { id: user.agenceId }, select: { nom: true } }),
     db.abonnement.findFirst({
       orderBy: { dateDebut: "desc" },
       select: { statut: true, dateFin: true, plan: { select: { nom: true } } },
     }),
     getShellNotifications(db, user.id),
+    can(user.role, "lire", "message")
+      ? countUnreadConversations(db, { id: user.id, role: user.role })
+      : Promise.resolve(0),
   ]);
+  const nav = navigationFor(user.role).map((item) =>
+    item.href === "/dashboard/messages" ? { ...item, badge: messagesNonLus } : item,
+  );
 
   let promo: ShellProps["promo"];
   if (user.role === "ADMIN_AGENCE") {
@@ -43,7 +51,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
   return (
     <AppShell
       brand={{ name: "Green Trek", tagline: agence.nom, href: "/dashboard" }}
-      nav={navigationFor(user.role)}
+      nav={nav}
       user={{ name: user.name, subtitle: ROLE_LABELS[user.role] }}
       promo={promo}
       notifications={notifications}

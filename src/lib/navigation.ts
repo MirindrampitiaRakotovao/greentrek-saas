@@ -2,7 +2,13 @@ import type { IconName } from "@/components/ui/icon";
 import type { Role } from "@/generated/prisma/client";
 import { type Action, can, type Resource } from "@/lib/permissions";
 
-export type NavItem = { href: string; label: string; icon: IconName };
+export type NavItem = {
+  href: string;
+  label: string;
+  icon: IconName;
+  /** Pastille (ex. conversations non lues), affichée si > 0. */
+  badge?: number;
+};
 
 type NavEntry = NavItem & {
   /** Permission requise pour voir le lien (absente : visible par tout le personnel). */
@@ -16,6 +22,13 @@ type NavEntry = NavItem & {
  */
 const NAVIGATION: readonly NavEntry[] = [
   { href: "/dashboard", label: "Tableau de bord", icon: "home" },
+  {
+    href: "/dashboard/messages",
+    label: "Messages",
+    icon: "message",
+    // Équipe de l'agence et guides (conversations de leurs départs).
+    permission: ["lire", "message"],
+  },
   {
     href: "/dashboard/equipe",
     label: "Équipe",

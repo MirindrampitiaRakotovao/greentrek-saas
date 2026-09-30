@@ -83,7 +83,9 @@ export function RealtimeBridge({ soundOn }: { soundOn: boolean }) {
         notify(event.titre, "info");
       } else {
         play("message");
-        notify(`Nouveau message de ${event.auteur} : ${event.extrait}`, "info");
+        // Conversation déjà ouverte : le message apparaît dans le fil, pas de notification.
+        const ouverte = window.location.pathname.endsWith(`/messages/${event.conversationId}`);
+        if (!ouverte) notify(`Nouveau message de ${event.auteur} : ${event.extrait}`, "info");
         window.dispatchEvent(new CustomEvent("gt:message", { detail: event }));
       }
       refreshSoon();

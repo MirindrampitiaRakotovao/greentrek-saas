@@ -15,6 +15,7 @@ import { formatDateRange, formatDateTime, formatMoney } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { getAgencySettings } from "@/lib/services/agency-settings";
 import { findGuideFiche, getDepart } from "@/lib/services/departs";
+import { ReservationMessageButton } from "@/components/messagerie/reservation-message-button";
 
 export const metadata: Metadata = { title: "Départ — Green Trek" };
 
@@ -123,9 +124,9 @@ export default async function DepartPage({ params }: PageProps<"/dashboard/depar
               <caption className="sr-only">Réservations de ce départ</caption>
               <thead className="text-xs text-gt-teal-900/75">
                 <tr className="border-b border-gt-mist/70">
-                  {["Référence", "Client", "Personnes", "Montant", "Réservée le", "Statut"].map(
+                  {["Référence", "Client", "Personnes", "Montant", "Réservée le", "Statut", ""].map(
                     (h) => (
-                      <th key={h} scope="col" className="py-2 pr-3 font-medium">
+                      <th key={h || "messages"} scope="col" className="py-2 pr-3 font-medium">
                         {h}
                       </th>
                     ),
@@ -153,6 +154,19 @@ export default async function DepartPage({ params }: PageProps<"/dashboard/depar
                     </td>
                     <td className="py-2.5 pr-3">
                       <StatusPill statut={r.statut} />
+                    </td>
+                    <td className="py-2.5 pr-3">
+                      {r.statut !== "ANNULEE" || r.conversation ? (
+                        <ReservationMessageButton
+                          reservationId={r.id}
+                          conversationId={r.conversation?.id ?? null}
+                          threadBase="/dashboard/messages"
+                          label="Écrire"
+                          openLabel="Messages"
+                          title={`Écrire à ${r.client.prenom} ${r.client.nom}`}
+                          description={`Réservation ${r.reference}`}
+                        />
+                      ) : null}
                     </td>
                   </tr>
                 ))}

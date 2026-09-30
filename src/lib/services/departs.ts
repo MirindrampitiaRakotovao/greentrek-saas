@@ -174,6 +174,7 @@ const departDetailSelect = {
       statut: true,
       createdAt: true,
       client: { select: { prenom: true, nom: true, email: true, telephone: true } },
+      conversation: { select: { id: true } },
       participants: {
         select: { id: true, prenom: true, nom: true, age: true, nationalite: true },
       },

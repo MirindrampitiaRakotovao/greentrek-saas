@@ -67,6 +67,14 @@ Mot de passe de tous les comptes : `Demo2026!`
 - **Avis** : dans l'espace client (fenêtre 1), « Mes réservations » → un séjour terminé → « Donner mon avis » (note et commentaire). Dans le back-office, menu « Avis » → « Publier » : la note apparaît sur le site.
 - **À dire** : RG 17 (avis seulement après un séjour terminé, un par réservation) ; modération avant publication ; « Journal d'activité » : qui a fait quoi, et quand.
 
+### 7 bis. Messagerie en temps réel (1 min)
+
+- Fenêtre 1 (client) : sur la réservation qui vient d'être faite, « Contacter l'agence », écrire une question.
+- Fenêtre 2 (agence, déjà ouverte sur « Messages ») : le son retentit, la notification et la pastille apparaissent aussitôt ; ouvrir la conversation, répondre avec Entrée.
+- Fenêtre 1 : la réponse apparaît dans le fil **sans recharger**.
+- **À dire** : canal Server-Sent Events (standard du navigateur) ; l'événement n'est envoyé qu'après la validation de la transaction ; chacun ne voit que ses conversations (client, guide de ses départs, équipe de l'agence) ; le son est sous licence CC0.
+- **Astuce** : cliquer une fois dans chaque fenêtre avant de commencer (les navigateurs ne jouent un son qu'après une interaction).
+
 ### 8. Preuve d'isolation (1 min)
 
 - Fenêtre 3 : `admin@tanety-trek.test`. Ni la réservation ni le départ créés ne sont visibles.
