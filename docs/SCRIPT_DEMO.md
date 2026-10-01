@@ -1,12 +1,12 @@
 # Script de démonstration (soutenance, 10 à 12 minutes)
 
-Déroulé fidèle au §14.1 du cahier des charges. Chaque étape indique **où aller**, **quoi faire** et **quoi dire** (le point à faire valoir devant le jury).
+Déroulé fidèle au §14.1 du cahier des charges. **Guide pas à pas détaillé (qui se connecte, où cliquer) : `README.md` à la racine du projet.** Chaque étape indique **où aller**, **quoi faire** et **quoi dire** (le point à faire valoir devant le jury).
 
 ## Préparation (la veille, puis 15 minutes avant)
 
 1. Base de démonstration propre : `npm run db:seed` (vide puis remplit la base de dev : 3 agences, une dizaine de circuits, environ 160 départs, 500 réservations, 200 avis).
 2. Build de production : `npm run build` puis `npm start` (plus rapide et plus stable que `npm run dev`).
-3. Ouvrir **trois fenêtres de navigation privée** (sessions séparées) : 1) visiteur / client, 2) administrateur Green Trek Mada, 3) autre agence puis super admin.
+3. Ouvrir **trois sessions séparées** : 1) Chrome normal pour l'administrateur Green Trek Mada, 2) Chrome privé pour le visiteur puis le client, 3) Safari ou Firefox pour l'autre agence puis le super admin. Attention : sous Chrome, toutes les fenêtres privées partagent la même session.
 4. Vérifier Internet (tuiles OpenStreetMap). **Plan B** : captures d'écran et vidéo de secours (§12), dans l'ordre de ce script.
 5. Zoom du navigateur à 110 % environ pour le vidéoprojecteur.
 
