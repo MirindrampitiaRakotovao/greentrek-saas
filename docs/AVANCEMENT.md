@@ -19,7 +19,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E10 Back-office opérationnel | Fait | 2026-09-29 | Validé par l'étudiant (réservations, paiements, clients, export CSV, facture avec QR code scannable sur le Wi-Fi), puis refonte de l'interface demandée (modales, confirmations, listes, pagination numérotée, défilement du contenu seul) ; typecheck, lint, 486 tests, build et parcours dans le navigateur verts |
 | E11 Super admin, plans | Fait | 2026-09-30 | Validé par l'étudiant : console agences et plans, attribution, suspension, limites RG 18, page Abonnement, landing SaaS, Tarifs ; typecheck, lint, 501 tests, build et parcours dans le navigateur verts |
 | E12 Finition | Fait | 2026-09-30 | Validé par l'étudiant : données réalistes (seed complet), avis et modération, notifications, journal d'activité, accessibilité, script de démonstration ; typecheck, lint, 518 tests, build et parcours dans le navigateur verts |
-| Messagerie temps réel (hors plan) | En attente de validation | 2026-09-30 | M1 (données, règles) et M2 (temps réel, son) validés ; M3 (interface : back-office, guide, espace client) terminé ; typecheck, lint, 560 tests, build et parcours à trois sessions verts |
+| Messagerie temps réel (hors plan) | Fait | 2026-10-01 | Validée par l'étudiant : M1 (données, règles), M2 (temps réel, son), M3 (interface : back-office, guide, espace client) ; typecheck, lint, 560 tests, build et parcours à trois sessions verts |
 
 ## Décisions et justifications
 
