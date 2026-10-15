@@ -6,6 +6,7 @@ import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "rea
 
 import { RealtimeBridge, SoundToggle, useSoundPreference } from "@/components/shell/realtime";
 import { Icon } from "@/components/ui/icon";
+import { Logo } from "@/components/ui/logo";
 import { logoutAction } from "@/lib/actions/auth";
 import { markNotificationsReadAction } from "@/lib/actions/avis";
 import type { NavItem } from "@/lib/navigation";
@@ -33,7 +34,11 @@ export type ShellNotification = {
 };
 
 export type ShellProps = {
-  brand: { name: string; tagline: string; href: string };
+  /**
+   * `logoUrl` : absent → logo de la plateforme Green Trek (back-office, console) ; renseigné
+   * → logo de l'agence (espace voyageur) ; `null` → pictogramme neutre (agence sans logo).
+   */
+  brand: { name: string; tagline: string; href: string; logoUrl?: string | null };
   nav: readonly NavItem[];
   user: { name: string; subtitle: string };
   promo?: { title: string; text: string; cta?: { label: string; href: string } };
@@ -108,9 +113,17 @@ export function AppShell({
       >
         <div className="flex items-center justify-between px-2">
           <Link href={brand.href} className="flex items-center gap-2">
-            <span className="grid size-9 place-items-center rounded-xl bg-gt-teal-900 text-gt-sand-300">
-              <Icon name="leaf" className="size-5" />
-            </span>
+            {brand.logoUrl === undefined ? (
+              <Logo className="h-9 w-auto" priority />
+            ) : brand.logoUrl ? (
+              // Logo de l'agence (fichier local ou adresse externe saisie dans ses paramètres).
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={brand.logoUrl} alt="" className="h-9 w-auto max-w-16 object-contain" />
+            ) : (
+              <span className="grid size-9 place-items-center rounded-xl bg-gt-teal-900 text-gt-sand-300">
+                <Icon name="leaf" className="size-5" />
+              </span>
+            )}
             <span className="leading-tight">
               <span className="block text-base font-bold tracking-wide text-gt-teal-900 uppercase">
                 {brand.name}

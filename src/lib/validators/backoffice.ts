@@ -9,7 +9,6 @@ import {
   optionalPhone,
   optionalText,
   optionalImageUrl,
-  optionalUrl,
   requiredText,
 } from "@/lib/validators/common";
 
@@ -31,7 +30,7 @@ export const agencySettingsSchema = z.object({
   ville: optionalText(100),
   pays: optionalText(100),
   devise: z.enum(DEVISES, { error: "Devise invalide." }),
-  logoUrl: optionalUrl,
+  logoUrl: optionalImageUrl,
 });
 export type AgencySettingsInput = z.infer<typeof agencySettingsSchema>;
 

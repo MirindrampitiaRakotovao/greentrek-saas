@@ -420,7 +420,16 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
   - 1 test du générateur de conversations par agence ;
   - 4 cas de validation de formulaire, dont le formulaire d'avis d'E12, qui manquait.
 
+### Logo de Green Trek (2026-10-15, demande de l'étudiant)
+
+- Logo fourni par l'entreprise (montagnes, sentier, baobab, nom « Green Trek »), découpé et décliné automatiquement : symbole seul et logo complet, en couleur (#024454, proche de `--gt-teal-900`) et en blanc pour les fonds sombres (`public/logo/`). Composant `Logo` (`src/components/ui/logo.tsx`).
+- **Plateforme** : en-tête et pied de page de l'accueil et des tarifs, pages de connexion et d'inscription, menu du back-office et de la console. **Icône d'onglet** : symbole sur un carré blanc arrondi, lisible en thème sombre (`src/app/icon.png`, `apple-icon.png`) ; le favicon par défaut de Next.js est retiré.
+- **Green Trek Mada**, agence de la plateforme : le logo est enregistré comme logo de l'agence (`Agence.logoUrl`), donc affiché sur son site vitrine et dans l'espace de ses voyageurs. Les autres agences gardent leur propre logo, ou un pictogramme neutre si elles n'en ont pas : le logo de Green Trek Mada n'apparaît jamais chez une autre agence.
+- Le champ « logo » des paramètres d'une agence accepte désormais aussi un fichier livré avec l'application (`/logo/…`), en plus d'une adresse web (test unitaire).
+
 ## Captures d'écran à prendre
+
+- Logo : en-tête de l'accueil et pied de page (logo blanc) ; page de connexion ; menu du back-office ; site vitrine de Green Trek Mada ; onglet du navigateur avec l'icône.
 
 - Messagerie M3 : messagerie du personnel (deux volets, pastille de non-lus) ; fil ouvert avec la réponse ; modale « Écrire à l'agence » depuis une réservation ; fil sur mobile ; démonstration à deux fenêtres (le message apparaît en direct).
 - Messagerie M2 : notification apparue à l'écran chez le personnel pendant qu'un client annule (deux fenêtres côte à côte) ; bouton du son dans l'en-tête ; page des crédits (sons).

@@ -22,7 +22,7 @@ export default async function MonCompteLayout({
   const [agence, notifications, messagesNonLus] = await Promise.all([
     db.agence.findUniqueOrThrow({
       where: { id: user.agenceId },
-      select: { nom: true, email: true, telephone: true },
+      select: { nom: true, email: true, telephone: true, logoUrl: true },
     }),
     getShellNotifications(db, user.id),
     countUnreadConversations(db, { id: user.id, role: user.role }),
@@ -43,7 +43,12 @@ export default async function MonCompteLayout({
 
   return (
     <AppShell
-      brand={{ name: agence.nom, tagline: "Espace voyageur", href: `/a/${slug}/mon-compte` }}
+      brand={{
+        name: agence.nom,
+        tagline: "Espace voyageur",
+        href: `/a/${slug}/mon-compte`,
+        logoUrl: agence.logoUrl,
+      }}
       nav={nav}
       user={{ name: user.name, subtitle: "Voyageur" }}
       promo={{

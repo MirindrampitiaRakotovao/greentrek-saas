@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { Icon } from "@/components/ui/icon";
+import { Logo } from "@/components/ui/logo";
 import { ShrinkingHeader } from "@/components/vitrine/shrinking-header";
 
 /**
@@ -19,9 +19,10 @@ export function MarketingShell({ children }: { children: ReactNode }) {
       <ShrinkingHeader>
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 transition-[padding] group-data-[scrolled=true]/header:py-2 sm:px-6 sm:py-4">
           <Link href="/" className="flex items-center gap-2.5">
-            <span className="grid size-10 place-items-center rounded-xl bg-gt-teal-900 text-gt-sand-300">
-              <Icon name="leaf" className="size-5" />
-            </span>
+            <Logo
+              className="h-10 w-auto transition-[height] group-data-[scrolled=true]/header:h-8"
+              priority
+            />
             <span className="font-display text-lg font-medium text-gt-teal-900">Green Trek</span>
           </Link>
           <nav aria-label="Navigation principale" className="flex items-center gap-2 sm:gap-6">
@@ -55,7 +56,10 @@ export function MarketingShell({ children }: { children: ReactNode }) {
       <footer className="bg-gt-teal-800 text-white">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:grid-cols-3 sm:px-6">
           <div className="sm:col-span-2">
-            <p className="font-display text-2xl font-medium text-gt-cream">Green Trek</p>
+            <p className="flex items-center gap-3 font-display text-2xl font-medium text-gt-cream">
+              <Logo tone="blanc" className="h-10 w-auto" />
+              Green Trek
+            </p>
             <p className="mt-3 max-w-md text-sm leading-relaxed text-white/80">
               Plateforme SaaS de gestion et de réservation de circuits de randonnée pour les agences
               de voyage, avec calcul d&apos;itinéraires optimisés.

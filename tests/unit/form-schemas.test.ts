@@ -219,6 +219,15 @@ describe("transformations attendues", () => {
     expect(result.success).toBe(false);
   });
 
+  it("logo de l'agence : fichier livré (public/logo) ou adresse web ; autres chemins refusés", () => {
+    const parse = (logoUrl: string) =>
+      agencySettingsSchema.safeParse({ ...cases[6]![2], logoUrl }).success;
+    expect(parse("/logo/green-trek-symbole.png")).toBe(true);
+    expect(parse("https://exemple.test/logo.png")).toBe(true);
+    expect(parse("/logo/../.env")).toBe(false);
+    expect(parse("/etc/logo.png")).toBe(false);
+  });
+
   it("guide : langues cochées conservées, langue inconnue refusée", () => {
     expect(guideSchema.parse({ ...cases[8]![2], langues: ["fr", "mg"] }).langues).toEqual([
       "fr",

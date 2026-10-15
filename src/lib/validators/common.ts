@@ -62,9 +62,9 @@ export const optionalUrl = z
   );
 
 /**
- * Image facultative : adresse web (http ou https) ou image locale du dossier `public/images/`
- * (ex. « /images/circuits/mon-circuit.jpg », photos livrées avec l'application, disponibles
- * hors ligne) ; vide → null.
+ * Image facultative : adresse web (http ou https) ou image locale des dossiers
+ * `public/images/` ou `public/logo/` (ex. « /images/circuits/mon-circuit.jpg », fichiers
+ * livrés avec l'application, disponibles hors ligne) ; vide → null.
  */
 export const optionalImageUrl = z
   .string()
@@ -75,7 +75,10 @@ export const optionalImageUrl = z
   .refine(
     (value) => {
       if (value === null) return true;
-      if (/^\/images\/[\w./-]+\.(jpe?g|png|webp|avif)$/i.test(value) && !value.includes("..")) {
+      if (
+        /^\/(images|logo)\/[\w./-]+\.(jpe?g|png|webp|avif)$/i.test(value) &&
+        !value.includes("..")
+      ) {
         return true;
       }
       try {

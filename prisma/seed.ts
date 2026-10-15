@@ -140,6 +140,8 @@ type AgenceSeed = {
   description: string;
   ville: string;
   pays: string;
+  /** Logo fourni par l'agence (fichier de `public/logo/`), sinon pictogramme neutre. */
+  logoUrl?: string;
   circuits: DemoCircuit[];
   graph: DemoGraph;
   seed: number;
@@ -164,6 +166,7 @@ const AGENCES: readonly AgenceSeed[] = [
       "Agence d'écotourisme basée à Mahambo (district de Fénérive-Est, côte Est de Madagascar).",
     ville: "Mahambo",
     pays: "Madagascar",
+    logoUrl: "/logo/green-trek-symbole.png",
     // TODO(données terrain) : e-mail, téléphone et adresse officiels de l'agence.
     circuits: GREEN_TREK_CIRCUITS,
     graph: GREEN_TREK_GRAPH,
@@ -278,6 +281,7 @@ async function seedAgence(
       description: spec.description,
       ville: spec.ville,
       pays: spec.pays,
+      logoUrl: spec.logoUrl ?? null,
       createdAt: new Date(now.getTime() + (spec.abonnements[0]?.debut ?? 0) * DAY),
     },
   });

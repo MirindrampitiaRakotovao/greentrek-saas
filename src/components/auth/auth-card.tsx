@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { Logo } from "@/components/ui/logo";
+
 /** Mise en page commune des écrans d'authentification (connexion, inscription). */
 export function AuthCard({
   title,
@@ -20,7 +22,11 @@ export function AuthCard({
       className="flex flex-1 items-center justify-center bg-gt-cream px-4 py-12 outline-none"
     >
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg shadow-gt-teal-900/10 sm:p-8">
-        <Link href="/" className="font-display text-2xl text-gt-teal-700">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2.5 font-display text-2xl text-gt-teal-800"
+        >
+          <Logo className="h-10 w-auto" priority />
           Green Trek
         </Link>
         <h1 className="mt-4 text-2xl font-semibold text-gt-teal-900">{title}</h1>
