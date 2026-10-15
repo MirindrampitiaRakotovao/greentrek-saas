@@ -150,17 +150,22 @@ describe("nouveau mot de passe", () => {
     const demande = await request("client@a.test", agenceA.slug);
     for (const slug of [null, agenceB.slug]) {
       expect(
-        (await resetPassword(raw, { jeton: demande!.jeton, password: NOUVEAU, agenceSlug: slug }))
-          .ok,
+        (
+          await resetPassword(
+            raw,
+            { jeton: demande!.jeton, password: NOUVEAU, agenceSlug: slug },
+            later(1),
+          )
+        ).ok,
       ).toBe(false);
     }
     expect(
       (
-        await resetPassword(raw, {
-          jeton: demande!.jeton,
-          password: NOUVEAU,
-          agenceSlug: agenceA.slug,
-        })
+        await resetPassword(
+          raw,
+          { jeton: demande!.jeton, password: NOUVEAU, agenceSlug: agenceA.slug },
+          later(1),
+        )
       ).ok,
     ).toBe(true);
     expect(await passwordIs(client.id, NOUVEAU)).toBe(true);
@@ -171,7 +176,7 @@ describe("nouveau mot de passe", () => {
     const demande = await request("staff@a.test", null);
     const results = await Promise.all(
       ["Premier2026", "Second2026"].map((password) =>
-        resetPassword(raw, { jeton: demande!.jeton, password, agenceSlug: null }),
+        resetPassword(raw, { jeton: demande!.jeton, password, agenceSlug: null }, later(1)),
       ),
     );
     expect(results.filter((r) => r.ok)).toHaveLength(1);
@@ -179,11 +184,17 @@ describe("nouveau mot de passe", () => {
 
   it("jeton inconnu ou compte désactivé entre-temps : refusé", async () => {
     const staff = await user("staff@a.test", "STAFF", agenceA.id);
-    expect(await checkResetToken(raw, "x".repeat(43), null)).toBeNull();
+    expect(await checkResetToken(raw, "x".repeat(43), null, NOW)).toBeNull();
     const demande = await request("staff@a.test", null);
     await raw.utilisateur.update({ where: { id: staff.id }, data: { actif: false } });
     expect(
-      (await resetPassword(raw, { jeton: demande!.jeton, password: NOUVEAU, agenceSlug: null })).ok,
+      (
+        await resetPassword(
+          raw,
+          { jeton: demande!.jeton, password: NOUVEAU, agenceSlug: null },
+          later(1),
+        )
+      ).ok,
     ).toBe(false);
   });
 });
