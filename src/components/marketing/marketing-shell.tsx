@@ -16,34 +16,36 @@ export function MarketingShell({ children }: { children: ReactNode }) {
   ];
   return (
     <div className="flex min-h-screen flex-col bg-white">
-      <ShrinkingHeader>
+      <ShrinkingHeader overlayPaths={["^/$"]}>
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 transition-[padding] group-data-[scrolled=true]/header:py-2 sm:px-6 sm:py-4">
           <Link href="/" className="flex items-center gap-2.5">
             <Logo
-              className="h-10 w-auto transition-[height] group-data-[scrolled=true]/header:h-8"
+              className="h-10 w-auto transition-[height] group-data-[overlay=true]/header:brightness-0 group-data-[overlay=true]/header:invert group-data-[scrolled=true]/header:h-8"
               priority
             />
-            <span className="font-display text-lg font-medium text-gt-teal-900">Green Trek</span>
+            <span className="font-display text-lg font-medium text-gt-teal-900 group-data-[overlay=true]/header:text-white">
+              Green Trek
+            </span>
           </Link>
           <nav aria-label="Navigation principale" className="flex items-center gap-2 sm:gap-6">
             {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="hidden text-sm font-medium text-gt-teal-900/80 hover:text-gt-teal-700 md:inline"
+                className="hidden text-sm font-medium text-gt-teal-900/80 group-data-[overlay=true]/header:text-white/90 hover:text-gt-teal-700 group-data-[overlay=true]/header:hover:text-white md:inline"
               >
                 {link.label}
               </Link>
             ))}
             <Link
               href="/connexion"
-              className="rounded-full px-3 py-2 text-sm font-medium text-gt-teal-800 hover:bg-gt-teal-50"
+              className="rounded-full px-3 py-2 text-sm font-medium text-gt-teal-800 group-data-[overlay=true]/header:text-white hover:bg-gt-teal-50 group-data-[overlay=true]/header:hover:bg-white/15"
             >
               Connexion
             </Link>
             <Link
               href="/inscription-agence"
-              className="rounded-full bg-gt-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-gt-teal-800"
+              className="rounded-full bg-gt-teal-700 px-4 py-2 text-sm font-semibold text-white group-data-[overlay=true]/header:bg-white group-data-[overlay=true]/header:text-gt-teal-900 hover:bg-gt-teal-800 group-data-[overlay=true]/header:hover:bg-gt-sand-200"
             >
               Inscrire mon agence
             </Link>

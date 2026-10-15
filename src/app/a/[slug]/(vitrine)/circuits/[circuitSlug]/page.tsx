@@ -77,11 +77,15 @@ export default async function PublicCircuitPage({ params }: Props) {
         />
         {/* Dégradé sombre : garde le texte blanc lisible quelle que soit la photo. */}
         <div className="absolute inset-0 bg-linear-to-t from-gt-teal-900 via-gt-teal-900/60 to-gt-teal-900/10" />
-        <div className="relative mx-auto max-w-6xl px-4 pt-24 pb-10 sm:px-6 sm:pt-40">
+        {/* Voile en haut : lisibilité de l'en-tête transparent posé sur la photo. */}
+        <div className="absolute inset-x-0 top-0 h-40 bg-linear-to-b from-black/60 to-transparent" />
+        <div className="relative mx-auto max-w-6xl px-4 pt-32 pb-12 sm:px-6 sm:pt-48">
           <Link href={`${base}/circuits`} className="text-sm font-medium text-white/85 underline">
             ← Tous les circuits
           </Link>
-          <h1 className="mt-3 max-w-3xl text-3xl font-semibold sm:text-4xl">{circuit.titre}</h1>
+          <h1 className="mt-4 max-w-4xl bg-linear-to-b from-white to-white/70 bg-clip-text font-display text-4xl leading-[1.02] font-bold tracking-tight text-balance text-transparent sm:text-6xl lg:text-7xl">
+            {circuit.titre}
+          </h1>
           {circuit.note ? (
             <a href="#avis" className="mt-2 inline-block">
               <Stars note={circuit.note.moyenne} nombre={circuit.note.nombre} size="md" onDark />

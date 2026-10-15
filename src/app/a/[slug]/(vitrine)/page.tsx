@@ -3,10 +3,12 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { ReviewList } from "@/components/avis/review-list";
+import { type HeroSlide, HeroSlider } from "@/components/design/hero-slider";
+import { SectionHeading } from "@/components/design/section-heading";
+import { formatDuree } from "@/components/vitrine/circuit-card";
 import { CircuitCard } from "@/components/vitrine/circuit-card";
 import { SearchBar } from "@/components/vitrine/search-bar";
 import { BlurBlobs } from "@/components/vitrine/blur-blobs";
-import { BrushEdge } from "@/components/vitrine/brush-edge";
 import { Carousel } from "@/components/vitrine/carousel";
 import { CircuitVisual } from "@/components/vitrine/circuit-visual";
 import {
@@ -15,9 +17,16 @@ import {
   ThemeTiles,
 } from "@/components/vitrine/home-sections";
 import { UpcomingDepartCard } from "@/components/vitrine/upcoming-departs";
-import { getVitrineAgency } from "@/lib/public-agency";
+import { formatMoney } from "@/lib/format";
+import { creditFor } from "@/lib/photo-credits";
+import { getVitrineAgency, type VitrineAgency } from "@/lib/public-agency";
 import { listPublicAvis } from "@/lib/services/avis";
-import { listPublicPartenaires, listUpcomingDeparts, searchCircuits } from "@/lib/services/vitrine";
+import {
+  listPublicPartenaires,
+  listUpcomingDeparts,
+  type PublicCircuitCard,
+  searchCircuits,
+} from "@/lib/services/vitrine";
 import { TYPE_PARTENAIRE_LABELS } from "@/lib/validators/backoffice";
 import { loadVitrine } from "@/lib/vitrine-page";
 
@@ -29,9 +38,48 @@ export async function generateMetadata({ params }: PageProps<"/a/[slug]">): Prom
   };
 }
 
+/** Mots manuscrits du hero, un par diapositive. */
+const ACCENTS = ["bienvenue", "explorez", "vivez", "partez", "respirez"];
+
 /**
- * Accueil du site vitrine (§7.1), d'après la structure de la maquette (§8.4) : hero photo à
- * bord « coup de pinceau », recherche flottante, carrousel des circuits, « Vivre Madagascar
+ * Diapositives du hero : l'agence d'abord (photo d'accueil, nom, présentation), puis jusqu'à
+ * quatre circuits publiés illustrés par une photo livrée avec l'application (créditée).
+ */
+function heroSlides(agence: VitrineAgency, circuits: readonly PublicCircuitCard[]): HeroSlide[] {
+  const base = `/a/${agence.slug}`;
+  const accueil: HeroSlide = {
+    // TODO(photos Green Trek) : confirmer la source et la licence de la photo d'accueil (§8.1).
+    image: "/images/hero-plage.jpg",
+    alt: "Plage bordée de cocotiers au lever du soleil",
+    credit: null,
+    accent: ACCENTS[0]!,
+    title: agence.nom,
+    text: agence.description,
+    cta: { label: "Découvrir nos circuits", href: `${base}/circuits` },
+  };
+  const circuitSlides = circuits
+    .filter((c) => c.imagePrincipaleUrl?.startsWith("/images/"))
+    .slice(0, 4)
+    .map((c, i): HeroSlide => {
+      const credit = creditFor(c.imagePrincipaleUrl);
+      return {
+        image: c.imagePrincipaleUrl!,
+        alt: credit?.sujet ?? c.titre,
+        credit: credit ? `Photo : ${credit.sujet} · ${credit.auteur}, ${credit.licence}` : null,
+        accent: ACCENTS[(i + 1) % ACCENTS.length]!,
+        title: c.titre,
+        text: c.resume,
+        cta: { label: "Voir le circuit", href: `${base}/circuits/${c.slug}` },
+        meta: `${formatDuree(c.dureeJours)} · à partir de ${formatMoney(c.prixMin, agence.devise)} / pers.`,
+      };
+    });
+  return [accueil, ...circuitSlides];
+}
+
+/**
+ * Accueil du site vitrine (§7.1). Hero plein écran à diapositives (l'agence, puis ses
+ * circuits) d'après la maquette choisie par l'étudiant après E12, à la place du hero de la
+ * maquette du §8.4 ; puis la recherche flottante, le carrousel des circuits, « Vivre Madagascar
  * autrement », « Le meilleur pour votre aventure », tuiles thématiques, carrousel des
  * prochains départs, avis des voyageurs (publiés après modération, étape E12), partenaires,
  * pied de page. Pas de galerie « Suivez-nous » (comptes de réseaux sociaux inconnus) :
@@ -45,53 +93,13 @@ export default async function VitrineHomePage({ params }: PageProps<"/a/[slug]">
     listPublicPartenaires(db),
     listPublicAvis(db, { take: 6 }),
   ]);
-  const titre = "text-3xl font-medium text-gt-teal-800 sm:text-4xl";
+  const slides = heroSlides(agence, circuits);
 
   return (
     <>
-      <section className="relative isolate overflow-hidden bg-gt-teal-900 text-white">
-        {/*
-          Photo du hero fournie par l'étudiant (plage bordée de cocotiers au lever du soleil).
-          TODO(photos Green Trek) : confirmer la source et la licence de la photo (§8.1 :
-          photo propre ou libre de droits, avec attribution si nécessaire). Le texte
-          alternatif ne nomme aucun lieu : la photo n'est pas présentée comme Mahambo.
-        */}
-        <Image
-          src="/images/hero-plage.jpg"
-          alt="Plage bordée de cocotiers au lever du soleil"
-          fill
-          priority
-          sizes="100vw"
-          className="-z-10 object-cover object-[center_60%]"
-        />
-        {/* Voile teal : garantit la lisibilité du texte blanc sur un ciel très clair. */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 -z-10 bg-linear-to-r from-gt-teal-900/85 via-gt-teal-900/55 to-gt-teal-900/10"
-        />
-        <div className="mx-auto max-w-6xl px-4 pt-20 pb-40 sm:px-6 sm:pt-32 sm:pb-48">
-          <p className="inline-block rounded-full bg-gt-sand-200 px-4 py-1.5 text-sm font-semibold text-gt-teal-900">
-            Écotourisme · Randonnée · Pirogue
-          </p>
-          <h1 className="mt-4 font-script text-6xl leading-tight font-bold text-gt-cream drop-shadow-lg sm:text-8xl">
-            {agence.nom}
-          </h1>
-          {agence.description ? (
-            <p className="mt-5 max-w-xl text-base text-white/95 drop-shadow sm:text-lg">
-              {agence.description}
-            </p>
-          ) : null}
-          <Link
-            href={`/a/${agence.slug}/circuits`}
-            className="mt-8 inline-block rounded-full bg-gt-sand-300 px-6 py-3 text-sm font-semibold text-gt-teal-900 hover:bg-gt-sand-200"
-          >
-            Découvrir nos circuits
-          </Link>
-        </div>
-        <BrushEdge />
-      </section>
+      <HeroSlider slides={slides} label={`Bienvenue chez ${agence.nom}`} />
 
-      <div className="relative mx-auto -mt-24 max-w-6xl px-4 sm:px-6">
+      <div className="relative mx-auto -mt-12 max-w-6xl px-4 sm:px-6">
         <SearchBar agenceSlug={agence.slug} today={today} />
       </div>
 
@@ -100,10 +108,8 @@ export default async function VitrineHomePage({ params }: PageProps<"/a/[slug]">
         className="relative isolate mx-auto max-w-6xl px-4 pt-16 sm:px-6"
       >
         <BlurBlobs preset="right" />
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-          <h2 id="titre-circuits" className={titre}>
-            Nos circuits
-          </h2>
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
+          <SectionHeading id="titre-circuits" accent="explorez" title="Nos circuits" />
           <Link
             href={`/a/${agence.slug}/circuits`}
             className="text-sm font-medium text-gt-teal-700 underline"
@@ -133,15 +139,19 @@ export default async function VitrineHomePage({ params }: PageProps<"/a/[slug]">
       <section
         id="departs"
         aria-labelledby="titre-departs"
-        className="relative isolate scroll-mt-20 overflow-hidden bg-gt-teal-50/70 py-16"
+        className="relative isolate scroll-mt-20 overflow-hidden bg-gt-teal-900 py-20"
       >
-        <BlurBlobs preset="corners" />
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <h2 id="titre-departs" className={`${titre} mb-6`}>
-            Prochains départs
-          </h2>
+          <div className="mb-8">
+            <SectionHeading
+              id="titre-departs"
+              accent="prochainement"
+              title="Prochains départs"
+              tone="dark"
+            />
+          </div>
           {departs.length === 0 ? (
-            <p className="text-sm text-gt-teal-900/75">Aucun départ ouvert pour l&apos;instant.</p>
+            <p className="text-sm text-white/85">Aucun départ ouvert pour l&apos;instant.</p>
           ) : (
             <Carousel label="Prochains départs">
               {departs.map((d) => (
@@ -159,12 +169,11 @@ export default async function VitrineHomePage({ params }: PageProps<"/a/[slug]">
         aria-labelledby="titre-avis"
         className="relative isolate mx-auto max-w-6xl scroll-mt-20 px-4 pt-16 sm:px-6"
       >
-        <h2 id="titre-avis" className={titre}>
-          Ils ont randonné avec nous
-        </h2>
-        <p className="mt-2 mb-6 text-gt-teal-900/75">
-          Les avis sont déposés par les voyageurs après leur séjour.
-        </p>
+        <div className="mb-8">
+          <SectionHeading id="titre-avis" accent="ils racontent" title="Ils ont randonné avec nous">
+            Les avis sont déposés par les voyageurs après leur séjour.
+          </SectionHeading>
+        </div>
         {avis.length === 0 ? (
           <p className="text-sm text-gt-teal-900/75">Aucun avis publié pour l&apos;instant.</p>
         ) : (
@@ -179,10 +188,8 @@ export default async function VitrineHomePage({ params }: PageProps<"/a/[slug]">
           className="relative isolate mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6"
         >
           <BlurBlobs preset="left" />
-          <h2 id="titre-partenaires" className={titre}>
-            Nos partenaires locaux
-          </h2>
-          <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <SectionHeading id="titre-partenaires" accent="ensemble" title="Nos partenaires locaux" />
+          <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {partenaires.map((p) => (
               <li
                 key={p.id}

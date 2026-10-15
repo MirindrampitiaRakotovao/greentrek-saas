@@ -36,12 +36,18 @@ export default async function CircuitsPage({
 
   return (
     <div className="bg-gt-teal-50/60">
-      <section className="bg-gt-teal-700 px-4 pt-10 pb-24 text-white sm:px-6">
+      <section className="bg-gt-teal-900 px-4 pt-12 pb-28 text-white sm:px-6">
         <div className="mx-auto max-w-6xl">
-          <p className="font-display text-3xl text-gt-cream sm:text-4xl">Nos circuits</p>
-          <h1 className="mt-2 text-2xl font-semibold sm:text-3xl">
-            Randonnées et découvertes avec {agence.nom}
+          <p
+            aria-hidden="true"
+            className="relative z-10 -mb-2 inline-block -rotate-3 font-script text-4xl text-gt-sand-300"
+          >
+            explorez
+          </p>
+          <h1 className="bg-linear-to-b from-white to-white/70 bg-clip-text font-display text-4xl leading-[1.05] font-bold tracking-tight text-transparent sm:text-6xl">
+            Nos circuits
           </h1>
+          <p className="mt-3 text-white/85">Randonnées et découvertes avec {agence.nom}</p>
         </div>
       </section>
       <div className="relative isolate mx-auto -mt-16 max-w-6xl px-4 pb-16 sm:px-6">

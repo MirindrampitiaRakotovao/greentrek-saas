@@ -27,7 +27,10 @@ export async function SiteHeader({ agence }: { agence: VitrineAgency }) {
     : { href: `${base}/connexion`, label: "Connexion" };
 
   return (
-    <ShrinkingHeader>
+    <ShrinkingHeader
+      // Accueil et fiche d'un circuit : grande photo sous l'en-tête transparent.
+      overlayPaths={[`^/a/${agence.slug}/?$`, `^/a/${agence.slug}/circuits/[^/]+/?$`]}
+    >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 transition-[padding] group-data-[scrolled=true]/header:py-2 sm:px-6 sm:py-4">
         <Link href={base} className="flex min-w-0 items-center gap-2.5">
           {agence.logoUrl ? (
@@ -37,14 +40,14 @@ export async function SiteHeader({ agence }: { agence: VitrineAgency }) {
             <img
               src={agence.logoUrl}
               alt=""
-              className="h-10 w-auto max-w-20 object-contain transition-[height] group-data-[scrolled=true]/header:h-8"
+              className="h-10 w-auto max-w-20 object-contain transition-[height] group-data-[overlay=true]/header:brightness-0 group-data-[overlay=true]/header:invert group-data-[scrolled=true]/header:h-8"
             />
           ) : (
             <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-gt-teal-700 text-white transition-[width,height] group-data-[scrolled=true]/header:size-8">
               <Icon name="leaf" className="size-5" />
             </span>
           )}
-          <span className="truncate font-display text-lg font-medium text-gt-teal-900">
+          <span className="truncate font-display text-lg font-medium text-gt-teal-900 group-data-[overlay=true]/header:text-white">
             {agence.nom}
           </span>
         </Link>
@@ -54,21 +57,21 @@ export async function SiteHeader({ agence }: { agence: VitrineAgency }) {
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm font-medium text-gt-teal-900/80 hover:text-gt-teal-700"
+              className="text-sm font-medium text-gt-teal-900/80 group-data-[overlay=true]/header:text-white/90 hover:text-gt-teal-700 group-data-[overlay=true]/header:hover:text-white"
             >
               {link.label}
             </Link>
           ))}
           <Link
             href={account.href}
-            className="rounded-full bg-gt-teal-700 px-5 py-2 text-sm font-medium text-white hover:bg-gt-teal-800"
+            className="rounded-full bg-gt-teal-700 px-5 py-2 text-sm font-medium text-white group-data-[overlay=true]/header:bg-white group-data-[overlay=true]/header:text-gt-teal-900 hover:bg-gt-teal-800 group-data-[overlay=true]/header:hover:bg-gt-sand-200"
           >
             {account.label}
           </Link>
         </nav>
 
         <details className="group relative lg:hidden">
-          <summary className="grid size-10 cursor-pointer list-none place-items-center rounded-full border border-gt-mist text-gt-teal-900 [&::-webkit-details-marker]:hidden">
+          <summary className="grid size-10 cursor-pointer list-none place-items-center rounded-full border border-gt-mist text-gt-teal-900 group-data-[overlay=true]/header:border-white/70 group-data-[overlay=true]/header:text-white [&::-webkit-details-marker]:hidden">
             <span className="sr-only">Menu</span>
             <Icon name="menu" className="size-5 group-open:hidden" />
             <Icon name="close" className="hidden size-5 group-open:block" />

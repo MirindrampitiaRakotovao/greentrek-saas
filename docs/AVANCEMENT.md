@@ -449,7 +449,21 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
   - mot de passe oublié avec une adresse inconnue puis connue : même message ; l'e-mail est dans la boîte d'envoi du super admin ;
   - le lien ouvre « Bonjour Nirina », nouveau mot de passe, retour à la connexion avec un message, connexion réussie avec le nouveau mot de passe ; lien réutilisé → « Lien expiré » ; aucune erreur.
 
+### Nouveau design du site vitrine et de l'accueil de la plateforme (2026-10-15, demande de l'étudiant)
+
+- **Écart signalé et accepté** : le §8 désigne la maquette de la pousada comme référence du site vitrine ; le hero suit désormais une nouvelle maquette fournie par l'étudiant (structure seulement, aucune image ni texte repris). Le « coup de pinceau » de l'ancienne maquette est retiré. Choix de l'étudiant : les deux sites (vitrine et plateforme), le hero et l'harmonisation des autres sections, pas d'icônes de réseaux sociaux (aucun compte réel connu, décision C de l'étape E8).
+- **Hero plein écran à diapositives** (`HeroSlider`, `src/components/design/`) : grande photo assombrie, mot manuscrit (Dancing Script) posé sur un titre géant en dégradé blanc, texte à gauche souligné d'une barre, bouton à contour à droite, compteur « 01 / 05 » et flèches, durée et prix, crédit de la photo. Défilement toutes les 8 s, désactivé si l'utilisateur préfère moins d'animations ; le titre affiché est le `h1` de la page.
+  - **Site vitrine** : une diapositive de présentation de l'agence (nom, présentation), puis jusqu'à 4 circuits publiés illustrés par une photo créditée ; bouton « Voir le circuit », durée et prix « à partir de ».
+  - **Grand titre** : le titre du circuit (taille adaptée à sa longueur), et non le « lieu principal » d'abord proposé : les circuits d'une agence partent presque tous du même lieu, les titres se seraient répétés.
+  - **Plateforme** : 4 diapositives (présentation, site vitrine, itinéraires optimisés, back-office), avec photos créditées.
+- **En-tête transparent** posé sur la photo (accueil des deux sites, fiche d'un circuit), en blanc ; il redevient blanc au défilement. Le logo est recoloré en blanc par un filtre CSS.
+- **Harmonisation** : titres de section dans le style du hero (`SectionHeading` : mot manuscrit et grand titre), sections sombres alternées avec les sections claires (« Vivre Madagascar autrement », « Prochains départs », « Comment ça marche »), photo pleine largeur pour « Le meilleur pour votre aventure » et l'appel final de la plateforme, titre géant sur la fiche d'un circuit et la liste des circuits.
+- **Correction de contenu** : ces sections, communes à toutes les agences, parlaient de « la côte Est », de pirogue et de plages, ce qui était faux pour Tanety Trek (Antsirabe) et Ranohira Sentiers (Isalo). Les textes et pictogrammes sont désormais génériques.
+- **Vérifications** : typecheck, lint, 581 tests et build verts. Dans le navigateur (build de production) : accueil de Green Trek Mada et de Tanety Trek, accueil de la plateforme, liste et fiche d'un circuit, sur ordinateur et sur mobile ; aucun débordement, aucune erreur ; passage à la diapositive suivante (« 02 / 05 ») ; en-tête redevenu blanc au défilement.
+
 ## Captures d'écran à prendre
+
+- Design : hero du site vitrine (diapositive de l'agence, puis d'un circuit) ; hero de la plateforme ; page entière du site vitrine (sections sombres et claires) ; version mobile ; comparaison avec la maquette fournie.
 
 - Connexion : page de connexion (ordinateur et mobile) ; inscription d'un voyageur sur le site d'une agence ; œil afficher / masquer ; « Mot de passe oublié » ; e-mail reçu (ou boîte d'envoi du super admin) ; page « Nouveau mot de passe » ; message « Mot de passe modifié ».
 

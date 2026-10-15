@@ -113,6 +113,10 @@ body {
 .gt-toast {
   animation: gt-toast-in 220ms ease-out;
 }
+/* Titre du hero : apparition à chaque diapositive. */
+.gt-hero-in {
+  animation: gt-hero-in 700ms ease-out;
+}
 
 @keyframes gt-modal-in {
   from {
@@ -123,6 +127,12 @@ body {
 @keyframes gt-fade-in {
   from {
     opacity: 0;
+  }
+}
+@keyframes gt-hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
   }
 }
 @keyframes gt-toast-in {
