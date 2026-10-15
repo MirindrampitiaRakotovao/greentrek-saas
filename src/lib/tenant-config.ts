@@ -109,6 +109,12 @@ export const TENANT_CONFIG: Readonly<Record<ModelName, ModelConfig>> = {
     scope: { kind: "child", relation: "conversation" },
     references: { conversationId: "Conversation", auteurId: "Utilisateur" },
   },
+  // Jamais lue par un client confiné (parcours « mot de passe oublié », sans session) :
+  // déclarée pour la complétude, rattachée à l'agence de l'utilisateur.
+  JetonReinitialisation: {
+    scope: { kind: "child", relation: "utilisateur" },
+    references: { utilisateurId: "Utilisateur" },
+  },
   LectureConversation: {
     scope: { kind: "child", relation: "conversation" },
     references: { conversationId: "Conversation", utilisateurId: "Utilisateur" },

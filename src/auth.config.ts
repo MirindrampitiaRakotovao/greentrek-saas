@@ -5,9 +5,16 @@ import type { NextAuthConfig } from "next-auth";
  * `proxy.ts` (qui s'exécute sur chaque requête et ne doit faire que des vérifications
  * rapides à partir du cookie). La configuration complète est dans `src/auth.ts`.
  */
+/** « Se souvenir de moi » coché : 30 jours. */
+const REMEMBER_MAX_AGE_S = 30 * 24 * 60 * 60;
+/** Case décochée : 8 heures (ordinateur partagé), comme avant cette option. */
+export const SHORT_SESSION_MS = 8 * 60 * 60 * 1000;
+
 export const authConfig = {
   // Jeton de session signé et chiffré dans un cookie (obligatoire avec Credentials).
-  session: { strategy: "jwt", maxAge: 8 * 60 * 60 }, // 8 heures
+  // Durée maximale : 30 jours (« Se souvenir de moi ») ; sans cette case, le rappel `jwt`
+  // ci-dessous ferme la session 8 heures après la connexion.
+  session: { strategy: "jwt", maxAge: REMEMBER_MAX_AGE_S },
   pages: { signIn: "/connexion" },
   // Démo locale (`next start` sur localhost) : on fait confiance à l'en-tête Host.
   trustHost: true,
@@ -39,7 +46,12 @@ export const authConfig = {
         token.role = user.role;
         token.agenceId = user.agenceId;
         token.agenceSlug = user.agenceSlug;
+        token.remember = user.remember === true;
+        token.loginAt = Date.now();
       }
+      // Auth.js ne permet qu'une durée de cookie pour tous : la session courte est donc
+      // appliquée ici. Renvoyer `null` efface le cookie (l'utilisateur est déconnecté).
+      if (!token.remember && Date.now() - (token.loginAt ?? 0) > SHORT_SESSION_MS) return null;
       return token;
     },
     // … puis du jeton vers la session lue par l'application.

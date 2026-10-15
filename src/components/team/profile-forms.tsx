@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { FormAlert } from "@/components/ui/form-alert";
 import { FormSuccess } from "@/components/ui/form-success";
+import { PasswordField } from "@/components/ui/password-field";
 import { TextField } from "@/components/ui/text-field";
 import { changePasswordAction, updateProfileAction } from "@/lib/actions/team";
 import { applyFieldErrors } from "@/lib/forms";
@@ -114,24 +115,21 @@ export function PasswordForm() {
     <form method="post" onSubmit={onSubmit} noValidate className="space-y-4">
       <FormAlert message={serverError} />
       <FormSuccess message={success} />
-      <TextField
+      <PasswordField
         label="Mot de passe actuel"
-        type="password"
         autoComplete="current-password"
         error={errors.currentPassword?.message}
         {...register("currentPassword")}
       />
-      <TextField
+      <PasswordField
         label="Nouveau mot de passe"
-        type="password"
         autoComplete="new-password"
         hint="8 caractères minimum, avec majuscule, minuscule et chiffre."
         error={errors.newPassword?.message}
         {...register("newPassword")}
       />
-      <TextField
+      <PasswordField
         label="Confirmation du nouveau mot de passe"
-        type="password"
         autoComplete="new-password"
         error={errors.confirmPassword?.message}
         {...register("confirmPassword")}

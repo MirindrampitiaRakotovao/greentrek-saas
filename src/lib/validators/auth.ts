@@ -20,8 +20,20 @@ export const loginSchema = z.object({
   agenceSlug: z.string().trim().min(1).optional(),
   /** Page où revenir après la connexion (vérifiée par `safeReturnPath`). */
   retour: z.string().max(300).optional(),
+  /**
+   * « Se souvenir de moi » : session de 30 jours, sinon de 8 heures. Case cochée (booléen)
+   * ou valeur transmise par Auth.js au formulaire de connexion (« true » / « false »).
+   */
+  remember: z.preprocess((value) => value === true || value === "true", z.boolean()).optional(),
 });
 export type LoginInput = z.infer<typeof loginSchema>;
+
+/** Mot de passe oublié : adresse e-mail (et agence, pour un voyageur). */
+export const forgotPasswordSchema = z.object({
+  email,
+  agenceSlug: z.string().trim().min(1).optional(),
+});
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 
 export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -33,6 +45,8 @@ const RESERVED_SLUGS = new Set([
   "connexion",
   "inscription-agence",
   "tarifs",
+  "mot-de-passe-oublie",
+  "reinitialiser-mot-de-passe",
 ]);
 
 export const passwordSchema = z
@@ -82,3 +96,18 @@ export const clientRegistrationSchema = z
     path: ["confirmPassword"],
   });
 export type ClientRegistrationInput = z.infer<typeof clientRegistrationSchema>;
+
+/** Nouveau mot de passe choisi depuis le lien reçu par e-mail. */
+export const resetPasswordSchema = z
+  .object({
+    jeton: z.string().min(20).max(200),
+    /** Présent sur le site d'une agence (voyageur). */
+    agenceSlug: z.string().trim().min(1).optional(),
+    password: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    error: "Les mots de passe ne correspondent pas.",
+    path: ["confirmPassword"],
+  });
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

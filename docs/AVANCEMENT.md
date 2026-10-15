@@ -427,7 +427,31 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - **Green Trek Mada**, agence de la plateforme : le logo est enregistré comme logo de l'agence (`Agence.logoUrl`), donc affiché sur son site vitrine et dans l'espace de ses voyageurs. Les autres agences gardent leur propre logo, ou un pictogramme neutre si elles n'en ont pas : le logo de Green Trek Mada n'apparaît jamais chez une autre agence.
 - Le champ « logo » des paramètres d'une agence accepte désormais aussi un fichier livré avec l'application (`/logo/…`), en plus d'une adresse web (test unitaire).
 
+### Connexion et inscription redessinées, mot de passe oublié, « Se souvenir de moi » (2026-10-15, demande de l'étudiant)
+
+- **Écarts signalés et acceptés** : envoi réel d'e-mails (hors périmètre au §2, simulé au §1.4) ; nouvelle table `JetonReinitialisation` (23 tables au total). Pas de boutons Apple, Google ou X : la connexion reste par e-mail et mot de passe (§9), et des boutons sans effet tromperaient (décision de l'étudiant).
+- **Design** (d'après la maquette fournie, structure seulement : photo de la maquette non réutilisée, §8.1) : pleine page en deux volets. À gauche, le logo, les onglets Connexion / Inscription (« Créer un compte » sur le site d'une agence), le titre et le formulaire avec ses champs à libellé dans la bordure. À droite, le panneau photo aux coins découpés, avec une carte de texte, une accroche, des flèches et le crédit de la photo affichée (défilement automatique, désactivé si l'utilisateur préfère moins d'animations). Photos créditées : sélection pour la plateforme, photos des circuits pour une agence. Sur mobile, un bandeau photo puis le formulaire.
+- **Afficher / masquer le mot de passe** sur les 9 champs mot de passe de l'application (`PasswordField`) : bouton accessible au clavier, état annoncé (`aria-pressed`).
+- **Mot de passe oublié** (personnel sur `/mot-de-passe-oublie`, voyageur sur `/a/<agence>/mot-de-passe-oublie`) :
+  - jeton aléatoire de 32 octets envoyé par e-mail ; la base ne garde que son **empreinte SHA-256** ;
+  - lien valable **1 heure**, utilisable **une seule fois** (réservation atomique : deux envois simultanés, un seul réussit) ; les autres liens du compte sont annulés après le changement ;
+  - **réponse identique** que l'adresse existe ou non, et e-mail envoyé **après** la réponse (`after` de Next.js) : ni le message ni le temps de réponse ne révèlent si un compte existe ;
+  - au plus 3 demandes par heure et par compte ; compte désactivé ou agence suspendue exclus ; un voyageur ne réinitialise que son compte de l'agence du site (même adresse possible dans plusieurs agences) ;
+  - page de réinitialisation sans en-tête « Referer » ni indexation (le jeton est dans l'adresse) ; le lien utilise l'adresse de l'ordinateur sur le Wi-Fi (comme le QR code des factures).
+- **Envoi des e-mails** (Nodemailer 10.1.1, version corrigée des failles connues de la 8) : SMTP de Gmail depuis `greentrekmada@gmail.com`, avec un **mot de passe d'application** Google dans `.env` (`SMTP_PASSWORD`). Accès aux fichiers et aux URL désactivé dans Nodemailer, logo joint par l'application. **Secours** : sans configuration ou sans Internet, l'e-mail est gardé et visible par le super admin (Console > **Boîte d'envoi**), et la démonstration reste possible. Aucun lien n'est écrit dans les journaux. Une règle `overrides` de npm aligne la version de Nodemailer attendue par Auth.js (dépendance facultative qu'il n'utilise pas ici).
+- **« Se souvenir de moi »** : cochée, la session dure 30 jours ; décochée, elle se ferme 8 heures après la connexion, comme avant. Auth.js n'autorise qu'une durée de cookie pour tous : la session courte est appliquée par le rappel `jwt` (qui renvoie `null` pour déconnecter). Écart avec l'annonce initiale (« fermeture du navigateur »), signalé à l'étudiant.
+- **Tests** :
+  - 11 tests d'intégration du parcours : portée personnel / voyageur, même adresse dans deux agences, empreinte, limite de demandes, expiration, usage unique (dont l'envoi simultané), annulation des autres liens, compte désactivé, agence suspendue ;
+  - 4 tests unitaires de la durée de session ; 2 tests du modèle d'e-mail (dont l'échappement HTML) ; 1 test du logo de l'agence.
+- **Parcours dans le navigateur** (build de production) :
+  - les 5 pages sans débordement, sur ordinateur et sur mobile ; l'œil (masqué → visible) ;
+  - connexion avec « Se souvenir de moi » : cookie de 30 jours ;
+  - mot de passe oublié avec une adresse inconnue puis connue : même message ; l'e-mail est dans la boîte d'envoi du super admin ;
+  - le lien ouvre « Bonjour Nirina », nouveau mot de passe, retour à la connexion avec un message, connexion réussie avec le nouveau mot de passe ; lien réutilisé → « Lien expiré » ; aucune erreur.
+
 ## Captures d'écran à prendre
+
+- Connexion : page de connexion (ordinateur et mobile) ; inscription d'un voyageur sur le site d'une agence ; œil afficher / masquer ; « Mot de passe oublié » ; e-mail reçu (ou boîte d'envoi du super admin) ; page « Nouveau mot de passe » ; message « Mot de passe modifié ».
 
 - Logo : en-tête de l'accueil et pied de page (logo blanc) ; page de connexion ; menu du back-office ; site vitrine de Green Trek Mada ; onglet du navigateur avec l'icône.
 

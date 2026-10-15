@@ -8,6 +8,8 @@ declare module "next-auth" {
     role: Role;
     agenceId: string | null;
     agenceSlug: string | null;
+    /** « Se souvenir de moi » coché à la connexion. */
+    remember?: boolean;
   }
 
   interface Session {
@@ -28,5 +30,9 @@ declare module "@auth/core/jwt" {
     role: Role;
     agenceId: string | null;
     agenceSlug: string | null;
+    /** Session de 30 jours (sinon 8 heures après `loginAt`). */
+    remember?: boolean;
+    /** Heure de connexion (ms depuis 1970). */
+    loginAt?: number;
   }
 }

@@ -34,6 +34,7 @@ export async function loginAction(input: unknown): Promise<ActionResult> {
       email: parsed.data.email,
       password: parsed.data.password,
       agenceSlug: parsed.data.agenceSlug ?? "",
+      remember: parsed.data.remember ? "true" : "false",
       // Sinon, page d'aiguillage : envoie chaque rôle vers son espace.
       redirectTo: retour ?? "/espace",
     });

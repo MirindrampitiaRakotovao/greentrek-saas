@@ -11,7 +11,7 @@ import { getAdminDb } from "@/lib/admin-db";
 export const getPublicAgency = cache(async (slug: string) => {
   return getAdminDb().agence.findFirst({
     where: { slug, statut: "ACTIVE" },
-    select: { id: true, nom: true, slug: true },
+    select: { id: true, nom: true, slug: true, logoUrl: true },
   });
 });
 

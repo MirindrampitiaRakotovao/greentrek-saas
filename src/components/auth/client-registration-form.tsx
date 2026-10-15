@@ -4,12 +4,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 
-import { Button } from "@/components/ui/button";
 import { FormAlert } from "@/components/ui/form-alert";
+import { PasswordField } from "@/components/ui/password-field";
 import { TextField } from "@/components/ui/text-field";
 import { registerClientAction } from "@/lib/actions/auth";
 import { applyFieldErrors } from "@/lib/forms";
 import { clientRegistrationSchema } from "@/lib/validators/auth";
+
+import { AUTH_SUBMIT } from "./styles";
 
 const FIELDS = ["prenom", "nom", "email", "telephone", "password", "confirmPassword"] as const;
 
@@ -54,16 +56,18 @@ export function ClientRegistrationForm({
 
   return (
     // method="post" : le mot de passe ne doit jamais apparaître dans l'URL.
-    <form method="post" onSubmit={onSubmit} noValidate className="space-y-4">
+    <form method="post" onSubmit={onSubmit} noValidate className="space-y-6">
       <FormAlert message={serverError} />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-6 sm:grid-cols-2">
         <TextField
+          appearance="encadre"
           label="Prénom"
           autoComplete="given-name"
           error={errors.prenom?.message}
           {...register("prenom")}
         />
         <TextField
+          appearance="encadre"
           label="Nom"
           autoComplete="family-name"
           error={errors.nom?.message}
@@ -71,6 +75,7 @@ export function ClientRegistrationForm({
         />
       </div>
       <TextField
+        appearance="encadre"
         label="Adresse e-mail"
         type="email"
         autoComplete="email"
@@ -78,30 +83,31 @@ export function ClientRegistrationForm({
         {...register("email")}
       />
       <TextField
+        appearance="encadre"
         label="Téléphone (facultatif)"
         type="tel"
         autoComplete="tel"
         error={errors.telephone?.message}
         {...register("telephone")}
       />
-      <TextField
+      <PasswordField
+        appearance="encadre"
         label="Mot de passe"
-        type="password"
         autoComplete="new-password"
         hint="8 caractères au moins, avec une majuscule, une minuscule et un chiffre."
         error={errors.password?.message}
         {...register("password")}
       />
-      <TextField
+      <PasswordField
+        appearance="encadre"
         label="Confirmer le mot de passe"
-        type="password"
         autoComplete="new-password"
         error={errors.confirmPassword?.message}
         {...register("confirmPassword")}
       />
-      <Button type="submit" disabled={pending} className="w-full">
+      <button type="submit" disabled={pending} className={AUTH_SUBMIT}>
         {pending ? "Création du compte…" : "Créer mon compte"}
-      </Button>
+      </button>
     </form>
   );
 }

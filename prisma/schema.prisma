@@ -165,16 +165,17 @@ model Utilisateur {
   dernierLoginAt DateTime?
   createdAt      DateTime  @default(now())
 
-  agence              Agence?               @relation(fields: [agenceId], references: [id], onDelete: Restrict)
-  guide               Guide?
-  reservations        Reservation[]
-  avis                Avis[]
-  notifications       Notification[]
-  journalActivites    JournalActivite[]
-  itinerairesCalcules ItineraireCalcule[]
-  conversations       Conversation[]
-  messages            Message[]
-  lectures            LectureConversation[]
+  agence                 Agence?                 @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  guide                  Guide?
+  reservations           Reservation[]
+  avis                   Avis[]
+  notifications          Notification[]
+  journalActivites       JournalActivite[]
+  itinerairesCalcules    ItineraireCalcule[]
+  conversations          Conversation[]
+  messages               Message[]
+  lectures               LectureConversation[]
+  jetonsReinitialisation JetonReinitialisation[]
 
   // RG 3. L'unicité de l'e-mail du personnel sur toute la plateforme (connexion via
   // /connexion) est vérifiée par l'application : MySQL n'a pas d'index unique partiel.
@@ -613,4 +614,22 @@ model LectureConversation {
 
   @@unique([conversationId, utilisateurId])
   @@index([utilisateurId])
+}
+
+// ─── Réinitialisation du mot de passe (hors cahier des charges, après E12) ────────
+
+// Lien « mot de passe oublié » envoyé par e-mail. Seule l'EMPREINTE (SHA-256) du jeton est
+// conservée : une fuite de la base ne permet pas de réinitialiser un compte. Valable 1 heure,
+// utilisable une seule fois.
+model JetonReinitialisation {
+  id            String    @id @default(cuid())
+  utilisateurId String
+  empreinte     String    @unique @db.Char(64)
+  expireAt      DateTime
+  utiliseAt     DateTime?
+  createdAt     DateTime  @default(now())
+
+  utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@index([utilisateurId, createdAt])
 }

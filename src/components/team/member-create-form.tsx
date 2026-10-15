@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { FormAlert } from "@/components/ui/form-alert";
 import { SelectField } from "@/components/ui/select-field";
+import { PasswordField } from "@/components/ui/password-field";
 import { TextField } from "@/components/ui/text-field";
 import { useCloseOnSuccess } from "@/components/ui/form-modal";
 import { createMemberAction } from "@/lib/actions/team";
@@ -84,9 +85,8 @@ export function MemberCreateForm() {
           {...register("role")}
         />
       </div>
-      <TextField
+      <PasswordField
         label="Mot de passe initial"
-        type="password"
         autoComplete="new-password"
         hint="À communiquer au membre, qui le changera dans « Mon profil ». 8 caractères minimum, avec majuscule, minuscule et chiffre."
         error={errors.password?.message}

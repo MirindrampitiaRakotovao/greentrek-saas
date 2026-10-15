@@ -23,6 +23,7 @@ export const {
         email: { label: "E-mail", type: "email" },
         password: { label: "Mot de passe", type: "password" },
         agenceSlug: { type: "hidden" },
+        remember: { type: "checkbox" },
       },
       async authorize(credentials) {
         const parsed = loginSchema.safeParse({
@@ -31,7 +32,8 @@ export const {
           agenceSlug: credentials.agenceSlug || undefined,
         });
         if (!parsed.success) return null;
-        return authenticate(parsed.data);
+        const user = await authenticate(parsed.data);
+        return user ? { ...user, remember: parsed.data.remember === true } : null;
       },
     }),
   ],
