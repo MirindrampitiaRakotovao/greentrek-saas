@@ -34,7 +34,15 @@ const eslintConfig = defineConfig([
   },
   // Désactive les règles de style qui entreraient en conflit avec Prettier (toujours en dernier).
   prettier,
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", "src/generated/**"]),
+  globalIgnores([
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+    "src/generated/**",
+    // Application mobile (Expo) : ses propres outils (`cd mobile && npm run lint`).
+    "mobile/**",
+  ]),
 ]);
 
 export default eslintConfig;

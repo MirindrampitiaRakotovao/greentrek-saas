@@ -1,4 +1,4 @@
-import { json, UNAUTHORIZED } from "@/lib/mobile/http";
+import { json, preflight, UNAUTHORIZED } from "@/lib/mobile/http";
 import { mobileClientFromRequest } from "@/lib/mobile/session";
 
 /** Voyageur connecté (vérifie le jeton au lancement de l'application). */
@@ -11,3 +11,5 @@ export async function GET(request: Request) {
     { private: true },
   );
 }
+
+export const OPTIONS = preflight;

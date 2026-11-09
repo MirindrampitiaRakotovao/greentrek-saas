@@ -1,4 +1,4 @@
-import { jsonError, json } from "@/lib/mobile/http";
+import { json, jsonError, preflight } from "@/lib/mobile/http";
 import { mobileLogin } from "@/lib/mobile/session";
 import { MOBILE_TOKEN_DAYS } from "@/lib/mobile/token";
 import { mobileLoginSchema } from "@/lib/validators/mobile";
@@ -29,3 +29,5 @@ export async function POST(request: Request) {
     { private: true },
   );
 }
+
+export const OPTIONS = preflight;
