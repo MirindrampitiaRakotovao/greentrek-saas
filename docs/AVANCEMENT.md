@@ -20,6 +20,7 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | E11 Super admin, plans | Fait | 2026-09-30 | Validé par l'étudiant : console agences et plans, attribution, suspension, limites RG 18, page Abonnement, landing SaaS, Tarifs ; typecheck, lint, 501 tests, build et parcours dans le navigateur verts |
 | E12 Finition | Fait | 2026-09-30 | Validé par l'étudiant : données réalistes (seed complet), avis et modération, notifications, journal d'activité, accessibilité, script de démonstration ; typecheck, lint, 518 tests, build et parcours dans le navigateur verts |
 | Messagerie temps réel (hors plan) | Fait | 2026-10-01 | Validée par l'étudiant : M1 (données, règles), M2 (temps réel, son), M3 (interface : back-office, guide, espace client) ; typecheck, lint, 560 tests, build et parcours à trois sessions verts |
+| Application mobile voyageurs (hors plan) | En cours | 2026-11-09 | A1 (API mobile : catalogue, fiche, connexion par jeton) terminé, en attente de validation ; A2 (application : accueil et fiche) et A3 (connexion, réservation, paiement, mes réservations) à faire |
 
 ## Décisions et justifications
 
@@ -460,6 +461,20 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 - **Harmonisation** : titres de section dans le style du hero (`SectionHeading` : mot manuscrit et grand titre), sections sombres alternées avec les sections claires (« Vivre Madagascar autrement », « Prochains départs », « Comment ça marche »), photo pleine largeur pour « Le meilleur pour votre aventure » et l'appel final de la plateforme, titre géant sur la fiche d'un circuit et la liste des circuits.
 - **Correction de contenu** : ces sections, communes à toutes les agences, parlaient de « la côte Est », de pirogue et de plages, ce qui était faux pour Tanety Trek (Antsirabe) et Ranohira Sentiers (Isalo). Les textes et pictogrammes sont désormais génériques.
 - **Vérifications** : typecheck, lint, 581 tests et build verts. Dans le navigateur (build de production) : accueil de Green Trek Mada et de Tanety Trek, accueil de la plateforme, liste et fiche d'un circuit, sur ordinateur et sur mobile ; aucun débordement, aucune erreur ; passage à la diapositive suivante (« 02 / 05 ») ; en-tête redevenu blanc au défilement.
+
+### Application mobile pour les voyageurs (hors cahier des charges, demandée par l'étudiant)
+
+- **Écart signalé et accepté** : le §2 classe l'« application mobile native » hors périmètre. Décisions de l'étudiant : application **pour les voyageurs**, catalogue de **toutes les agences** (le voyageur se connecte avec son compte de l'agence du circuit), lots **A1 à A3** pour la soutenance ; favoris, messages et profil (A4) en perspective.
+- **Choix techniques** : React Native avec **Expo** (TypeScript), dans un dossier `mobile/` ; ouverture sur téléphone avec Expo Go, sur le même Wi-Fi que l'ordinateur (aucune publication sur les stores). Design d'après la maquette fournie, adapté à la randonnée (images de la maquette non réutilisées, §8.1).
+- **Lot A1 : API mobile** (`/api/mobile/v1/…`, versionnée pour pouvoir évoluer sans casser une application installée) :
+  - `GET circuits` : catalogue public, circuits publiés de toutes les agences actives (RG 9, RG 19), avec les filtres du site vitrine (date, voyageurs, difficulté) et un texte libre (titre, résumé, agence, ville) ; départ le plus proche d'abord ;
+  - `GET agences/<agence>/circuits/<circuit>` : fiche (étapes, tracé, départs, partenaires sans leur prix interne, avis publiés) ;
+  - `POST connexion` : un voyageur se connecte avec son compte de l'agence choisie et reçoit un **jeton** ; message unique quelle que soit la cause ; les comptes du personnel sont refusés (l'application est pour les voyageurs) ;
+  - `GET moi` : voyageur connecté (vérification du jeton au lancement).
+  - **Réutilisation** : chaque agence est lue par son client confiné et par les mêmes services que son site vitrine (mêmes règles de visibilité, de places et de prix) ; aucune logique métier dupliquée.
+  - **Jeton** : l'application ne peut pas utiliser le cookie de session du site. JWT HS256 (bibliothèque `jose`, déjà utilisée par Auth.js), valable 30 jours, envoyé dans l'en-tête `Authorization: Bearer`. La clé est dérivée d'`AUTH_SECRET` avec un contexte propre (un jeton mobile ne sert nulle part ailleurs), et l'émetteur et l'audience sont vérifiés. Le jeton ne contient que l'identifiant : **chaque requête relit le compte en base**, donc un compte désactivé ou une agence suspendue perd l'accès aussitôt (RG 19), comme sur le site.
+- **Tests du lot A1** : 3 tests unitaires du jeton (vérification ; refus s'il est modifié, signé avec une autre clé ou expiré ; lecture de l'en-tête) et 7 tests d'intégration (catalogue multi-agences et tri, agence suspendue absente, filtres, fiche limitée aux circuits publiés de l'agence et sans prix interne, connexion, refus selon l'agence, le mot de passe ou le rôle, jeton refusé après désactivation du compte ou suspension de l'agence). Vérification des 4 routes avec `curl` sur le build de production et les données du seed.
+- **Correctif au passage** : 3 tests des abonnements (E11) échouaient depuis le 31 octobre 2026, car l'essai « en cours » des tests se terminait le 30 octobre alors que les créations lisent la date réelle. Il se termine désormais en 2099 ; l'application n'était pas en cause.
 
 ## Captures d'écran à prendre
 
