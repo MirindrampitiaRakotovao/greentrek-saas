@@ -55,6 +55,12 @@ function unwrap<T>(result: { ok: true; data: T } | { ok: false; error: string })
   return result.data;
 }
 
+/**
+ * Fin d'un essai encore en cours. Les créations (circuit, compte) lisent la date RÉELLE : une
+ * date proche ferait échouer ces tests une fois cette date passée (essai expiré).
+ */
+const ESSAI_EN_COURS = "2099-12-31";
+
 async function subscribe(planId: string, statut: "ESSAI" | "ACTIF", dateFin: string | null) {
   await raw.abonnement.create({
     data: {
@@ -109,7 +115,7 @@ beforeEach(async () => {
 
 describe("limites du plan (RG 18)", () => {
   it("circuits : refus au-delà de la limite ; un circuit archivé ne compte pas", async () => {
-    await subscribe(essai.id, "ESSAI", "2026-10-30");
+    await subscribe(essai.id, "ESSAI", ESSAI_EN_COURS);
     const c1 = unwrap(await createCircuit(db, agence.id, circuit("c1")));
     unwrap(await createCircuit(db, agence.id, circuit("c2")));
     const refus = await createCircuit(db, agence.id, circuit("c3"));
@@ -121,7 +127,7 @@ describe("limites du plan (RG 18)", () => {
   });
 
   it("comptes du personnel : création et réactivation comptées ; les clients ne comptent pas", async () => {
-    await subscribe(essai.id, "ESSAI", "2026-10-30");
+    await subscribe(essai.id, "ESSAI", ESSAI_EN_COURS);
     await raw.utilisateur.create({
       data: {
         agenceId: agence.id,
@@ -196,7 +202,7 @@ describe("limites du plan (RG 18)", () => {
 
 describe("attribution d'un plan par le super admin", () => {
   it("clôture l'abonnement en cours, en crée un nouveau ; nouvelles limites immédiates", async () => {
-    await subscribe(essai.id, "ESSAI", "2026-10-30");
+    await subscribe(essai.id, "ESSAI", ESSAI_EN_COURS);
     unwrap(await createCircuit(db, agence.id, circuit("c1")));
     unwrap(await createCircuit(db, agence.id, circuit("c2")));
     expect((await createCircuit(db, agence.id, circuit("c3"))).ok).toBe(false);
