@@ -3,8 +3,16 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import type { Role } from "@/generated/prisma/client";
 import { parseIsoDate } from "@/lib/departs";
+import { toMobileReservation } from "@/lib/mobile/reservations";
 import { mobileClientFromRequest, mobileLogin } from "@/lib/mobile/session";
 import { getCatalogueCircuit, listCatalogue } from "@/lib/services/catalogue";
+import {
+  cancelReservationByClient,
+  createReservation,
+  getClientReservation,
+  listClientReservations,
+  payReservation,
+} from "@/lib/services/reservations";
 
 import { createTestClient, truncateAll } from "./test-db";
 
@@ -186,5 +194,128 @@ describe("connexion et jeton", () => {
     await raw.agence.update({ where: { id: agenceA.id }, data: { statut: "ACTIVE" } });
     await raw.utilisateur.update({ where: { id: client.id }, data: { actif: false } });
     expect(await mobileClientFromRequest(request(session!.token), raw, NOW)).toBeNull();
+  });
+});
+
+describe("réservation depuis l'application (lot A3)", () => {
+  /** Voyageur connecté par jeton, comme dans les routes : client confiné à SON agence. */
+  async function connect(email: string, agenceId: string, agenceSlug: string) {
+    await user(email, "CLIENT", agenceId);
+    const session = await mobileLogin({ email, password: PASSWORD, agenceSlug }, raw, NOW);
+    return (await mobileClientFromRequest(request(session!.token), raw, NOW))!;
+  }
+  const participants = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      prenom: `Voyageur${i}`,
+      nom: "Test",
+      age: null,
+      nationalite: null,
+      contactUrgence: null,
+    }));
+
+  it("réserve dans son agence, paie par carte : réservation confirmée, visible dans la liste", async () => {
+    const c = await circuit(agenceA.id, "sentier", "Sentier côtier");
+    const d = await depart(agenceA.id, c.id, "2026-12-20", 8);
+    const ctx = await connect("voyageur@example.com", agenceA.id, agenceA.slug);
+    const base = {
+      agenceId: ctx.user.agenceId,
+      agenceSlug: ctx.user.agenceSlug,
+      clientId: ctx.user.id,
+    };
+
+    const created = await createReservation(
+      ctx.db,
+      { ...base, sessionId: d.id, participants: participants(2), remarques: null },
+      NOW,
+    );
+    expect(created.ok).toBe(true);
+    const id = created.ok ? created.data.id : "";
+
+    const refus = await payReservation(
+      ctx.db,
+      {
+        reservationId: id,
+        methode: "CARTE_SIMULEE",
+        numero: "4000000000000000",
+        clientId: ctx.user.id,
+      },
+      NOW,
+    );
+    expect(refus.ok && refus.data.statut).toBe("ECHOUE");
+    const paye = await payReservation(
+      ctx.db,
+      {
+        reservationId: id,
+        methode: "CARTE_SIMULEE",
+        numero: "4242424242424242",
+        clientId: ctx.user.id,
+      },
+      NOW,
+    );
+    expect(paye.ok && paye.data.confirmee).toBe(true);
+
+    const [r] = await listClientReservations(ctx.db, ctx.user.id, NOW);
+    const json = toMobileReservation(r!, {
+      slug: "green-trek-mada",
+      nom: "Green Trek Mada",
+      devise: "MGA",
+    });
+    expect(json).toMatchObject({
+      statut: "CONFIRMEE",
+      statutLabel: "Confirmée",
+      montantTotal: 200_000,
+      reste: 0,
+      peutPayer: false,
+      peutAnnuler: true,
+      depart: { dateDebut: "2026-12-20" },
+      participants: [{ prenom: "Voyageur0" }, { prenom: "Voyageur1" }],
+    });
+    expect(json.paiements.map((p) => p.statutLabel)).toEqual(["Échoué", "Validé"]);
+    // Seuls les 4 derniers chiffres du numéro sont conservés.
+    expect(JSON.stringify(json)).not.toContain("4242424242424242");
+
+    expect(
+      (await cancelReservationByClient(ctx.db, { reservationId: id, clientId: ctx.user.id }, NOW))
+        .ok,
+    ).toBe(true);
+  });
+
+  it("refuse le départ d'une autre agence et cache la réservation d'un autre voyageur", async () => {
+    const cB = await circuit(agenceB.id, "lacs", "Lacs et volcans");
+    const dB = await depart(agenceB.id, cB.id, "2026-12-20");
+    const cA = await circuit(agenceA.id, "sentier", "Sentier côtier");
+    const dA = await depart(agenceA.id, cA.id, "2026-12-20");
+    const voyageur = await connect("voyageur@example.com", agenceA.id, agenceA.slug);
+    const autre = await connect("autre@example.com", agenceA.id, agenceA.slug);
+    const base = {
+      agenceId: voyageur.user.agenceId,
+      agenceSlug: voyageur.user.agenceSlug,
+      clientId: voyageur.user.id,
+    };
+
+    const ailleurs = await createReservation(
+      voyageur.db,
+      { ...base, sessionId: dB.id, participants: participants(1), remarques: null },
+      NOW,
+    );
+    expect(ailleurs).toEqual({ ok: false, error: "Départ introuvable." });
+
+    const ici = await createReservation(
+      voyageur.db,
+      { ...base, sessionId: dA.id, participants: participants(1), remarques: null },
+      NOW,
+    );
+    const id = ici.ok ? ici.data.id : "";
+    expect(await getClientReservation(autre.db, id, autre.user.id, NOW)).toBeNull();
+    expect(await listClientReservations(autre.db, autre.user.id, NOW)).toHaveLength(0);
+    expect(
+      (
+        await payReservation(
+          autre.db,
+          { reservationId: id, methode: "ESPECES", clientId: autre.user.id },
+          NOW,
+        )
+      ).ok,
+    ).toBe(false);
   });
 });

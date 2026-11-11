@@ -24,6 +24,35 @@ export function jsonError(error: string, status: number) {
   return Response.json({ error }, { status, headers: { ...CORS, "Cache-Control": "no-store" } });
 }
 
+/**
+ * Entrée invalide (Zod) : 400 et erreurs par champ. Le chemin complet est conservé
+ * (« participants.1.prenom ») pour que l'application place l'erreur sous le bon champ.
+ */
+export function validationError(issues: readonly { path: PropertyKey[]; message: string }[]) {
+  const fieldErrors: Record<string, string> = {};
+  for (const issue of issues) {
+    const field = issue.path.map(String).join(".") || "form";
+    fieldErrors[field] ??= issue.message;
+  }
+  return Response.json(
+    { error: "Certains champs sont invalides.", fieldErrors },
+    { status: 400, headers: { ...CORS, "Cache-Control": "no-store" } },
+  );
+}
+
+/** Refus d'une règle de gestion (service) : 422, avec le champ concerné s'il est connu. */
+export function businessError(error: string, field?: string) {
+  return Response.json(
+    { error, ...(field ? { fieldErrors: { [field]: error } } : {}) },
+    { status: 422, headers: { ...CORS, "Cache-Control": "no-store" } },
+  );
+}
+
+/** Corps JSON de la requête (null s'il est absent ou illisible : la validation le refusera). */
+export async function readJson(request: Request): Promise<unknown> {
+  return request.json().catch(() => null);
+}
+
 export const UNAUTHORIZED = () => jsonError("Session expirée : reconnectez-vous.", 401);
 
 /** Réponse aux requêtes préalables du navigateur (`OPTIONS`) : en-têtes CORS seuls. */

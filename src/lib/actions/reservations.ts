@@ -12,7 +12,7 @@ import {
   payReservation,
 } from "@/lib/services/reservations";
 import { idSchema } from "@/lib/validators/backoffice";
-import { paiementSchema, reservationSchema } from "@/lib/validators/reservations";
+import { PAIEMENT_REFUSE, paiementSchema, reservationSchema } from "@/lib/validators/reservations";
 
 /*
  * Actions du tunnel de réservation et de l'espace client (étape E9). Le client et son agence
@@ -53,7 +53,7 @@ export async function payReservationAction(input: unknown): Promise<ActionResult
   if (!result.ok) return toActionResult(result);
   revalidateClient(ctx.user.agenceSlug);
   if (result.data.statut === "ECHOUE") {
-    return { error: "Paiement refusé (simulation). Essayez un autre numéro ou moyen de paiement." };
+    return { error: PAIEMENT_REFUSE };
   }
   redirect(`/a/${ctx.user.agenceSlug}/mon-compte/reservations/${parsed.data.reservationId}?paye=1`);
 }

@@ -1,5 +1,5 @@
 import { getAdminDb } from "@/lib/admin-db";
-import { json } from "@/lib/mobile/http";
+import { json, preflight } from "@/lib/mobile/http";
 import { listCatalogue } from "@/lib/services/catalogue";
 import { catalogueQuerySchema } from "@/lib/validators/mobile";
 
@@ -18,3 +18,5 @@ export async function GET(request: Request) {
   });
   return json(await listCatalogue(getAdminDb(), query));
 }
+
+export const OPTIONS = preflight;

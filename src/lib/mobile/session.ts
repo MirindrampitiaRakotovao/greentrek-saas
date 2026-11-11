@@ -42,3 +42,27 @@ export async function mobileClientFromRequest(
   const user = userId ? asClient(await loadActiveUser(userId, client)) : null;
   return user ? { user, db: getTenantDb(user.agenceId, client) } : null;
 }
+
+/** Profil du voyageur pour l'application (onglet Compte, voyageur principal d'une réservation). */
+export async function mobileProfile(userId: string, client: PrismaClient = getAdminDb()) {
+  const u = await client.utilisateur.findUniqueOrThrow({
+    where: { id: userId },
+    select: {
+      prenom: true,
+      nom: true,
+      email: true,
+      telephone: true,
+      agence: { select: { slug: true, nom: true } },
+    },
+  });
+  return {
+    prenom: u.prenom,
+    nom: u.nom,
+    email: u.email,
+    telephone: u.telephone,
+    agenceSlug: u.agence?.slug ?? "",
+    agenceNom: u.agence?.nom ?? "",
+  };
+}
+
+export type MobileProfile = Awaited<ReturnType<typeof mobileProfile>>;

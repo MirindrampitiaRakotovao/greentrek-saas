@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useState } from "react";
 
 type Result<T> = { key: string; data: T | null; error: string | null };
 
@@ -13,6 +13,8 @@ export function useAsync<T>(load: () => Promise<T>, key: string) {
   const [round, setRound] = useState(0);
   const requestKey = `${key}#${round}`;
   const run = useEffectEvent(load);
+  // Fonction stable : utilisable dans `useFocusEffect` (rechargement au retour sur un écran).
+  const reload = useCallback(() => setRound((r) => r + 1), []);
 
   useEffect(() => {
     let current = true;
@@ -35,6 +37,6 @@ export function useAsync<T>(load: () => Promise<T>, key: string) {
     data: result?.data ?? null,
     error: result?.key === requestKey ? result.error : null,
     loading: result?.key !== requestKey,
-    reload: () => setRound((r) => r + 1),
+    reload,
   };
 }

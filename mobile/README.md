@@ -22,7 +22,15 @@ Aperçu dans un navigateur, sans téléphone : `npx expo start --web`.
 
 ## Structure
 
-- `src/app/` : écrans (Expo Router) — `(tabs)/index.tsx` accueil, `(tabs)/explorer.tsx` recherche, `circuit/[agence]/[slug].tsx` fiche d'un circuit
-- `src/components/` : cartes, bannière, catégories, états de chargement
-- `src/lib/` : client de l'API, adresse du site, formats français
+- `src/app/` : écrans (Expo Router)
+  - onglets : `(tabs)/index.tsx` accueil, `(tabs)/explorer.tsx` recherche, `(tabs)/reservations.tsx` mes réservations, `(tabs)/compte.tsx` compte
+  - `circuit/[agence]/[slug].tsx` fiche d'un circuit, `reserver/[depart].tsx` réservation, `paiement/[id].tsx` paiement, `reservation/[id].tsx` fiche d'une réservation
+  - `connexion.tsx`, `inscription.tsx` : compte voyageur (propre à une agence)
+- `src/components/` : cartes, bannière, catégories, formulaires, états de chargement, `RequireAuth`
+- `src/context/auth.tsx` : session du voyageur (jeton et profil, stockage chiffré du téléphone)
+- `src/lib/` : client de l'API, adresse du site, formats français, stockage de la session
+
+## Tester une réservation
+
+Compte de démonstration : `client@green-trek-mada.test`, mot de passe `Demo2026!`, agence **Green Trek Mada**. Une carte dont le numéro se termine par `0000` est refusée ; `4242 4242 4242 4242` est acceptée. Relancer `npm run db:seed` à la racine pour retrouver la base d'origine.
 - `src/theme/tokens.ts` : palette et polices du site (Nohemi, Poppins, Dancing Script)

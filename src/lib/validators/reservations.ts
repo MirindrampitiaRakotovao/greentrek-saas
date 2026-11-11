@@ -58,6 +58,9 @@ export const PAIEMENT_IMMEDIAT: readonly MethodePaiementValue[] = ["CARTE_SIMULE
  */
 export const NUMERO_REFUSE_SUFFIXE = "0000";
 
+/** Message d'un paiement refusé (site et application mobile). */
+export const PAIEMENT_REFUSE = "Paiement refusé. Essayez un autre numéro ou moyen de paiement.";
+
 export const paiementSchema = z
   .object({
     reservationId: z.string().min(1),

@@ -2,7 +2,6 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -10,7 +9,8 @@ import { Stars } from "@/components/stars";
 import { ErrorState, Loading } from "@/components/states";
 import { useAsync } from "@/hooks/use-async";
 import { type CircuitDetail, fetchCircuit, imageUrl } from "@/lib/api";
-import { API_BASE_URL } from "@/lib/config";
+import { useAuth } from "@/context/auth";
+import { confirmAction } from "@/lib/confirm";
 import {
   DIFFICULTE_LABELS,
   formatDayRange,
@@ -36,12 +36,13 @@ function parJour(etapes: CircuitDetail["etapes"]) {
 /**
  * Fiche d'un circuit : photo, titre, agence, note, infos clés, description, itinéraire par
  * jour, départs, prestations des partenaires et avis publiés.
- * Lot A2 : « Réserver » ouvre le tunnel de réservation du site ; au lot A3, la réservation se
- * fera dans l'application.
+ * « Réserver » ouvre la réservation dans l'application ; sans compte de l'agence du circuit,
+ * la connexion est proposée d'abord (un compte voyageur est propre à une agence).
  */
 export default function CircuitScreen() {
   const { agence, slug } = useLocalSearchParams<{ agence: string; slug: string }>();
   const insets = useSafeAreaInsets();
+  const { user, logout } = useAuth();
   const {
     data: c,
     error,
@@ -83,8 +84,24 @@ export default function CircuitScreen() {
       : []),
     { icon: "people-outline", label: `${c.capaciteMax} pers. max.` },
   ];
-  const reserver = (departId: string) =>
-    WebBrowser.openBrowserAsync(`${API_BASE_URL}/a/${c.agence.slug}/reserver/${departId}`);
+  async function reserver(departId: string) {
+    const booking = {
+      pathname: "/reserver/[depart]" as const,
+      params: { depart: departId, agence: c!.agence.slug, circuit: c!.slug },
+    };
+    const retour = `/reserver/${departId}?agence=${c!.agence.slug}&circuit=${c!.slug}`;
+    if (user && user.agenceSlug === c!.agence.slug) return router.push(booking);
+    if (user) {
+      const ok = await confirmAction({
+        title: "Changer de compte ?",
+        message: `Ce circuit est proposé par ${c!.agence.nom}. Votre compte est chez ${user.agenceNom} : connectez-vous avec un compte ${c!.agence.nom}.`,
+        confirmLabel: "Changer de compte",
+      });
+      if (!ok) return;
+      await logout();
+    }
+    router.push({ pathname: "/connexion", params: { agence: c!.agence.slug, retour } });
+  }
 
   return (
     <View style={styles.screen}>

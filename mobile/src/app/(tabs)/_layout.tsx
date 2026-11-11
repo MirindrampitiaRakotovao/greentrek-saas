@@ -29,7 +29,7 @@ function TabIcon({
 
 /**
  * Barre d'onglets d'après la maquette : fond bleu-vert foncé, coins arrondis, icône et libellé.
- * Lot A2 : Accueil et Explorer ; les réservations et le compte arrivent au lot A3.
+ * Onglets : Accueil, Explorer, Réservations, Compte.
  */
 export default function TabsLayout() {
   return (
@@ -62,6 +62,20 @@ export default function TabsLayout() {
         options={{
           title: "Explorer",
           tabBarIcon: (p) => <TabIcon {...p} active="compass" inactive="compass-outline" />,
+        }}
+      />
+      <Tabs.Screen
+        name="reservations"
+        options={{
+          title: "Réservations",
+          tabBarIcon: (p) => <TabIcon {...p} active="ticket" inactive="ticket-outline" />,
+        }}
+      />
+      <Tabs.Screen
+        name="compte"
+        options={{
+          title: "Compte",
+          tabBarIcon: (p) => <TabIcon {...p} active="person" inactive="person-outline" />,
         }}
       />
     </Tabs>

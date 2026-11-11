@@ -217,7 +217,7 @@ export default async function ReservationPage({
                         size="sm"
                         variant="secondary"
                         action={refundPaymentAction}
-                        confirmMessage={`Rembourser ${formatMoney(p.montant, devise)} (simulation) ?`}
+                        confirmMessage={`Rembourser ${formatMoney(p.montant, devise)} ?`}
                       />
                     ) : null}
                   </span>

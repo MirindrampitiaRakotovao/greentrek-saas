@@ -1,5 +1,5 @@
 import { json, jsonError, preflight } from "@/lib/mobile/http";
-import { mobileLogin } from "@/lib/mobile/session";
+import { mobileLogin, mobileProfile } from "@/lib/mobile/session";
 import { MOBILE_TOKEN_DAYS } from "@/lib/mobile/token";
 import { mobileLoginSchema } from "@/lib/validators/mobile";
 
@@ -20,11 +20,7 @@ export async function POST(request: Request) {
     {
       token: session.token,
       expiresInDays: MOBILE_TOKEN_DAYS,
-      user: {
-        name: session.user.name,
-        email: session.user.email,
-        agenceSlug: session.user.agenceSlug,
-      },
+      user: await mobileProfile(session.user.id),
     },
     { private: true },
   );

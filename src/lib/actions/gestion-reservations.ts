@@ -111,5 +111,5 @@ export async function refundPaymentAction(input: unknown): Promise<ActionResult>
     await journal(auth, "PAIEMENT_REMBOURSE", "Paiement", parsed.data.id);
     revalidateGestion();
   }
-  return toActionResult(result, "Paiement remboursé (simulation).");
+  return toActionResult(result, "Paiement remboursé.");
 }
