@@ -9,9 +9,7 @@
       "android": {
         "buildType": "apk"
       },
-      "env": {
-        "EXPO_PUBLIC_API_URL": ""
-      }
+      "environment": "preview"
     }
   }
 }

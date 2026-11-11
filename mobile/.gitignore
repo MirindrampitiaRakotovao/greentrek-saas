@@ -48,3 +48,6 @@ example
 # Clé privée du compte de service Firebase (notifications push) : jamais dans git
 *-firebase-adminsdk-*.json
 service-account*.json
+
+# Configuration Firebase d’Android (fournie à EAS par une variable de type fichier)
+google-services.json
