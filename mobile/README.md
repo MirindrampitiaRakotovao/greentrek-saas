@@ -48,14 +48,14 @@ Compte de démonstration : `client@green-trek-mada.test`, mot de passe `Demo2026
 L'application n'est pas publiée sur les stores (hors périmètre, cahier des charges §2). Pour la démonstration, on fabrique un fichier **APK** installable sur Android, et on le partage par un lien (Google Drive). Sur iPhone, l'installation hors App Store n'est pas possible : utiliser Expo Go.
 
 1. Créer un compte gratuit sur [expo.dev](https://expo.dev), puis, dans `mobile/` : `npx eas-cli@latest login`.
-2. (Facultatif) Dans `eas.json`, profil `apk`, renseigner `EXPO_PUBLIC_API_URL` avec l'adresse de l'ordinateur sur le Wi-Fi, par exemple `http://192.168.1.20:3000`. Sinon, la régler dans l'application (étape 6).
+2. L'adresse du site se règle dans l'application (roue dentée de l'écran de connexion, étape 6) : rien à mettre dans `eas.json`.
 2 bis. **Notifications push** (pour que le téléphone sonne application fermée) :
    - `npx eas-cli@latest init` : crée le projet sur expo.dev et ajoute son identifiant (`extra.eas.projectId`) à `app.json` ;
-   - créer un projet gratuit sur [console.firebase.google.com](https://console.firebase.google.com), y ajouter une application Android de nom de paquet `mg.greentrek.voyageurs`, télécharger `google-services.json` dans `mobile/`, et ajouter `"googleServicesFile": "./google-services.json"` dans la section `android` de `app.json` ;
+   - créer un projet gratuit sur [console.firebase.google.com](https://console.firebase.google.com), y ajouter une application Android de nom de paquet `mg.greentrek.voyageurs`, télécharger `google-services.json` dans `mobile/` (ignoré par git ; `app.config.js` le prend en compte), puis le confier à EAS : `npx eas-cli@latest env:create --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json --environment preview --visibility secret` ;
    - dans Firebase, « Paramètres du projet » → « Comptes de service » → « Générer une nouvelle clé privée », puis `npx eas-cli@latest credentials` → Android → « Google Service Account » → « FCM V1 » : y déposer ce fichier. **Ne jamais committer cette clé privée.**
 3. `npx eas-cli@latest build -p android --profile apk` : la fabrication se fait sur les serveurs d'Expo (une dizaine de minutes) ; un lien de téléchargement du fichier `.apk` s'affiche à la fin.
 4. Déposer le fichier `.apk` sur Google Drive, puis « Partager » → « Tous les utilisateurs disposant du lien ».
 5. Dans le `.env` du site : `MOBILE_APP_URL="<lien de partage Drive>"`, puis redémarrer le site. L'encart « Téléchargez l'application » apparaît sur l'accueil de la plateforme et des sites vitrines, avec un QR code.
-6. Sur le téléphone : installer l'APK (autoriser l'installation depuis cette source), puis, dans l'onglet **Compte**, « Adresse du serveur » : saisir l'adresse de l'ordinateur sur le Wi-Fi du jour (affichée par `ipconfig getifaddr en0` sur macOS), puis « Tester et enregistrer ».
+6. Sur le téléphone : installer l'APK (autoriser l'installation depuis cette source), puis, sur l'écran de connexion, la **roue dentée** (« Adresse du serveur ») : saisir l'adresse de l'ordinateur sur le Wi-Fi du jour (affichée par `ipconfig getifaddr en0` sur macOS), puis « Tester et enregistrer ».
 
 Réglages déjà prévus pour l'APK (`app.json`) : identifiant `mg.greentrek.voyageurs`, et connexions `http://` autorisées (`expo-build-properties`, `usesCleartextTraffic`), car le site de démonstration tourne sans HTTPS sur le réseau local. Pour une vraie mise en production : site en HTTPS et ce réglage retiré.
