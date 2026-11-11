@@ -1,4 +1,4 @@
-import type { RealtimeEvent } from "@/lib/realtime/events";
+import type { AlertEvent } from "@/lib/realtime/events";
 
 /**
  * Notifications push de l'application mobile, par le service d'Expo (après E12, hors cahier
@@ -42,7 +42,7 @@ export function reservationIdFromLink(lienUrl: string | null): string | null {
 }
 
 /** Titre, texte et destination d'un événement temps réel, pour un téléphone. */
-export function pushContent(event: RealtimeEvent): { title: string; body: string; data: PushData } {
+export function pushContent(event: AlertEvent): { title: string; body: string; data: PushData } {
   if (event.type === "message") {
     return {
       title: `Nouveau message de ${event.auteur}`,
@@ -61,7 +61,7 @@ export function pushContent(event: RealtimeEvent): { title: string; body: string
 /** Un message par téléphone, par paquets de 100 (limite du service). */
 export function buildPushBatches(
   tokens: readonly string[],
-  event: RealtimeEvent,
+  event: AlertEvent,
 ): ExpoPushMessage[][] {
   const content = pushContent(event);
   const messages = [...new Set(tokens)].map((to) => ({

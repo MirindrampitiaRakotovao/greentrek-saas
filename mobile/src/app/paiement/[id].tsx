@@ -1,15 +1,8 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Button, Field, FormError } from "@/components/form";
@@ -123,13 +116,11 @@ function Paiement() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
+    <View style={{ flex: 1 }}>
       <View style={styles.screen}>
         <ScreenHeader kicker="Paiement" title={r.circuit.titre} />
-        <ScrollView
+        <KeyboardAwareScrollView
+          bottomOffset={24}
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
           keyboardShouldPersistTaps="handled"
         >
@@ -197,9 +188,9 @@ function Paiement() {
             variant="secondary"
             onPress={() => router.replace({ pathname: "/reservation/[id]", params: { id } })}
           />
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

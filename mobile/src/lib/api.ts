@@ -317,6 +317,7 @@ export type Thread = {
     deMoi: boolean;
     auteur: string;
     cote: string;
+    statut: "DISTRIBUE" | "LU" | null;
   }[];
 };
 

@@ -4,3 +4,6 @@ notification.wav : « glass_001 », message.wav : « drop_002 »
 Pack « Interface Sounds » (1.0) de Kenney (www.kenney.nl), https://kenney.nl/assets/interface-sounds
 Licence : Creative Commons Zero (CC0 1.0), http://creativecommons.org/publicdomain/zero/1.0/
 Fichiers convertis de OGG en WAV (mono, 44,1 kHz) et volume réduit (70 % et 80 %).
+
+envoi.wav (message envoyé) : son créé pour la plateforme Green Trek (synthèse de deux notes
+brèves, mi 5 puis la 5, 0,2 s), sans source tierce. Même fichier dans mobile/assets/sounds/.

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Button, Field, FormError, PasswordField } from "@/components/form";
@@ -71,13 +72,11 @@ function Profil() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
+    <View style={{ flex: 1 }}>
       <View style={styles.screen}>
         <ScreenHeader kicker="Votre compte" title="Mon profil" />
-        <ScrollView
+        <KeyboardAwareScrollView
+          bottomOffset={24}
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
           keyboardShouldPersistTaps="handled"
         >
@@ -147,9 +146,9 @@ function Profil() {
               onPress={() => void savePassword()}
             />
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

@@ -74,6 +74,9 @@ export default async function CreditsPhotosPage({ params }: PageProps<"/a/[slug]
           kenney.nl
         </a>
       </p>
+      <p className="mt-2 text-sm text-gt-teal-900/75">
+        Son « message envoyé » : créé pour la plateforme Green Trek.
+      </p>
     </div>
   );
 }

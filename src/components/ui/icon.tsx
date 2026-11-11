@@ -30,6 +30,8 @@ const PATHS = {
   mountain: "m8 3 4 8 5-5 5 15H2z",
   building: "M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18zm-4 0h20M10 6h4m-4 4h4m-4 4h4m-4 4h4",
   check: "M20 6 9 17l-5-5",
+  checkDouble: "M17 6 6 17l-4-4m20-7-11 11-1.5-1.5",
+  clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18m0-14v5l3 2",
   xCircle: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20m3-13-6 6m0-6 6 6",
   arrowUp: "M12 19V5m-7 7 7-7 7 7",
   arrowDown: "M12 5v14m7-7-7 7-7-7",

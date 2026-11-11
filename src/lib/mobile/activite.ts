@@ -148,6 +148,8 @@ export function toMobileThread(t: ConversationThread, viewerId: string) {
       deMoi: m.auteur.id === viewerId,
       auteur: `${m.auteur.prenom} ${m.auteur.nom.charAt(0)}.`,
       cote: SIDE_LABELS[messagingSide(m.auteur.role)],
+      // Accusé de lecture de mes messages : « DISTRIBUE » ou « LU », null pour les autres.
+      statut: m.statut,
     })),
   };
 }

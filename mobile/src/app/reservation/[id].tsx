@@ -3,7 +3,8 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
 
@@ -92,7 +93,10 @@ function ReservationDetail() {
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}>
+      <KeyboardAwareScrollView
+        bottomOffset={24}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+      >
         <View style={styles.hero}>
           {uri ? <Image source={uri} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
           <LinearGradient
@@ -244,7 +248,7 @@ function ReservationDetail() {
             </View>
           ) : null}
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
       {back}
     </View>
   );

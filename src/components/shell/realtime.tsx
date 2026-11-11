@@ -14,6 +14,19 @@ import type { RealtimeEvent } from "@/lib/realtime/events";
 
 const SOUND_KEY = "gt-son";
 const SOUNDS = { notification: "/sons/notification.wav", message: "/sons/message.wav" } as const;
+const SENT_SOUND = "/sons/envoi.wav";
+
+/** Son bref « message envoyé » (après l'enregistrement), si le son est activé ici. */
+export function playSentSound(): void {
+  try {
+    if (window.localStorage.getItem(SOUND_KEY) === "off") return;
+  } catch {
+    // préférence illisible : son activé par défaut
+  }
+  void new Audio(SENT_SOUND).play().catch(() => {
+    // lecture refusée par le navigateur : sans conséquence
+  });
+}
 
 /** Préférence « son activé » de ce navigateur (confort personnel : stockage local). */
 export function useSoundPreference(): [boolean, () => void] {
@@ -78,6 +91,11 @@ export function RealtimeBridge({ soundOn }: { soundOn: boolean }) {
     }
 
     function handle(event: RealtimeEvent) {
+      if (event.type === "lecture") {
+        // Accusé de lecture : seul le fil ouvert change (« Lu »), sans son ni notification.
+        if (window.location.pathname.endsWith(`/messages/${event.conversationId}`)) refreshSoon();
+        return;
+      }
       if (event.type === "notification") {
         play("notification");
         notify(event.titre, "info");
@@ -101,6 +119,7 @@ export function RealtimeBridge({ soundOn }: { soundOn: boolean }) {
     };
     source.addEventListener("notification", listener);
     source.addEventListener("message", listener);
+    source.addEventListener("lecture", listener);
     return () => {
       window.clearTimeout(refreshTimer);
       source.close();

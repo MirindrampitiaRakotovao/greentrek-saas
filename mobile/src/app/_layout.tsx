@@ -6,6 +6,7 @@ import {
 } from "@expo-google-fonts/poppins";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
@@ -39,29 +40,34 @@ export default function RootLayout() {
   if (!loaded && !error) return null;
 
   return (
-    <AuthProvider>
-      <ActivityProvider>
-        <FavoritesProvider>
-          <StatusBar style="dark" />
-          <Stack
-            screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.white } }}
-          >
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="circuit/[agence]/[slug]" />
-            <Stack.Screen name="reserver/[depart]" />
-            <Stack.Screen name="paiement/[id]" />
-            <Stack.Screen name="reservation/[id]" />
-            <Stack.Screen name="connexion" options={{ presentation: "modal" }} />
-            <Stack.Screen name="inscription" options={{ presentation: "modal" }} />
-            <Stack.Screen name="mot-de-passe-oublie" options={{ presentation: "modal" }} />
-            <Stack.Screen name="profil" />
-            <Stack.Screen name="notifications" />
-            <Stack.Screen name="messages/index" />
-            <Stack.Screen name="messages/[id]" />
-            <Stack.Screen name="messages/nouveau" />
-          </Stack>
-        </FavoritesProvider>
-      </ActivityProvider>
-    </AuthProvider>
+    <KeyboardProvider>
+      <AuthProvider>
+        <ActivityProvider>
+          <FavoritesProvider>
+            <StatusBar style="dark" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.white },
+              }}
+            >
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="circuit/[agence]/[slug]" />
+              <Stack.Screen name="reserver/[depart]" />
+              <Stack.Screen name="paiement/[id]" />
+              <Stack.Screen name="reservation/[id]" />
+              <Stack.Screen name="connexion" options={{ presentation: "modal" }} />
+              <Stack.Screen name="inscription" options={{ presentation: "modal" }} />
+              <Stack.Screen name="mot-de-passe-oublie" options={{ presentation: "modal" }} />
+              <Stack.Screen name="profil" />
+              <Stack.Screen name="notifications" />
+              <Stack.Screen name="messages/index" />
+              <Stack.Screen name="messages/[id]" />
+              <Stack.Screen name="messages/nouveau" />
+            </Stack>
+          </FavoritesProvider>
+        </ActivityProvider>
+      </AuthProvider>
+    </KeyboardProvider>
   );
 }

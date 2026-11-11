@@ -352,3 +352,59 @@ describe("temps réel", () => {
     }
   });
 });
+
+describe("accusé de lecture", () => {
+  async function capture(users: Viewer[], fn: () => Promise<unknown>) {
+    const recus = new Map<string, RealtimeEvent[]>(users.map((u) => [u.id, []]));
+    const offs = users.map((u) => subscribe(u.id, (e) => recus.get(u.id)!.push(e)));
+    try {
+      await fn();
+    } finally {
+      offs.forEach((off) => off());
+    }
+    return recus;
+  }
+  const statuts = async (viewer: Viewer, id: string) =>
+    (await getConversation(dbA, viewer, id))!.messages.map((m) => m.statut);
+
+  it("le message du client est distribué, puis lu quand un membre de l'agence ouvre le fil", async () => {
+    const { conversationId } = unwrap(await start(client1, resa1, "Bonjour", 0));
+    expect(await statuts(client1, conversationId)).toEqual(["DISTRIBUE"]);
+    // Côté agence, pas de statut sous le message du client.
+    expect(await statuts(staff, conversationId)).toEqual([null]);
+
+    const recus = await capture([client1, admin, staff, guide1], () =>
+      markConversationRead(dbA, staff, conversationId, at(5)),
+    );
+    expect(await statuts(client1, conversationId)).toEqual(["LU"]);
+    // Le client (et le guide du départ, autre côté) voient « Lu » ; pas l'équipe.
+    expect(recus.get(client1.id)).toEqual([{ type: "lecture", conversationId }]);
+    expect(recus.get(guide1.id)).toHaveLength(1);
+    expect(recus.get(admin.id)).toHaveLength(0);
+
+    // Relecture sans nouveau message : pas de nouvel accusé.
+    const encore = await capture([client1], () =>
+      markConversationRead(dbA, admin, conversationId, at(6)),
+    );
+    expect(encore.get(client1.id)).toHaveLength(1); // admin n'avait jamais lu : première lecture
+    const plus = await capture([client1], () =>
+      markConversationRead(dbA, staff, conversationId, at(7)),
+    );
+    expect(plus.get(client1.id)).toHaveLength(0);
+  });
+
+  it("réponse de l'agence : lue par le client à l'ouverture, statut visible par toute l'équipe", async () => {
+    const { conversationId } = unwrap(await start(client1, resa1, "Bonjour", 0));
+    await sendMessage(dbA, staff, { conversationId, contenu: "Bonjour !" }, at(2));
+    expect(await statuts(admin, conversationId)).toEqual([null, "DISTRIBUE"]);
+    await markConversationRead(dbA, client1, conversationId, at(3));
+    expect(await statuts(admin, conversationId)).toEqual([null, "LU"]);
+    expect(await statuts(staff, conversationId)).toEqual([null, "LU"]);
+  });
+
+  it("aucune lecture d'une autre agence ne compte (isolation)", async () => {
+    const { conversationId } = unwrap(await start(client1, resa1, "Bonjour", 0));
+    expect((await markConversationRead(dbB, staff, conversationId, at(5))).ok).toBe(false);
+    expect(await statuts(client1, conversationId)).toEqual(["DISTRIBUE"]);
+  });
+});

@@ -45,3 +45,31 @@ export function isUnread(
   if (messagingSide(last.auteurRole) === messagingSide(viewerRole)) return false;
   return luJusqua === null || last.createdAt > luJusqua;
 }
+
+/** Statut d'un message de MON côté : enregistré sur le serveur, ou lu par l'autre côté. */
+export type DeliveryStatus = "DISTRIBUE" | "LU";
+
+/**
+ * Accusé de lecture (ajouté après E12, à la demande de l'étudiant). Un message est « lu » dès
+ * qu'un participant d'un AUTRE côté a lu la conversation jusqu'à lui (sa dernière lecture est
+ * postérieure ou égale au message) ; sinon il est « distribué ». Côté agence, la boîte étant
+ * partagée, il suffit qu'un seul membre de l'équipe l'ait lu. Les messages de l'autre côté
+ * n'ont pas de statut (`null`) : on ne l'affiche que sous ses propres messages.
+ */
+export function deliveryStatus(
+  message: { createdAt: Date; auteurRole: Role },
+  viewerRole: Role,
+  lectures: readonly { luJusqua: Date; role: Role }[],
+): DeliveryStatus | null {
+  const side = messagingSide(message.auteurRole);
+  if (side !== messagingSide(viewerRole)) return null;
+  return lectures.some((l) => messagingSide(l.role) !== side && l.luJusqua >= message.createdAt)
+    ? "LU"
+    : "DISTRIBUE";
+}
+
+/** Rôles d'un autre côté que `role` (destinataires possibles d'un accusé de lecture). */
+export function otherSideRoles(role: Role): Role[] {
+  const all: Role[] = ["SUPER_ADMIN", "ADMIN_AGENCE", "STAFF", "GUIDE", "CLIENT"];
+  return all.filter((r) => messagingSide(r) !== messagingSide(role) && r !== "SUPER_ADMIN");
+}

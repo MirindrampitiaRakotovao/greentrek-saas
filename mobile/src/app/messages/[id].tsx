@@ -2,8 +2,6 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   type ScrollViewInstance,
@@ -12,21 +10,26 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { FormError } from "@/components/form";
 import { RequireAuth } from "@/components/require-auth";
 import { ScreenHeader } from "@/components/screen-header";
 import { ErrorState, Loading } from "@/components/states";
 import { useActivity } from "@/context/activity";
 import { useAsync } from "@/hooks/use-async";
-import { ApiError, fetchThread, postMessage } from "@/lib/api";
+import { fetchThread, postMessage } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import { playSentSound } from "@/lib/sounds";
 import { colors, fonts, radius } from "@/theme/tokens";
 
-/** Fil ouvert : relu toutes les 5 secondes (réponse de l'agence visible sans action). */
+/** Fil ouvert : relu toutes les 5 secondes (réponse et accusé de lecture sans action). */
 const THREAD_POLL_MS = 5_000;
 const MESSAGE_MAX = 2000;
+
+/** Message parti tout de suite dans le fil, en attendant (ou faute de) la réponse du serveur. */
+type Outgoing = { key: number; contenu: string; etat: "ENVOI" | "ENVOYE" | "ECHEC" };
+type Statut = "ENVOI" | "DISTRIBUE" | "LU";
 
 export default function ThreadScreen() {
   return (
@@ -42,9 +45,17 @@ function Thread() {
   const { refresh } = useActivity();
   const { data, error, reload } = useAsync(() => fetchThread(id), id);
   const [text, setText] = useState("");
-  const [sendError, setSendError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const [outbox, setOutbox] = useState<Outgoing[]>([]);
+  const nextKey = useRef(0);
   const scroll = useRef<ScrollViewInstance>(null);
+
+  // Nouveau dernier message reçu du serveur : les messages envoyés y sont, la file se vide.
+  const lastId = data?.messages.at(-1)?.id;
+  const [seenLastId, setSeenLastId] = useState(lastId);
+  if (seenLastId !== lastId) {
+    setSeenLastId(lastId);
+    setOutbox((items) => items.filter((o) => o.etat !== "ENVOYE"));
+  }
 
   // Écran visible : relecture régulière ; l'ouverture marque le fil comme lu (pastilles à jour).
   useFocusEffect(
@@ -58,26 +69,40 @@ function Thread() {
     }, [reload, refresh]),
   );
 
-  async function send() {
-    const contenu = text.trim();
-    if (!contenu) return setSendError("Écrivez votre message.");
-    setPending(true);
-    setSendError(null);
+  async function deliver(item: Outgoing) {
     try {
-      await postMessage(id, contenu);
-      setText("");
+      await postMessage(id, item.contenu);
+      setOutbox((items) => items.map((o) => (o.key === item.key ? { ...o, etat: "ENVOYE" } : o)));
+      playSentSound();
       reload();
-    } catch (e: unknown) {
-      setSendError(e instanceof ApiError ? e.message : "Envoi impossible.");
-    } finally {
-      setPending(false);
+    } catch {
+      setOutbox((items) => items.map((o) => (o.key === item.key ? { ...o, etat: "ECHEC" } : o)));
     }
   }
 
+  function send() {
+    const contenu = text.trim();
+    if (!contenu) return;
+    const item: Outgoing = { key: nextKey.current++, contenu, etat: "ENVOI" };
+    setOutbox((items) => [...items, item]);
+    setText("");
+    void deliver(item);
+  }
+
+  function retry(item: Outgoing) {
+    setOutbox((items) => items.map((o) => (o.key === item.key ? { ...o, etat: "ENVOI" } : o)));
+    void deliver(item);
+  }
+
+  const toEnd = () => scroll.current?.scrollToEnd({ animated: true });
+
   return (
+    // Le clavier pousse toute la zone de saisie : rien de ce qu'on écrit n'est caché. La marge
+    // du bas (barre système) passe sous le clavier ouvert (décalage négatif).
     <KeyboardAvoidingView
+      behavior="padding"
+      keyboardVerticalOffset={-insets.bottom}
       style={styles.screen}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScreenHeader kicker="Messages" title={data?.sujet ?? "Conversation"} />
       {error ? (
@@ -89,7 +114,10 @@ function Thread() {
           <ScrollView
             ref={scroll}
             contentContainerStyle={styles.thread}
-            onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: false })}
+            onContentSizeChange={toEnd}
+            onLayout={toEnd}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
           >
             {data.reservation ? (
               <Pressable
@@ -117,18 +145,38 @@ function Thread() {
                   </Text>
                 ) : null}
                 <Text style={[styles.body, m.deMoi && styles.bodyMine]}>{m.contenu}</Text>
-                <Text style={[styles.time, m.deMoi && styles.timeMine]}>
-                  {formatDateTime(m.at)}
-                </Text>
+                <Meta at={formatDateTime(m.at)} mine={m.deMoi} statut={m.statut} />
               </View>
             ))}
+            {outbox.map((o) =>
+              o.etat === "ECHEC" ? (
+                <Pressable
+                  key={`envoi-${o.key}`}
+                  onPress={() => retry(o)}
+                  style={[styles.bubble, styles.mine, styles.failed]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Non envoyé : ${o.contenu}. Toucher pour réessayer.`}
+                >
+                  <Text style={[styles.body, styles.bodyMine]}>{o.contenu}</Text>
+                  <View style={styles.meta}>
+                    <Ionicons name="alert-circle" size={14} color={colors.sand300} />
+                    <Text style={styles.failedText}>Non envoyé · toucher pour réessayer</Text>
+                  </View>
+                </Pressable>
+              ) : (
+                <View key={`envoi-${o.key}`} style={[styles.bubble, styles.mine, styles.pending]}>
+                  <Text style={[styles.body, styles.bodyMine]}>{o.contenu}</Text>
+                  <Meta mine statut={o.etat === "ENVOYE" ? "DISTRIBUE" : "ENVOI"} />
+                </View>
+              ),
+            )}
           </ScrollView>
           <View style={[styles.composer, { paddingBottom: insets.bottom + 10 }]}>
-            <FormError message={sendError} />
             <View style={styles.row}>
               <TextInput
                 value={text}
                 onChangeText={setText}
+                onFocus={() => setTimeout(toEnd, 250)}
                 placeholder="Votre message…"
                 placeholderTextColor={colors.muted}
                 multiline
@@ -137,9 +185,9 @@ function Thread() {
                 accessibilityLabel="Votre message"
               />
               <Pressable
-                onPress={() => void send()}
-                disabled={pending}
-                style={[styles.send, pending && { opacity: 0.6 }]}
+                onPress={send}
+                disabled={!text.trim()}
+                style={[styles.send, !text.trim() && { opacity: 0.5 }]}
                 accessibilityRole="button"
                 accessibilityLabel="Envoyer"
               >
@@ -150,6 +198,37 @@ function Thread() {
         </>
       )}
     </KeyboardAvoidingView>
+  );
+}
+
+const STATUS: Record<
+  Statut,
+  { icon: React.ComponentProps<typeof Ionicons>["name"]; label: string }
+> = {
+  ENVOI: { icon: "time-outline", label: "Envoi…" },
+  DISTRIBUE: { icon: "checkmark", label: "Distribué" },
+  LU: { icon: "checkmark-done", label: "Lu" },
+};
+
+/** Heure et, sous mes messages, statut : pictogramme ET texte (jamais la couleur seule). */
+function Meta({ at, mine, statut }: { at?: string; mine: boolean; statut: Statut | null }) {
+  const s = mine && statut ? STATUS[statut] : null;
+  return (
+    <View style={styles.meta}>
+      {at ? <Text style={[styles.time, mine && styles.timeMine]}>{at}</Text> : null}
+      {s ? (
+        <View style={styles.meta} accessible accessibilityLabel={s.label}>
+          <Ionicons
+            name={s.icon}
+            size={15}
+            color={statut === "LU" ? colors.sand300 : "rgba(255,255,255,0.85)"}
+          />
+          <Text style={[styles.time, styles.timeMine, statut === "LU" && styles.read]}>
+            {s.label}
+          </Text>
+        </View>
+      ) : null}
+    </View>
   );
 }
 
@@ -172,11 +251,16 @@ const styles = StyleSheet.create({
   bubble: { maxWidth: "82%", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10, gap: 3 },
   mine: { alignSelf: "flex-end", backgroundColor: colors.teal700, borderBottomRightRadius: 4 },
   theirs: { alignSelf: "flex-start", backgroundColor: colors.white, borderBottomLeftRadius: 4 },
+  pending: { opacity: 0.75 },
+  failed: { backgroundColor: colors.teal900 },
+  failedText: { fontFamily: fonts.textMedium, fontSize: 11, color: colors.sand300 },
   author: { fontFamily: fonts.textSemiBold, fontSize: 12, color: colors.teal700 },
   body: { fontFamily: fonts.text, fontSize: 14, lineHeight: 20, color: colors.teal900 },
   bodyMine: { color: colors.white },
-  time: { fontFamily: fonts.text, fontSize: 10, color: colors.muted, alignSelf: "flex-end" },
-  timeMine: { color: "rgba(255,255,255,0.8)" },
+  meta: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-end" },
+  time: { fontFamily: fonts.text, fontSize: 10, color: colors.muted },
+  timeMine: { color: "rgba(255,255,255,0.85)" },
+  read: { fontFamily: fonts.textSemiBold, color: colors.sand300 },
   composer: {
     backgroundColor: colors.white,
     paddingHorizontal: 14,

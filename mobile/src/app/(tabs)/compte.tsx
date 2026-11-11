@@ -1,6 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CountBadge } from "@/components/badge";
@@ -27,7 +28,8 @@ export default function CompteScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={styles.screen}>
-      <ScrollView
+      <KeyboardAwareScrollView
+        bottomOffset={24}
         contentContainerStyle={{ paddingBottom: 120 }}
         keyboardShouldPersistTaps="handled"
       >
@@ -95,7 +97,7 @@ export default function CompteScreen() {
           )}
           <ServerSettings />
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

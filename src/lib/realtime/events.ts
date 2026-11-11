@@ -11,7 +11,12 @@ export type RealtimeEvent =
       sujet: string;
       auteur: string;
       extrait: string;
-    };
+    }
+  /** Accusé de lecture : l'autre côté a lu la conversation (le fil ouvert se relit). */
+  | { type: "lecture"; conversationId: string };
+
+/** Événements qui donnent lieu à une alerte (son, notification à l'écran, push). */
+export type AlertEvent = Extract<RealtimeEvent, { type: "notification" | "message" }>;
 
 /** Extrait d'un message affiché dans la notification (le fil complet reste sur la page). */
 export function excerpt(text: string, max = 120): string {

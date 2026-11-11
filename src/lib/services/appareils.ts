@@ -1,7 +1,7 @@
 import type { PrismaClient } from "@/generated/prisma/client";
 import { afterCommit } from "@/lib/after-commit";
 import { buildPushBatches, type PushTransport, sendExpoPush } from "@/lib/push/expo";
-import type { RealtimeEvent } from "@/lib/realtime/events";
+import type { AlertEvent } from "@/lib/realtime/events";
 import { failure, type ServiceResult, success } from "@/lib/services/result";
 import { getTenantDb, type TenantDb, type TenantTx } from "@/lib/tenant";
 
@@ -69,7 +69,7 @@ export function pushSettled(): Promise<unknown> {
 export async function pushToDevices(
   db: TenantDb | TenantTx,
   utilisateurIds: readonly string[],
-  event: RealtimeEvent,
+  event: AlertEvent,
 ): Promise<void> {
   if (utilisateurIds.length === 0) return;
   const devices = await db.appareilMobile.findMany({

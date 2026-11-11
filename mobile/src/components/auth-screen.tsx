@@ -2,15 +2,8 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import type { ReactNode } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors, fonts, radius } from "@/theme/tokens";
@@ -34,11 +27,9 @@ export function AuthScreen({
 }) {
   const insets = useSafeAreaInsets();
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <ScrollView
+    <View style={{ flex: 1 }}>
+      <KeyboardAwareScrollView
+        bottomOffset={24}
         style={styles.screen}
         contentContainerStyle={[
           styles.content,
@@ -85,8 +76,8 @@ export function AuthScreen({
         </Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
         <View style={styles.form}>{children}</View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </View>
   );
 }
 

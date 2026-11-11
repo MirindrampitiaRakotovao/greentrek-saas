@@ -1,5 +1,5 @@
 import { Prisma, type Role } from "@/generated/prisma/client";
-import { isUnread } from "@/lib/messagerie";
+import { deliveryStatus, isUnread, messagingSide, otherSideRoles } from "@/lib/messagerie";
 import { publish } from "@/lib/realtime/bus";
 import { pushToDevices } from "@/lib/services/appareils";
 import { excerpt } from "@/lib/realtime/events";
@@ -64,17 +64,11 @@ async function markRead(
 }
 
 /**
- * Diffuse un nouveau message en temps réel à tous les participants sauf l'auteur : l'équipe
- * de l'agence (comptes actifs), le client et le guide du départ (s'il a un compte). Envoi
- * après le commit (`publish`).
+ * Participants actifs d'une conversation : l'équipe de l'agence (comptes actifs), le client et
+ * le guide du départ (s'il a un compte), avec leur rôle.
  */
-async function publishMessage(
-  db: TenantDb | TenantTx,
-  conversationId: string,
-  auteurId: string,
-  contenu: string,
-) {
-  const [conversation, equipe, auteur] = await Promise.all([
+async function participants(db: TenantDb | TenantTx, conversationId: string) {
+  const [conversation, equipe] = await Promise.all([
     db.conversation.findUniqueOrThrow({
       where: { id: conversationId },
       select: {
@@ -87,19 +81,39 @@ async function publishMessage(
     }),
     db.utilisateur.findMany({
       where: { actif: true, role: { in: ["ADMIN_AGENCE", "STAFF"] } },
-      select: { id: true },
+      select: { id: true, role: true },
     }),
+  ]);
+  const guideId = conversation.reservation?.session.guide?.utilisateurId ?? null;
+  return {
+    sujet: conversation.sujet,
+    membres: [
+      { id: conversation.clientId, role: "CLIENT" as Role },
+      ...equipe,
+      ...(guideId ? [{ id: guideId, role: "GUIDE" as Role }] : []),
+    ],
+  };
+}
+
+/**
+ * Diffuse un nouveau message en temps réel à tous les participants sauf l'auteur : l'équipe
+ * de l'agence (comptes actifs), le client et le guide du départ (s'il a un compte). Envoi
+ * après le commit (`publish`).
+ */
+async function publishMessage(
+  db: TenantDb | TenantTx,
+  conversationId: string,
+  auteurId: string,
+  contenu: string,
+) {
+  const [conversation, auteur] = await Promise.all([
+    participants(db, conversationId),
     db.utilisateur.findUniqueOrThrow({
       where: { id: auteurId },
       select: { prenom: true, nom: true },
     }),
   ]);
-  const guideId = conversation.reservation?.session.guide?.utilisateurId ?? null;
-  const destinataires = [
-    conversation.clientId,
-    ...equipe.map((u) => u.id),
-    ...(guideId ? [guideId] : []),
-  ].filter((id) => id !== auteurId);
+  const destinataires = conversation.membres.map((m) => m.id).filter((id) => id !== auteurId);
   const event = {
     type: "message" as const,
     conversationId,
@@ -384,6 +398,7 @@ export async function getConversation(db: TenantDb, viewer: Viewer, id: string) 
           },
         },
       },
+      lectures: { select: { luJusqua: true, utilisateur: { select: { role: true } } } },
       messages: {
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: THREAD_LIMIT,
@@ -397,7 +412,20 @@ export async function getConversation(db: TenantDb, viewer: Viewer, id: string) 
     },
   });
   if (!conversation) return null;
-  return { ...conversation, messages: conversation.messages.reverse() };
+  const { lectures, ...rest } = conversation;
+  const lus = lectures.map((l) => ({ luJusqua: l.luJusqua, role: l.utilisateur.role }));
+  return {
+    ...rest,
+    // Accusé de lecture de chacun de MES messages (« distribué » ou « lu »), null sinon.
+    messages: conversation.messages.reverse().map((m) => ({
+      ...m,
+      statut: deliveryStatus(
+        { createdAt: m.createdAt, auteurRole: m.auteur.role },
+        viewer.role,
+        lus,
+      ),
+    })),
+  };
 }
 
 export type ConversationThread = NonNullable<Awaited<ReturnType<typeof getConversation>>>;
@@ -414,6 +442,28 @@ export async function markConversationRead(
     select: { id: true },
   });
   if (!conversation) return failure("Conversation introuvable.");
+  const previous = await db.lectureConversation.findUnique({
+    where: {
+      conversationId_utilisateurId: { conversationId: conversation.id, utilisateurId: viewer.id },
+    },
+    select: { luJusqua: true },
+  });
+  // Messages de l'autre côté lus pour la première fois : leurs auteurs voient « Lu ».
+  const nouveaux = await db.message.count({
+    where: {
+      conversationId: conversation.id,
+      createdAt: { gt: previous?.luJusqua ?? new Date(0), lte: now },
+      auteur: { role: { in: otherSideRoles(viewer.role) } },
+    },
+  });
   await markRead(db, conversation.id, viewer.id, now);
+  if (nouveaux > 0) {
+    const { membres } = await participants(db, conversation.id);
+    const side = messagingSide(viewer.role);
+    publish(
+      membres.filter((m) => messagingSide(m.role) !== side).map((m) => m.id),
+      { type: "lecture", conversationId: conversation.id },
+    );
+  }
   return success(undefined);
 }

@@ -2,16 +2,15 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
-import { FormAlert } from "@/components/ui/form-alert";
+import { playSentSound } from "@/components/shell/realtime";
 import { Icon } from "@/components/ui/icon";
 import type { Role } from "@/generated/prisma/client";
 import { markConversationReadAction, sendMessageAction } from "@/lib/actions/messagerie";
-import { applyFieldErrors } from "@/lib/forms";
 import { formatDate, formatTime } from "@/lib/format";
-import { messagingSide, SIDE_LABELS } from "@/lib/messagerie";
+import { type DeliveryStatus, messagingSide, SIDE_LABELS } from "@/lib/messagerie";
 import { MESSAGE_MAX, messageSchema } from "@/lib/validators/messagerie";
 
 export type ThreadMessage = {
@@ -19,13 +18,19 @@ export type ThreadMessage = {
   contenu: string;
   createdAt: Date;
   auteur: { id: string; prenom: string; nom: string; role: Role };
+  /** Accusé de lecture de mes messages (calculé par le service), null pour les autres. */
+  statut: DeliveryStatus | null;
 };
+
+/** Message en cours d'envoi (affiché tout de suite), ou dont l'envoi a échoué. */
+type Outgoing = { key: number; contenu: string; etat: "ENVOI" | "ENVOYE" | "ECHEC" };
 
 /**
  * Fil d'une conversation (messagerie, après E12). Les messages de « mon côté » (moi, ou mes
- * collègues de l'agence dans la boîte partagée) sont à droite. Les nouveaux messages arrivent
- * par le canal temps réel, qui relit la page (`router.refresh`) ; le fil défile alors en bas
- * et la conversation est marquée comme lue.
+ * collègues de l'agence dans la boîte partagée) sont à droite, avec leur statut : envoi en
+ * cours, distribué (✓, enregistré) ou lu par l'autre côté (✓✓). Les nouveaux messages et les
+ * accusés de lecture arrivent par le canal temps réel, qui relit la page (`router.refresh`) ;
+ * le fil défile alors en bas et la conversation est marquée comme lue.
  */
 export function Thread({
   conversationId,
@@ -41,9 +46,12 @@ export function Thread({
   const router = useRouter();
   const listRef = useRef<HTMLOListElement>(null);
   const lastId = messages.at(-1)?.id;
+  const [outbox, setOutbox] = useState<Outgoing[]>([]);
+  const nextKey = useRef(0);
 
   // Nouveau dernier message (ou ouverture) : défilement en bas, puis « lu » et relecture
-  // de la page pour mettre à jour la pastille du menu et la liste.
+  // de la page pour mettre à jour la pastille du menu et la liste. Les messages envoyés
+  // sont alors dans le fil : ils quittent la file d'envoi.
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
     let cancelled = false;
@@ -54,6 +62,39 @@ export function Thread({
       cancelled = true;
     };
   }, [conversationId, lastId, router]);
+
+  const [seenLastId, setSeenLastId] = useState(lastId);
+  if (seenLastId !== lastId) {
+    setSeenLastId(lastId);
+    setOutbox((items) => items.filter((o) => o.etat !== "ENVOYE"));
+  }
+
+  useEffect(() => {
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
+  }, [outbox.length]);
+
+  async function deliver(item: Outgoing) {
+    const result = await sendMessageAction({ conversationId, contenu: item.contenu });
+    const ok = !result.error && !result.fieldErrors;
+    setOutbox((items) =>
+      items.map((o) => (o.key === item.key ? { ...o, etat: ok ? "ENVOYE" : "ECHEC" } : o)),
+    );
+    if (ok) {
+      playSentSound();
+      router.refresh();
+    }
+  }
+
+  function send(contenu: string) {
+    const item: Outgoing = { key: nextKey.current++, contenu, etat: "ENVOI" };
+    setOutbox((items) => [...items, item]);
+    void deliver(item);
+  }
+
+  function retry(item: Outgoing) {
+    setOutbox((items) => items.map((o) => (o.key === item.key ? { ...o, etat: "ENVOI" } : o)));
+    void deliver({ ...item, etat: "ENVOI" });
+  }
 
   const mySide = messagingSide(viewerRole);
   const days = messages.map((m) => formatDate(m.createdAt));
@@ -87,53 +128,104 @@ export function Thread({
                     {!me && SIDE_LABELS[side] ? ` · ${SIDE_LABELS[side]}` : ""} ·{" "}
                     <time dateTime={m.createdAt.toISOString()}>{formatTime(m.createdAt)}</time>
                   </p>
-                  <p
-                    className={`rounded-2xl px-4 py-2.5 text-sm break-words whitespace-pre-line ${
-                      mine
-                        ? "rounded-br-md bg-gt-teal-700 text-white"
-                        : "rounded-bl-md bg-white text-gt-teal-900 ring-1 ring-gt-mist"
-                    }`}
-                  >
-                    {m.contenu}
-                  </p>
+                  <Bubble mine={mine}>{m.contenu}</Bubble>
+                  {m.statut ? <Status statut={m.statut} /> : null}
                 </div>
               </div>
             </li>
           );
         })}
+        {outbox.map((o) => (
+          <li key={`envoi-${o.key}`}>
+            <div className="flex justify-end">
+              <div className="max-w-[85%] sm:max-w-[70%]">
+                <Bubble mine dim={o.etat !== "ECHEC"}>
+                  {o.contenu}
+                </Bubble>
+                {o.etat === "ECHEC" ? (
+                  <button
+                    type="button"
+                    onClick={() => retry(o)}
+                    className="mt-1 block w-full text-right text-xs font-medium text-red-700 underline"
+                  >
+                    Non envoyé · toucher pour réessayer
+                  </button>
+                ) : (
+                  <Status statut={o.etat === "ENVOYE" ? "DISTRIBUE" : "ENVOI"} />
+                )}
+              </div>
+            </div>
+          </li>
+        ))}
       </ol>
-      <Composer conversationId={conversationId} />
+      <Composer conversationId={conversationId} onSend={send} />
     </div>
   );
 }
 
-function Composer({ conversationId }: { conversationId: string }) {
-  const router = useRouter();
-  const [serverError, setServerError] = useState<string>();
-  const [pending, startTransition] = useTransition();
+function Bubble({
+  mine,
+  dim = false,
+  children,
+}: {
+  mine: boolean;
+  dim?: boolean;
+  children: string;
+}) {
+  return (
+    <p
+      className={`rounded-2xl px-4 py-2.5 text-sm break-words whitespace-pre-line ${
+        mine
+          ? "rounded-br-md bg-gt-teal-700 text-white"
+          : "rounded-bl-md bg-white text-gt-teal-900 ring-1 ring-gt-mist"
+      } ${dim ? "opacity-70" : ""}`}
+    >
+      {children}
+    </p>
+  );
+}
+
+const STATUS = {
+  ENVOI: { icon: "clock", label: "Envoi…" },
+  DISTRIBUE: { icon: "check", label: "Distribué" },
+  LU: { icon: "checkDouble", label: "Lu" },
+} as const;
+
+/** Statut sous un de mes messages : pictogramme ET texte (jamais la couleur seule). */
+function Status({ statut }: { statut: keyof typeof STATUS }) {
+  const { icon, label } = STATUS[statut];
+  return (
+    <p
+      className={`mt-1 flex items-center justify-end gap-1 text-xs ${
+        statut === "LU" ? "font-medium text-gt-teal-700" : "text-gt-teal-900/75"
+      }`}
+    >
+      <Icon name={icon} className="size-3.5" />
+      {label}
+    </p>
+  );
+}
+
+function Composer({
+  conversationId,
+  onSend,
+}: {
+  conversationId: string;
+  onSend: (contenu: string) => void;
+}) {
   const {
     register,
     handleSubmit,
     reset,
-    setError,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(messageSchema),
     defaultValues: { conversationId, contenu: "" },
   });
-
+  // Le message part tout de suite dans le fil (« Envoi… ») et la zone de saisie se vide.
   const onSubmit = handleSubmit((values) => {
-    setServerError(undefined);
-    startTransition(async () => {
-      const result = await sendMessageAction(values);
-      if (result.error || result.fieldErrors) {
-        setServerError(result.error);
-        applyFieldErrors(result.fieldErrors, setError, ["contenu"] as const);
-        return;
-      }
-      reset({ conversationId, contenu: "" });
-      router.refresh();
-    });
+    onSend(values.contenu);
+    reset({ conversationId, contenu: "" });
   });
 
   return (
@@ -143,7 +235,6 @@ function Composer({ conversationId }: { conversationId: string }) {
       noValidate
       className="border-t border-gt-mist/70 bg-white px-4 py-3 sm:px-6"
     >
-      <FormAlert message={serverError} />
       <div className="flex items-end gap-2">
         <label htmlFor="message-contenu" className="sr-only">
           Votre message
@@ -167,11 +258,10 @@ function Composer({ conversationId }: { conversationId: string }) {
         />
         <button
           type="submit"
-          disabled={pending}
-          className="grid size-11 shrink-0 place-items-center rounded-full bg-gt-teal-700 text-white hover:bg-gt-teal-800 disabled:opacity-60"
+          className="grid size-11 shrink-0 place-items-center rounded-full bg-gt-teal-700 text-white hover:bg-gt-teal-800"
         >
           <Icon name="send" className="size-5" />
-          <span className="sr-only">{pending ? "Envoi…" : "Envoyer"}</span>
+          <span className="sr-only">Envoyer</span>
         </button>
       </div>
       <p id="message-aide" className="mt-1 text-xs text-gt-teal-900/75">
