@@ -29,7 +29,7 @@ function TabIcon({
 
 /**
  * Barre d'onglets d'après la maquette : fond bleu-vert foncé, coins arrondis, icône et libellé.
- * Onglets : Accueil, Explorer, Réservations, Compte.
+ * Onglets (comme la maquette) : Accueil, Explorer, Favoris, Réservations, Compte.
  */
 export default function TabsLayout() {
   return (
@@ -62,6 +62,13 @@ export default function TabsLayout() {
         options={{
           title: "Explorer",
           tabBarIcon: (p) => <TabIcon {...p} active="compass" inactive="compass-outline" />,
+        }}
+      />
+      <Tabs.Screen
+        name="favoris"
+        options={{
+          title: "Favoris",
+          tabBarIcon: (p) => <TabIcon {...p} active="heart" inactive="heart-outline" />,
         }}
       />
       <Tabs.Screen

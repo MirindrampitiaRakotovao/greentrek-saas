@@ -5,13 +5,17 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as WebBrowser from "expo-web-browser";
 
+import { AvisForm } from "@/components/avis-form";
 import { Button, FormError } from "@/components/form";
 import { RequireAuth } from "@/components/require-auth";
 import { ErrorState, Loading } from "@/components/states";
+import { Stars } from "@/components/stars";
 import { StatusPill } from "@/components/status-pill";
 import { useAsync } from "@/hooks/use-async";
 import { ApiError, cancelReservation, fetchReservation, imageUrl } from "@/lib/api";
+import { apiBaseUrl } from "@/lib/config";
 import { confirmAction } from "@/lib/confirm";
 import { formatDayRange, formatMoney } from "@/lib/format";
 import { colors, fonts, radius } from "@/theme/tokens";
@@ -173,6 +177,38 @@ function ReservationDetail() {
               ))
             )}
           </View>
+
+          {r.facture ? (
+            <Button
+              label="Voir la facture"
+              variant="secondary"
+              onPress={() => void WebBrowser.openBrowserAsync(`${apiBaseUrl()}${r.facture}`)}
+            />
+          ) : null}
+
+          {r.peutDonnerAvis ? (
+            <View style={styles.card}>
+              <Text style={styles.h2}>Votre avis sur ce séjour</Text>
+              <AvisForm
+                reservationId={r.id}
+                onDone={(message) => {
+                  setNotice(message);
+                  reload();
+                }}
+              />
+            </View>
+          ) : r.avis ? (
+            <View style={styles.card}>
+              <View style={styles.between}>
+                <Text style={styles.h2}>Votre avis</Text>
+                <Text style={styles.small}>{r.avis.statutLabel}</Text>
+              </View>
+              <Stars note={{ moyenne: r.avis.note, nombre: 1 }} />
+              {r.avis.commentaire ? (
+                <Text style={styles.paragraph}>{r.avis.commentaire}</Text>
+              ) : null}
+            </View>
+          ) : null}
 
           {r.remarques ? (
             <View style={styles.card}>

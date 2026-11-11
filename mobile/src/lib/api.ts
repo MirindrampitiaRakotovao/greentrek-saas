@@ -193,6 +193,11 @@ export type Reservation = {
   reste: number;
   peutPayer: boolean;
   peutAnnuler: boolean;
+  /** RG 17 : séjour terminé, pas encore d'avis. */
+  peutDonnerAvis: boolean;
+  avis: { note: number; commentaire: string | null; statut: string; statutLabel: string } | null;
+  /** Chemin signé de la facture sur le site (fiche d'une réservation seulement). */
+  facture: string | null;
   remarques: string | null;
   createdAt: string;
   agence: { slug: string; nom: string; devise: string };
@@ -245,5 +250,29 @@ export function payReservation(id: string, input: { methode: MethodePaiement; nu
 export function cancelReservation(id: string) {
   return request<{ message: string }>(`/reservations/${encodeURIComponent(id)}/annulation`, {
     json: {},
+  });
+}
+
+/* ─── Profil, mot de passe, avis (lot A4b) ────────────────────────────────────── */
+
+export function updateProfile(input: { prenom: string; nom: string; telephone: string }) {
+  return request<Profile>("/moi", { method: "PATCH", json: input });
+}
+
+export function changePassword(input: {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}) {
+  return request<{ message: string }>("/moi/mot-de-passe", { json: input });
+}
+
+export function forgotPassword(input: { email: string; agenceSlug: string }) {
+  return request<{ message: string }>("/mot-de-passe-oublie", { json: input });
+}
+
+export function postAvis(reservationId: string, input: { note: number; commentaire: string }) {
+  return request<{ message: string }>(`/reservations/${encodeURIComponent(reservationId)}/avis`, {
+    json: input,
   });
 }

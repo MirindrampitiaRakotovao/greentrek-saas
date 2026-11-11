@@ -7,6 +7,7 @@ import { type CircuitResume, imageUrl } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
 import { colors, fonts, radius } from "@/theme/tokens";
 
+import { FavoriteButton } from "./favorite-button";
 import { Stars } from "./stars";
 
 /**
@@ -38,6 +39,14 @@ export function CircuitCard({ circuit, width = 168 }: { circuit: CircuitResume; 
           locations={[0.35, 1]}
           style={StyleSheet.absoluteFill}
         />
+        <View style={styles.heart}>
+          <FavoriteButton
+            agence={circuit.agence.slug}
+            circuit={circuit.slug}
+            titre={circuit.titre}
+            size={32}
+          />
+        </View>
         <View style={styles.body}>
           {circuit.note ? <Stars note={circuit.note} light /> : null}
           <Text style={styles.title} numberOfLines={2}>
@@ -60,6 +69,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: colors.teal700,
   },
+  heart: { position: "absolute", top: 10, right: 10, zIndex: 1 },
   body: { flex: 1, justifyContent: "flex-end", padding: 12, gap: 2 },
   title: { fontFamily: fonts.display, fontSize: 16, lineHeight: 19, color: colors.white },
   agence: { fontFamily: fonts.text, fontSize: 12, color: "rgba(255,255,255,0.88)" },

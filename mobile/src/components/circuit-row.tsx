@@ -7,6 +7,7 @@ import { type CircuitResume, imageUrl } from "@/lib/api";
 import { DIFFICULTE_LABELS, formatDayRange, formatDuree, formatMoney } from "@/lib/format";
 import { colors, fonts, radius } from "@/theme/tokens";
 
+import { FavoriteButton } from "./favorite-button";
 import { Stars } from "./stars";
 
 /** Ligne de la liste « Explorer » : vignette, titre, agence, durée, difficulté, prix, départ. */
@@ -27,6 +28,14 @@ export function CircuitRow({ circuit }: { circuit: CircuitResume }) {
         ) : (
           <View style={[styles.thumb, { backgroundColor: colors.teal100 }]} />
         )}
+        <View style={styles.heart}>
+          <FavoriteButton
+            agence={circuit.agence.slug}
+            circuit={circuit.slug}
+            titre={circuit.titre}
+            size={30}
+          />
+        </View>
         <View style={styles.body}>
           <Text style={styles.agence} numberOfLines={1}>
             {circuit.agence.nom}
@@ -72,6 +81,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   thumb: { width: 96, height: 112, borderRadius: radius.sm + 2 },
+  heart: { position: "absolute", top: 14, left: 14, zIndex: 1 },
   body: { flex: 1, gap: 3 },
   agence: { fontFamily: fonts.textMedium, fontSize: 11, color: colors.teal600 },
   title: { fontFamily: fonts.display, fontSize: 15, lineHeight: 18, color: colors.teal900 },

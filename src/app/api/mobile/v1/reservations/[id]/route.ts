@@ -1,3 +1,4 @@
+import { invoicePath, invoiceSecret, signInvoice } from "@/lib/invoice";
 import { currentAgence } from "@/lib/mobile/context";
 import { json, jsonError, preflight, UNAUTHORIZED } from "@/lib/mobile/http";
 import { toMobileReservation } from "@/lib/mobile/reservations";
@@ -17,7 +18,13 @@ export async function GET(
     getClientReservation(ctx.db, id, ctx.user.id),
   ]);
   if (!reservation) return jsonError("Réservation introuvable.", 404);
-  return json(toMobileReservation(reservation, agence), { private: true });
+  // Lien signé de la facture : le secret reste sur le serveur (même mécanisme que le QR code).
+  const facture = invoicePath(
+    agence.slug,
+    reservation.id,
+    signInvoice(invoiceSecret(), ctx.user.agenceId, reservation.id),
+  );
+  return json(toMobileReservation(reservation, agence, facture), { private: true });
 }
 
 export const OPTIONS = preflight;

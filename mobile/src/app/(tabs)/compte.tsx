@@ -70,6 +70,11 @@ export default function CompteScreen() {
                   <Text style={styles.strong}>{user.agenceNom}</Text>
                 </View>
               </View>
+              <Button
+                label="Modifier mon profil"
+                variant="secondary"
+                onPress={() => router.push("/profil")}
+              />
               <Button label="Se déconnecter" variant="danger" onPress={() => void signOut()} />
             </>
           )}

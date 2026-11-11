@@ -1,4 +1,5 @@
 import type { ClientReservation } from "@/lib/services/reservations";
+import { STATUT_AVIS_LABELS } from "@/lib/validators/avis";
 import {
   METHODE_PAIEMENT_LABELS,
   STATUT_PAIEMENT_LABELS,
@@ -15,6 +16,8 @@ const isoDay = (date: Date) => date.toISOString().slice(0, 10);
 export function toMobileReservation(
   r: ClientReservation,
   agence: { slug: string; nom: string; devise: string },
+  /** Lien signé de la facture (chemin du site), fourni par la fiche d'une réservation. */
+  facture: string | null = null,
 ) {
   return {
     id: r.id,
@@ -27,6 +30,16 @@ export function toMobileReservation(
     reste: r.reste,
     peutPayer: r.peutPayer,
     peutAnnuler: r.peutAnnuler,
+    peutDonnerAvis: r.peutDonnerAvis,
+    avis: r.avis
+      ? {
+          note: r.avis.note,
+          commentaire: r.avis.commentaire,
+          statut: r.avis.statut,
+          statutLabel: STATUT_AVIS_LABELS[r.avis.statut],
+        }
+      : null,
+    facture,
     remarques: r.remarques,
     createdAt: r.createdAt.toISOString(),
     agence,

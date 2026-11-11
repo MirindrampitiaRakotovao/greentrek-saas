@@ -4,7 +4,8 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import type { Role } from "@/generated/prisma/client";
 import { parseIsoDate } from "@/lib/departs";
 import { toMobileReservation } from "@/lib/mobile/reservations";
-import { mobileClientFromRequest, mobileLogin } from "@/lib/mobile/session";
+import { mobileClientFromRequest, mobileLogin, mobileProfile } from "@/lib/mobile/session";
+import { createAvis } from "@/lib/services/avis";
 import { getCatalogueCircuit, listCatalogue } from "@/lib/services/catalogue";
 import {
   cancelReservationByClient,
@@ -13,6 +14,7 @@ import {
   listClientReservations,
   payReservation,
 } from "@/lib/services/reservations";
+import { updateProfile } from "@/lib/services/team";
 
 import { createTestClient, truncateAll } from "./test-db";
 
@@ -317,5 +319,65 @@ describe("réservation depuis l'application (lot A3)", () => {
         )
       ).ok,
     ).toBe(false);
+  });
+});
+
+describe("compte et avis depuis l'application (lot A4b)", () => {
+  async function connect(email: string) {
+    await user(email, "CLIENT", agenceA.id);
+    const session = await mobileLogin(
+      { email, password: PASSWORD, agenceSlug: agenceA.slug },
+      raw,
+      NOW,
+    );
+    return (await mobileClientFromRequest(request(session!.token), raw, NOW))!;
+  }
+
+  it("modifie son profil (prénom, nom, téléphone) par le service du site", async () => {
+    const ctx = await connect("voyageur@example.com");
+    const res = await updateProfile(ctx.db, ctx.user.id, {
+      prenom: "Lova",
+      nom: "Rabe",
+      telephone: null,
+    });
+    expect(res.ok).toBe(true);
+    expect(await mobileProfile(ctx.user.id, raw)).toMatchObject({ prenom: "Lova", nom: "Rabe" });
+  });
+
+  it("avis sur un séjour terminé : proposé une fois, puis affiché en attente de relecture", async () => {
+    const c = await circuit(agenceA.id, "sentier", "Sentier côtier");
+    const d = await depart(agenceA.id, c.id, "2026-10-01");
+    const ctx = await connect("voyageur@example.com");
+    const r = await raw.reservation.create({
+      data: {
+        agenceId: agenceA.id,
+        reference: "GT-TEST-0001",
+        clientId: ctx.user.id,
+        sessionId: d.id,
+        nombrePersonnes: 1,
+        montantTotal: 100_000,
+        statut: "TERMINEE",
+      },
+    });
+    const agence = { slug: agenceA.slug, nom: "Green Trek Mada", devise: "MGA" };
+
+    const [avant] = await listClientReservations(ctx.db, ctx.user.id, NOW);
+    expect(toMobileReservation(avant!, agence)).toMatchObject({ peutDonnerAvis: true, avis: null });
+
+    const input = {
+      agenceId: agenceA.id,
+      reservationId: r.id,
+      clientId: ctx.user.id,
+      note: 5,
+      commentaire: "Très belle marche.",
+    };
+    expect((await createAvis(ctx.db, input, NOW)).ok).toBe(true);
+    expect((await createAvis(ctx.db, input, NOW)).ok).toBe(false);
+
+    const [apres] = await listClientReservations(ctx.db, ctx.user.id, NOW);
+    expect(toMobileReservation(apres!, agence)).toMatchObject({
+      peutDonnerAvis: false,
+      avis: { note: 5, statut: "EN_ATTENTE" },
+    });
   });
 });

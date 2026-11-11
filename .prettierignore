@@ -8,3 +8,4 @@ mobile/node_modules
 mobile/.expo
 mobile/ios
 mobile/android
+mobile/expo-env.d.ts

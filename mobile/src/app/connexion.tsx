@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
+import { StyleSheet, Text } from "react-native";
 
 import { AgencyPicker } from "@/components/agency-picker";
 import { AuthScreen } from "@/components/auth-screen";
@@ -9,6 +10,7 @@ import { useAuth } from "@/context/auth";
 import { useAsync } from "@/hooks/use-async";
 import { ApiError, fetchCatalogue } from "@/lib/api";
 import { afterAuth } from "@/lib/navigation";
+import { colors, fonts } from "@/theme/tokens";
 
 /**
  * Connexion d'un voyageur. `agence` : agence proposée (celle du circuit à réserver) ;
@@ -68,6 +70,13 @@ export default function ConnexionScreen() {
         textContentType="password"
         onSubmitEditing={() => void submit()}
       />
+      <Text
+        onPress={() => router.push({ pathname: "/mot-de-passe-oublie", params: { agence } })}
+        style={styles.forgot}
+        accessibilityRole="link"
+      >
+        Mot de passe oublié ?
+      </Text>
       <Button
         label={pending ? "Connexion…" : "Se connecter"}
         pending={pending}
@@ -76,3 +85,12 @@ export default function ConnexionScreen() {
     </AuthScreen>
   );
 }
+
+const styles = StyleSheet.create({
+  forgot: {
+    alignSelf: "flex-end",
+    fontFamily: fonts.textMedium,
+    fontSize: 13,
+    color: colors.teal700,
+  },
+});

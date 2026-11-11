@@ -23,9 +23,9 @@ Aperçu dans un navigateur, sans téléphone : `npx expo start --web`.
 ## Structure
 
 - `src/app/` : écrans (Expo Router)
-  - onglets : `(tabs)/index.tsx` accueil, `(tabs)/explorer.tsx` recherche, `(tabs)/reservations.tsx` mes réservations, `(tabs)/compte.tsx` compte
+  - onglets : `(tabs)/index.tsx` accueil, `(tabs)/explorer.tsx` recherche, `(tabs)/favoris.tsx` favoris (gardés sur le téléphone), `(tabs)/reservations.tsx` mes réservations, `(tabs)/compte.tsx` compte
   - `circuit/[agence]/[slug].tsx` fiche d'un circuit, `reserver/[depart].tsx` réservation, `paiement/[id].tsx` paiement, `reservation/[id].tsx` fiche d'une réservation
-  - `connexion.tsx`, `inscription.tsx` : compte voyageur (propre à une agence)
+  - `connexion.tsx`, `inscription.tsx`, `mot-de-passe-oublie.tsx` : compte voyageur (propre à une agence) ; `profil.tsx` : profil et mot de passe
 - `src/components/` : cartes, bannière, catégories, formulaires, états de chargement, `RequireAuth`
 - `src/context/auth.tsx` : session du voyageur (jeton et profil, stockage chiffré du téléphone)
 - `src/lib/` : client de l'API, adresse du site (réglable dans l'onglet Compte), formats français, page de la carte (Leaflet), stockage de la session

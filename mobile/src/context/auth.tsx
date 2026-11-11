@@ -18,6 +18,8 @@ type AuthState = {
   login: (input: Parameters<typeof apiLogin>[0]) => Promise<void>;
   register: (input: Parameters<typeof apiRegister>[0]) => Promise<void>;
   logout: () => Promise<void>;
+  /** Profil modifié (écran « Mon profil ») : mis à jour ici et sur le téléphone. */
+  updateUser: (profile: Profile) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -33,6 +35,7 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [user, setUser] = useState<Profile | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -43,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!active) return;
       if (saved) {
         setAuthToken(saved.token);
+        setToken(saved.token);
         setUser(saved.user);
       }
       setReady(true);
@@ -55,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error: unknown) {
         if (active && error instanceof ApiError && error.status === 401) {
           setAuthToken(null);
+          setToken(null);
           setUser(null);
           await writeSession(null);
         }
@@ -67,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function open(session: Session) {
     setAuthToken(session.token);
+    setToken(session.token);
     await writeSession(session);
     setUser(session.user);
   }
@@ -77,8 +83,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     register: async (input) => open(await apiRegister(input)),
     logout: async () => {
       setAuthToken(null);
+      setToken(null);
       await writeSession(null);
       setUser(null);
+    },
+    updateUser: async (profile) => {
+      setUser(profile);
+      if (token) await writeSession({ token, user: profile });
     },
   };
   // Rien n'est affiché tant que la session enregistrée n'a pas été relue (quelques millisecondes).

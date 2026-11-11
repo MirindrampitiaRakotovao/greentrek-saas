@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CircuitMap } from "@/components/circuit-map";
+import { FavoriteButton } from "@/components/favorite-button";
 import { Stars } from "@/components/stars";
 import { ErrorState, Loading } from "@/components/states";
 import { useAsync } from "@/hooks/use-async";
@@ -121,6 +122,9 @@ export default function CircuitScreen() {
             locations={[0, 0.35, 1]}
             style={StyleSheet.absoluteFill}
           />
+          <View style={[styles.heart, { top: insets.top + 8 }]}>
+            <FavoriteButton agence={c.agence.slug} circuit={c.slug} titre={c.titre} size={40} />
+          </View>
           <View style={styles.heroBody}>
             <Text style={styles.agence}>{c.agence.nom}</Text>
             <Text style={styles.title} accessibilityRole="header">
@@ -267,6 +271,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   hero: { height: 340, backgroundColor: colors.teal900, justifyContent: "flex-end" },
+  heart: { position: "absolute", right: 16, zIndex: 1 },
   heroBody: { padding: 20, gap: 6 },
   agence: { fontFamily: fonts.script, fontSize: 22, color: colors.sand300 },
   title: { fontFamily: fonts.display, fontSize: 30, lineHeight: 32, color: colors.white },
