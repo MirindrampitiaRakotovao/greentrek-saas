@@ -13,6 +13,7 @@
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/icon.png"
       },
+      "package": "mg.greentrek.voyageurs",
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -29,7 +30,13 @@
           "imageWidth": 160
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "android": { "usesCleartextTraffic": true }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

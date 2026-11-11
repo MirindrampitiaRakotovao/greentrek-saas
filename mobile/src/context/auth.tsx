@@ -9,6 +9,7 @@ import {
   type Session,
   setAuthToken,
 } from "@/lib/api";
+import { loadApiBaseUrl } from "@/lib/config";
 import { readSession, writeSession } from "@/lib/session-store";
 
 type AuthState = {
@@ -36,6 +37,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
     void (async () => {
+      // Adresse du serveur choisie (onglet Compte), puis session : relues avant le 1er écran.
+      await loadApiBaseUrl();
       const saved = await readSession();
       if (!active) return;
       if (saved) {

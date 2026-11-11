@@ -88,3 +88,20 @@ export function absoluteUrl(base: string, path: string | null): string | null {
   if (/^https?:\/\//i.test(path)) return path;
   return `${base.replace(/\/+$/, "")}${path.startsWith("/") ? "" : "/"}${path}`;
 }
+
+/**
+ * Adresse saisie → « http://hôte:port » sans barre finale, ou `null` si invalide. Sans
+ * protocole, `http://` est ajouté ; sans port, le port du site (3000).
+ */
+export function normalizeServerUrl(value: string | null | undefined): string | null {
+  const raw = value?.trim();
+  if (!raw) return null;
+  try {
+    const url = new URL(/^[a-z]+:\/\//i.test(raw) ? raw : `http://${raw}`);
+    if (!["http:", "https:"].includes(url.protocol) || !url.hostname) return null;
+    if (!url.port && url.protocol === "http:" && !/:\d+$/.test(raw)) url.port = "3000";
+    return url.origin;
+  } catch {
+    return null;
+  }
+}

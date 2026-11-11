@@ -28,9 +28,22 @@ Aperçu dans un navigateur, sans téléphone : `npx expo start --web`.
   - `connexion.tsx`, `inscription.tsx` : compte voyageur (propre à une agence)
 - `src/components/` : cartes, bannière, catégories, formulaires, états de chargement, `RequireAuth`
 - `src/context/auth.tsx` : session du voyageur (jeton et profil, stockage chiffré du téléphone)
-- `src/lib/` : client de l'API, adresse du site, formats français, stockage de la session
+- `src/lib/` : client de l'API, adresse du site (réglable dans l'onglet Compte), formats français, page de la carte (Leaflet), stockage de la session
+- `src/theme/tokens.ts` : palette et polices du site (Nohemi, Poppins, Dancing Script)
 
 ## Tester une réservation
 
 Compte de démonstration : `client@green-trek-mada.test`, mot de passe `Demo2026!`, agence **Green Trek Mada**. Une carte dont le numéro se termine par `0000` est refusée ; `4242 4242 4242 4242` est acceptée. Relancer `npm run db:seed` à la racine pour retrouver la base d'origine.
-- `src/theme/tokens.ts` : palette et polices du site (Nohemi, Poppins, Dancing Script)
+
+## Fabriquer l'APK Android (lien de téléchargement pour la démonstration)
+
+L'application n'est pas publiée sur les stores (hors périmètre, cahier des charges §2). Pour la démonstration, on fabrique un fichier **APK** installable sur Android, et on le partage par un lien (Google Drive). Sur iPhone, l'installation hors App Store n'est pas possible : utiliser Expo Go.
+
+1. Créer un compte gratuit sur [expo.dev](https://expo.dev), puis, dans `mobile/` : `npx eas-cli@latest login`.
+2. (Facultatif) Dans `eas.json`, profil `apk`, renseigner `EXPO_PUBLIC_API_URL` avec l'adresse de l'ordinateur sur le Wi-Fi, par exemple `http://192.168.1.20:3000`. Sinon, la régler dans l'application (étape 6).
+3. `npx eas-cli@latest build -p android --profile apk` : la fabrication se fait sur les serveurs d'Expo (une dizaine de minutes) ; un lien de téléchargement du fichier `.apk` s'affiche à la fin.
+4. Déposer le fichier `.apk` sur Google Drive, puis « Partager » → « Tous les utilisateurs disposant du lien ».
+5. Dans le `.env` du site : `MOBILE_APP_URL="<lien de partage Drive>"`, puis redémarrer le site. L'encart « Téléchargez l'application » apparaît sur l'accueil de la plateforme et des sites vitrines, avec un QR code.
+6. Sur le téléphone : installer l'APK (autoriser l'installation depuis cette source), puis, dans l'onglet **Compte**, « Adresse du serveur » : saisir l'adresse de l'ordinateur sur le Wi-Fi du jour (affichée par `ipconfig getifaddr en0` sur macOS), puis « Tester et enregistrer ».
+
+Réglages déjà prévus pour l'APK (`app.json`) : identifiant `mg.greentrek.voyageurs`, et connexions `http://` autorisées (`expo-build-properties`, `usesCleartextTraffic`), car le site de démonstration tourne sans HTTPS sur le réseau local. Pour une vraie mise en production : site en HTTPS et ce réglage retiré.

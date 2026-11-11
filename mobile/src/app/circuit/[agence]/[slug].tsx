@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { CircuitMap } from "@/components/circuit-map";
 import { Stars } from "@/components/stars";
 import { ErrorState, Loading } from "@/components/states";
 import { useAsync } from "@/hooks/use-async";
@@ -182,6 +183,7 @@ export default function CircuitScreen() {
           <Text style={styles.h2} accessibilityRole="header">
             Itinéraire
           </Text>
+          <CircuitMap steps={c.etapes} trace={c.trace} />
           {parJour(c.etapes).map((g, i) => (
             <View key={`${g.jour ?? "x"}-${i}`} style={styles.day}>
               {g.jour !== null ? <Text style={styles.dayTitle}>Jour {g.jour}</Text> : null}

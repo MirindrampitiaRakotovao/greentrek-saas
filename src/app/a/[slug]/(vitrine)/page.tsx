@@ -29,6 +29,7 @@ import {
 } from "@/lib/services/vitrine";
 import { TYPE_PARTENAIRE_LABELS } from "@/lib/validators/backoffice";
 import { loadVitrine } from "@/lib/vitrine-page";
+import { MobileAppSection } from "@/components/design/mobile-app-section";
 
 export async function generateMetadata({ params }: PageProps<"/a/[slug]">): Promise<Metadata> {
   const agence = await getVitrineAgency((await params).slug);
@@ -180,6 +181,8 @@ export default async function VitrineHomePage({ params }: PageProps<"/a/[slug]">
           <ReviewList avis={avis} agenceSlug={agence.slug} showCircuit />
         )}
       </section>
+
+      <MobileAppSection />
 
       {partenaires.length > 0 ? (
         <section

@@ -53,3 +53,18 @@ describe("formats de l'application mobile", () => {
     expect(departWithinDays(null, 31, now)).toBe(false);
   });
 });
+
+describe("adresse du serveur saisie dans l'application", () => {
+  it("normalise l'adresse (protocole, port du site par défaut) et refuse le reste", async () => {
+    const { normalizeServerUrl } = await import("../../mobile/src/lib/format");
+    expect(normalizeServerUrl("192.168.1.20")).toBe("http://192.168.1.20:3000");
+    expect(normalizeServerUrl(" 192.168.1.20:3000/ ")).toBe("http://192.168.1.20:3000");
+    expect(normalizeServerUrl("http://10.0.0.5:8080/api")).toBe("http://10.0.0.5:8080");
+    expect(normalizeServerUrl("https://greentrek.example.com")).toBe(
+      "https://greentrek.example.com",
+    );
+    expect(normalizeServerUrl("")).toBeNull();
+    expect(normalizeServerUrl("ftp://serveur")).toBeNull();
+    expect(normalizeServerUrl(null)).toBeNull();
+  });
+});

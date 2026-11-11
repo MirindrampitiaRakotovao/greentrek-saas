@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "./config";
+import { apiBaseUrl } from "./config";
 import { absoluteUrl } from "./format";
 
 /*
@@ -48,7 +48,11 @@ export type CircuitDetail = Omit<CircuitResume, "prochainDepart"> & {
     nom: string;
     type: string;
     description: string | null;
+    latitude: number;
+    longitude: number;
   }[];
+  /** Tracé réel (points [latitude, longitude]) calculé par A*, ou null. */
+  trace: [number, number][] | null;
   partenaires: { prestation: string; partenaire: string; type: string; inclusDansPrix: boolean }[];
   departs: Depart[];
   avis: { note: number; commentaire: string | null; auteur: string; date: string }[];
@@ -83,7 +87,7 @@ async function request<T>(path: string, init: RequestInit & { json?: unknown } =
   const { json, ...rest } = init;
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/mobile/v1${path}`, {
+    response = await fetch(`${apiBaseUrl()}/api/mobile/v1${path}`, {
       ...rest,
       ...(json !== undefined ? { method: rest.method ?? "POST", body: JSON.stringify(json) } : {}),
       headers: {
@@ -95,7 +99,7 @@ async function request<T>(path: string, init: RequestInit & { json?: unknown } =
     });
   } catch {
     throw new ApiError(
-      `Impossible de joindre Green Trek (${API_BASE_URL}). Vérifiez que le site est démarré et que le téléphone est sur le même Wi-Fi.`,
+      `Impossible de joindre Green Trek (${apiBaseUrl()}). Vérifiez que le site est démarré, que le téléphone est sur le même Wi-Fi, et l’adresse du serveur (onglet Compte).`,
       0,
     );
   }
@@ -137,7 +141,7 @@ export function fetchCircuit(agence: string, slug: string) {
 
 /** Adresse complète d'une image du site. */
 export function imageUrl(path: string | null): string | null {
-  return absoluteUrl(API_BASE_URL, path);
+  return absoluteUrl(apiBaseUrl(), path);
 }
 
 /* ─── Compte du voyageur (lot A3) ─────────────────────────────────────────────── */

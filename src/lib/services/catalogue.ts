@@ -19,6 +19,9 @@ import type { CatalogueQuery } from "@/lib/validators/mobile";
 
 const isoDay = (date: Date) => date.toISOString().slice(0, 10);
 
+/** Distance au centième de kilomètre (sans les résidus des calculs en virgule flottante). */
+const roundKm = (km: number | null) => (km === null ? null : Math.round(km * 100) / 100);
+
 type AgenceRef = {
   slug: string;
   nom: string;
@@ -77,7 +80,7 @@ function toCircuit(agence: AgenceRef, c: PublicCircuitCard): CatalogueCircuit {
     resume: c.resume,
     difficulte: c.difficulte,
     dureeJours: c.dureeJours,
-    distanceKm: c.distanceKm,
+    distanceKm: roundKm(c.distanceKm),
     ...photo(c.imagePrincipaleUrl),
     prixMin: c.prixMin,
     note: c.note,
@@ -165,7 +168,7 @@ export async function getCatalogueCircuit(
     description: circuit.description,
     difficulte: circuit.difficulte,
     dureeJours: circuit.dureeJours,
-    distanceKm: circuit.trace?.distanceKm ?? circuit.distanceKm,
+    distanceKm: roundKm(circuit.trace?.distanceKm ?? circuit.distanceKm),
     capaciteMax: circuit.capaciteMax,
     ...photo(circuit.imagePrincipaleUrl),
     prixMin: circuit.prixMin,

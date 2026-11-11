@@ -1,11 +1,11 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/form";
+import { ServerSettings } from "@/components/server-settings";
 import { useAuth } from "@/context/auth";
-import { API_BASE_URL } from "@/lib/config";
 import { confirmAction } from "@/lib/confirm";
 import { colors, fonts, radius } from "@/theme/tokens";
 
@@ -24,59 +24,58 @@ export default function CompteScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={styles.screen}>
-      <View style={styles.header}>
-        <Text style={styles.script}>Votre espace</Text>
-        <Text style={styles.title} accessibilityRole="header">
-          Compte
-        </Text>
-      </View>
-      <View style={styles.content}>
-        {user === null ? (
-          <>
-            <Text style={styles.paragraph}>
-              Un compte voyageur est propre à une agence : créez-le auprès de l’agence de votre
-              circuit, puis connectez-vous pour réserver.
-            </Text>
-            <Button label="Se connecter" onPress={() => router.push("/connexion")} />
-            <Button
-              label="Créer un compte"
-              variant="secondary"
-              onPress={() => router.push("/inscription")}
-            />
-          </>
-        ) : (
-          <>
-            <View style={styles.card}>
-              <View style={styles.avatar}>
-                <Text style={styles.initials}>
-                  {(user.prenom[0] ?? "").toUpperCase()}
-                  {(user.nom[0] ?? "").toUpperCase()}
-                </Text>
-              </View>
-              <Text style={styles.name}>
-                {user.prenom} {user.nom}
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 120 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.header}>
+          <Text style={styles.script}>Votre espace</Text>
+          <Text style={styles.title} accessibilityRole="header">
+            Compte
+          </Text>
+        </View>
+        <View style={styles.content}>
+          {user === null ? (
+            <>
+              <Text style={styles.paragraph}>
+                Un compte voyageur est propre à une agence : créez-le auprès de l’agence de votre
+                circuit, puis connectez-vous pour réserver.
               </Text>
-              <Text style={styles.paragraph}>{user.email}</Text>
-              {user.telephone ? <Text style={styles.paragraph}>{user.telephone}</Text> : null}
-            </View>
-            <View style={styles.row}>
-              <Ionicons name="business-outline" size={20} color={colors.teal700} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.small}>Agence du compte</Text>
-                <Text style={styles.strong}>{user.agenceNom}</Text>
+              <Button label="Se connecter" onPress={() => router.push("/connexion")} />
+              <Button
+                label="Créer un compte"
+                variant="secondary"
+                onPress={() => router.push("/inscription")}
+              />
+            </>
+          ) : (
+            <>
+              <View style={styles.card}>
+                <View style={styles.avatar}>
+                  <Text style={styles.initials}>
+                    {(user.prenom[0] ?? "").toUpperCase()}
+                    {(user.nom[0] ?? "").toUpperCase()}
+                  </Text>
+                </View>
+                <Text style={styles.name}>
+                  {user.prenom} {user.nom}
+                </Text>
+                <Text style={styles.paragraph}>{user.email}</Text>
+                {user.telephone ? <Text style={styles.paragraph}>{user.telephone}</Text> : null}
               </View>
-            </View>
-            <View style={styles.row}>
-              <Ionicons name="server-outline" size={20} color={colors.teal700} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.small}>Serveur Green Trek</Text>
-                <Text style={styles.strong}>{API_BASE_URL}</Text>
+              <View style={styles.row}>
+                <Ionicons name="business-outline" size={20} color={colors.teal700} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.small}>Agence du compte</Text>
+                  <Text style={styles.strong}>{user.agenceNom}</Text>
+                </View>
               </View>
-            </View>
-            <Button label="Se déconnecter" variant="danger" onPress={() => void signOut()} />
-          </>
-        )}
-      </View>
+              <Button label="Se déconnecter" variant="danger" onPress={() => void signOut()} />
+            </>
+          )}
+          <ServerSettings />
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

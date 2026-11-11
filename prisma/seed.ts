@@ -24,6 +24,8 @@ import type { Role } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { PHOTO_CREDITS } from "@/lib/photo-credits";
 import { referencePrefix } from "@/lib/reference";
+import { traceCircuit } from "@/lib/services/itineraires";
+import { getTenantDb } from "@/lib/tenant";
 
 import {
   type DemoCircuit,
@@ -449,6 +451,15 @@ async function seedAgence(
         notes: ITINERAIRE_NOTES,
       })),
     });
+  }
+
+  // Tracé réel de chaque circuit : A* sur le graphe des sentiers, par le même service que le
+  // bouton « Tracer » du back-office (calcul enregistré dans l'historique, distance mise à jour).
+  // Affiché sur la carte du site vitrine et de l'application mobile.
+  const tenant = getTenantDb(agenceId, db);
+  for (const [index, circuitId] of circuitIds.entries()) {
+    const trace = await traceCircuit(tenant, agenceId, admin.id, circuitId);
+    if (!trace.ok) console.warn(`Tracé de « ${data.circuits[index]!.titre} » : ${trace.error}`);
   }
 
   if (spec.slug === "green-trek-mada") {

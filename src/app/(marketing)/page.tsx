@@ -11,6 +11,7 @@ import { creditFor } from "@/lib/photo-credits";
 import { listPublicAgencies } from "@/lib/public-agency";
 import { TRIAL_DAYS } from "@/lib/services/onboarding";
 import { listActivePlans } from "@/lib/services/plateforme";
+import { MobileAppSection } from "@/components/design/mobile-app-section";
 
 // Agences et plans lus en base à chaque visite (agence suspendue retirée aussitôt, RG 19).
 export const dynamic = "force-dynamic";
@@ -200,7 +201,9 @@ export default async function HomePage() {
         </section>
       ) : null}
 
-      <section className="px-4 pb-16 sm:px-6">
+      <MobileAppSection />
+
+      <section className="px-4 pt-16 pb-16 sm:px-6">
         <div className="relative isolate mx-auto flex max-w-6xl flex-wrap items-end justify-between gap-6 overflow-hidden rounded-[2rem] p-8 text-white sm:p-12">
           <Image
             src="/images/circuits/grande-traversee-isalo.jpg"
