@@ -13,7 +13,8 @@ import { useAuth } from "@/context/auth";
 import { useAsync } from "@/hooks/use-async";
 import { ApiError, createReservation, fetchCircuit, type ParticipantInput } from "@/lib/api";
 import { formatDayRange, formatMoney, formatPlaces } from "@/lib/format";
-import { colors, fonts, radius } from "@/theme/tokens";
+import { makeStyles, useTheme } from "@/theme/theme";
+import { fonts, radius } from "@/theme/tokens";
 
 const ETAPES = ["Voyageurs", "Participants", "Récapitulatif"] as const;
 const MAX_PAR_RESERVATION = 20;
@@ -41,6 +42,8 @@ export default function ReserverScreen() {
 }
 
 function Reserver() {
+  const styles = useStyles();
+  const { theme } = useTheme();
   const {
     depart: departId,
     agence,
@@ -154,7 +157,7 @@ function Reserver() {
               <View key={label} style={styles.stepItem}>
                 <View style={[styles.stepDot, i <= step && styles.stepDotOn]}>
                   {i < step ? (
-                    <Ionicons name="checkmark" size={14} color={colors.white} />
+                    <Ionicons name="checkmark" size={14} color={theme.onPrimary} />
                   ) : (
                     <Text style={[styles.stepNum, i <= step && styles.stepNumOn]}>{i + 1}</Text>
                   )}
@@ -176,7 +179,7 @@ function Reserver() {
                   accessibilityRole="button"
                   accessibilityLabel="Un voyageur de moins"
                 >
-                  <Ionicons name="remove" size={22} color={colors.teal900} />
+                  <Ionicons name="remove" size={22} color={theme.text} />
                 </Pressable>
                 <Text style={styles.counterValue} accessibilityLiveRegion="polite">
                   {nombre}
@@ -187,7 +190,7 @@ function Reserver() {
                   accessibilityRole="button"
                   accessibilityLabel="Un voyageur de plus"
                 >
-                  <Ionicons name="add" size={22} color={colors.teal900} />
+                  <Ionicons name="add" size={22} color={theme.text} />
                 </Pressable>
               </View>
               <Text style={styles.paragraph}>
@@ -292,64 +295,65 @@ function Reserver() {
   );
 }
 
-const card = {
-  backgroundColor: colors.white,
-  borderRadius: radius.md,
-  padding: 16,
-  gap: 12,
-} as const;
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.canvas },
-  content: { padding: 18, gap: 14 },
-  summary: { ...card, gap: 2 },
-  summaryDate: { fontFamily: fonts.textSemiBold, fontSize: 16, color: colors.teal900 },
-  paragraph: { fontFamily: fonts.text, fontSize: 14, lineHeight: 20, color: colors.muted },
-  small: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
-  stepper: { flexDirection: "row", justifyContent: "space-between" },
-  stepItem: { alignItems: "center", gap: 4, flex: 1 },
-  stepDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: colors.mist,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.white,
-  },
-  stepDotOn: { backgroundColor: colors.teal900, borderColor: colors.teal900 },
-  stepNum: { fontFamily: fonts.textSemiBold, fontSize: 12, color: colors.muted },
-  stepNumOn: { color: colors.white },
-  stepLabel: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
-  stepLabelOn: { fontFamily: fonts.textSemiBold, color: colors.teal900 },
-  card,
-  h2: { fontFamily: fonts.display, fontSize: 18, color: colors.teal900 },
-  row: { flexDirection: "row", gap: 12 },
-  counter: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 28 },
-  counterBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1.5,
-    borderColor: colors.teal900,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  counterValue: {
-    fontFamily: fonts.display,
-    fontSize: 36,
-    color: colors.teal900,
-    minWidth: 40,
-    textAlign: "center",
-  },
-  total: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "baseline",
-    borderTopWidth: 1,
-    borderTopColor: colors.mist,
-    paddingTop: 10,
-  },
-  totalValue: { fontFamily: fonts.display, fontSize: 22, color: colors.teal900 },
+const useStyles = makeStyles((t) => {
+  const card = {
+    backgroundColor: t.surface,
+    borderRadius: radius.md,
+    padding: 16,
+    gap: 12,
+  } as const;
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: t.bg },
+    content: { padding: 18, gap: 14 },
+    summary: { ...card, gap: 2 },
+    summaryDate: { fontFamily: fonts.textSemiBold, fontSize: 16, color: t.text },
+    paragraph: { fontFamily: fonts.text, fontSize: 14, lineHeight: 20, color: t.textMuted },
+    small: { fontFamily: fonts.text, fontSize: 12, color: t.textMuted },
+    stepper: { flexDirection: "row", justifyContent: "space-between" },
+    stepItem: { alignItems: "center", gap: 4, flex: 1 },
+    stepDot: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      borderWidth: 1.5,
+      borderColor: t.border,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: t.surface,
+    },
+    stepDotOn: { backgroundColor: t.primary, borderColor: t.primary },
+    stepNum: { fontFamily: fonts.textSemiBold, fontSize: 12, color: t.textMuted },
+    stepNumOn: { color: t.onPrimary },
+    stepLabel: { fontFamily: fonts.text, fontSize: 12, color: t.textMuted },
+    stepLabelOn: { fontFamily: fonts.textSemiBold, color: t.text },
+    card,
+    h2: { fontFamily: fonts.display, fontSize: 18, color: t.text },
+    row: { flexDirection: "row", gap: 12 },
+    counter: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 28 },
+    counterBtn: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      borderWidth: 1.5,
+      borderColor: t.primary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    counterValue: {
+      fontFamily: fonts.display,
+      fontSize: 36,
+      color: t.text,
+      minWidth: 40,
+      textAlign: "center",
+    },
+    total: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+      borderTopWidth: 1,
+      borderTopColor: t.border,
+      paddingTop: 10,
+    },
+    totalValue: { fontFamily: fonts.display, fontSize: 22, color: t.text },
+  });
 });

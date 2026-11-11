@@ -9,15 +9,16 @@ import { Loading } from "@/components/states";
 import { useAuth } from "@/context/auth";
 import { useAsync } from "@/hooks/use-async";
 import { ApiError, fetchCatalogue } from "@/lib/api";
-import { afterAuth } from "@/lib/navigation";
-import { colors, fonts } from "@/theme/tokens";
+import { useTheme } from "@/theme/theme";
+import { fonts } from "@/theme/tokens";
 
 /**
- * Connexion d'un voyageur. `agence` : agence proposée (celle du circuit à réserver) ;
- * `retour` : écran à rouvrir après la connexion (ex. la réservation en cours).
+ * Connexion d'un voyageur : premier écran après l'ouverture (connexion obligatoire). Une fois
+ * connecté, la navigation protégée (`Stack.Protected`) ouvre l'accueil d'elle-même.
  */
 export default function ConnexionScreen() {
-  const params = useLocalSearchParams<{ agence?: string; retour?: string }>();
+  const params = useLocalSearchParams<{ agence?: string }>();
+  const { theme } = useTheme();
   const { login } = useAuth();
   const { data } = useAsync(() => fetchCatalogue(), "agences");
   const [agence, setAgence] = useState(params.agence ?? "");
@@ -32,7 +33,6 @@ export default function ConnexionScreen() {
     setPending(true);
     try {
       await login({ email: email.trim(), password, agenceSlug: agence });
-      afterAuth(params.retour);
     } catch (e: unknown) {
       setError(e instanceof ApiError ? e.message : "Connexion impossible.");
     } finally {
@@ -61,6 +61,7 @@ export default function ConnexionScreen() {
         autoCapitalize="none"
         autoComplete="email"
         textContentType="emailAddress"
+        onGlass
       />
       <PasswordField
         label="Mot de passe"
@@ -69,10 +70,11 @@ export default function ConnexionScreen() {
         autoComplete="current-password"
         textContentType="password"
         onSubmitEditing={() => void submit()}
+        onGlass
       />
       <Text
         onPress={() => router.push({ pathname: "/mot-de-passe-oublie", params: { agence } })}
-        style={styles.forgot}
+        style={[styles.forgot, { color: theme.accent }]}
         accessibilityRole="link"
       >
         Mot de passe oublié ?
@@ -91,6 +93,5 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
     fontFamily: fonts.textMedium,
     fontSize: 13,
-    color: colors.teal700,
   },
 });

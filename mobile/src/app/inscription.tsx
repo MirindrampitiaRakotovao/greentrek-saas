@@ -9,13 +9,12 @@ import { Loading } from "@/components/states";
 import { useAuth } from "@/context/auth";
 import { useAsync } from "@/hooks/use-async";
 import { ApiError, fetchCatalogue } from "@/lib/api";
-import { afterAuth } from "@/lib/navigation";
 
 const EMPTY = { prenom: "", nom: "", email: "", telephone: "", password: "", confirmPassword: "" };
 
 /** Création d'un compte voyageur auprès d'une agence (règles vérifiées par le serveur). */
 export default function InscriptionScreen() {
-  const params = useLocalSearchParams<{ agence?: string; retour?: string }>();
+  const params = useLocalSearchParams<{ agence?: string }>();
   const { register } = useAuth();
   const { data } = useAsync(() => fetchCatalogue(), "agences");
   const [agence, setAgence] = useState(params.agence ?? "");
@@ -33,7 +32,6 @@ export default function InscriptionScreen() {
     setPending(true);
     try {
       await register({ ...form, email: form.email.trim(), agenceSlug: agence });
-      afterAuth(params.retour);
     } catch (e: unknown) {
       if (e instanceof ApiError) {
         setErrors(e.fieldErrors);
@@ -65,6 +63,7 @@ export default function InscriptionScreen() {
             onChangeText={set("prenom")}
             error={errors.prenom}
             autoComplete="given-name"
+            onGlass
           />
         </View>
         <View style={{ flex: 1 }}>
@@ -74,6 +73,7 @@ export default function InscriptionScreen() {
             onChangeText={set("nom")}
             error={errors.nom}
             autoComplete="family-name"
+            onGlass
           />
         </View>
       </View>
@@ -85,6 +85,7 @@ export default function InscriptionScreen() {
         keyboardType="email-address"
         autoCapitalize="none"
         autoComplete="email"
+        onGlass
       />
       <Field
         label="Téléphone (facultatif)"
@@ -93,6 +94,7 @@ export default function InscriptionScreen() {
         error={errors.telephone}
         keyboardType="phone-pad"
         autoComplete="tel"
+        onGlass
       />
       <PasswordField
         label="Mot de passe"
@@ -101,6 +103,7 @@ export default function InscriptionScreen() {
         error={errors.password}
         hint="8 caractères au moins, avec une majuscule, une minuscule et un chiffre."
         autoComplete="new-password"
+        onGlass
       />
       <PasswordField
         label="Confirmer le mot de passe"
@@ -108,6 +111,7 @@ export default function InscriptionScreen() {
         onChangeText={set("confirmPassword")}
         error={errors.confirmPassword}
         autoComplete="new-password"
+        onGlass
       />
       <Button
         label={pending ? "Création du compte…" : "Créer mon compte"}

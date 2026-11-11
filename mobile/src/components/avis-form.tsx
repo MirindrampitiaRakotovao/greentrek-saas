@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ApiError, postAvis } from "@/lib/api";
+import { makeStyles, useTheme } from "@/theme/theme";
 import { colors, fonts } from "@/theme/tokens";
 
 import { Button, Field, FormError } from "./form";
@@ -20,6 +21,8 @@ export function AvisForm({
   reservationId: string;
   onDone: (message: string) => void;
 }) {
+  const styles = useStyles();
+  const { theme } = useTheme();
   const [note, setNote] = useState(0);
   const [commentaire, setCommentaire] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +59,7 @@ export function AvisForm({
               <Ionicons
                 name={n <= note ? "star" : "star-outline"}
                 size={34}
-                color={n <= note ? colors.star : colors.mist}
+                color={n <= note ? colors.star : theme.border}
               />
             </Pressable>
           );
@@ -82,7 +85,9 @@ export function AvisForm({
   );
 }
 
-const styles = StyleSheet.create({
-  stars: { flexDirection: "row", gap: 6 },
-  label: { fontFamily: fonts.textMedium, fontSize: 13, color: colors.teal900 },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    stars: { flexDirection: "row", gap: 6 },
+    label: { fontFamily: fonts.textMedium, fontSize: 13, color: t.text },
+  }),
+);

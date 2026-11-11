@@ -9,7 +9,8 @@ import { RequireAuth } from "@/components/require-auth";
 import { ScreenHeader } from "@/components/screen-header";
 import { useAuth } from "@/context/auth";
 import { ApiError, startConversation } from "@/lib/api";
-import { colors, fonts, radius } from "@/theme/tokens";
+import { makeStyles } from "@/theme/theme";
+import { fonts, radius } from "@/theme/tokens";
 
 export default function NewMessageScreen() {
   return (
@@ -24,6 +25,7 @@ export default function NewMessageScreen() {
  * fiche ; la conversation existante est reprise) ou question générale avec un sujet.
  */
 function NewMessage() {
+  const styles = useStyles();
   const params = useLocalSearchParams<{ reservation?: string; reference?: string }>();
   const reservationId = params.reservation ?? null;
   const insets = useSafeAreaInsets();
@@ -98,9 +100,11 @@ function NewMessage() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.canvas },
-  content: { padding: 18 },
-  card: { backgroundColor: colors.white, borderRadius: radius.md, padding: 16, gap: 12 },
-  small: { fontFamily: fonts.text, fontSize: 13, color: colors.muted },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: t.bg },
+    content: { padding: 18 },
+    card: { backgroundColor: t.surface, borderRadius: radius.md, padding: 16, gap: 12 },
+    small: { fontFamily: fonts.text, fontSize: 13, color: t.textMuted },
+  }),
+);

@@ -8,7 +8,8 @@ import { RequireAuth } from "@/components/require-auth";
 import { ScreenHeader } from "@/components/screen-header";
 import { useAuth } from "@/context/auth";
 import { ApiError, changePassword, updateProfile } from "@/lib/api";
-import { colors, fonts, radius } from "@/theme/tokens";
+import { makeStyles } from "@/theme/theme";
+import { fonts, radius } from "@/theme/tokens";
 
 export default function ProfilScreen() {
   return (
@@ -20,6 +21,7 @@ export default function ProfilScreen() {
 
 /** Mon profil : prénom, nom, téléphone, et changement du mot de passe (mêmes règles que le site). */
 function Profil() {
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const { user, updateUser } = useAuth();
   const [form, setForm] = useState({
@@ -152,11 +154,13 @@ function Profil() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.canvas },
-  content: { padding: 18, gap: 14 },
-  card: { backgroundColor: colors.white, borderRadius: radius.md, padding: 16, gap: 12 },
-  h2: { fontFamily: fonts.display, fontSize: 18, color: colors.teal900 },
-  small: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
-  success: { fontFamily: fonts.textMedium, fontSize: 13, color: colors.teal700 },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: t.bg },
+    content: { padding: 18, gap: 14 },
+    card: { backgroundColor: t.surface, borderRadius: radius.md, padding: 16, gap: 12 },
+    h2: { fontFamily: fonts.display, fontSize: 18, color: t.text },
+    small: { fontFamily: fonts.text, fontSize: 12, color: t.textMuted },
+    success: { fontFamily: fonts.textMedium, fontSize: 13, color: t.accent },
+  }),
+);

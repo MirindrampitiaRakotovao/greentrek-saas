@@ -1,6 +1,6 @@
 # Green Trek — application mobile (voyageurs)
 
-Application React Native (Expo SDK 58, Expo Router, TypeScript) pour les voyageurs : circuits de toutes les agences de la plateforme, fiche d'un circuit, réservation. Elle lit les données de l'API mobile du site (`/api/mobile/v1`).
+Application React Native (Expo SDK 58, Expo Router, TypeScript) pour les voyageurs : circuits de toutes les agences de la plateforme, fiche d'un circuit, réservation. Connexion obligatoire après l'écran d'ouverture ; style « verre dépoli », thèmes clair et sombre (onglet Compte → Apparence). Elle lit les données de l'API mobile du site (`/api/mobile/v1`).
 
 ## Lancer l'application sur un téléphone
 
@@ -31,7 +31,8 @@ Aperçu dans un navigateur, sans téléphone : `npx expo start --web`.
 - `src/context/auth.tsx` : session du voyageur (jeton et profil, stockage chiffré du téléphone)
 - `src/context/activity.tsx` : nouveautés (toutes les 20 s, application ouverte), pastilles, sonnerie, enregistrement du téléphone pour le push ; `src/lib/notifications.ts` : notifications du téléphone
 - `src/lib/` : client de l'API, adresse du site (réglable dans l'onglet Compte), formats français, page de la carte (Leaflet), stockage de la session
-- `src/theme/tokens.ts` : palette et polices du site (Nohemi, Poppins, Dancing Script)
+- `src/theme/tokens.ts` : palette, thèmes clair et sombre (jetons sémantiques), polices du site ; `src/theme/theme.tsx` : thème courant et `makeStyles` ; `src/components/glass.tsx` : verre dépoli, boutons ronds, sélecteur à segments
+- `src/app/serveur.tsx` : adresse du serveur (accessible avant la connexion)
 
 ## Tester une réservation
 

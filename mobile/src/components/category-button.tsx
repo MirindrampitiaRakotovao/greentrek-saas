@@ -1,11 +1,14 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { colors, fonts } from "@/theme/tokens";
+import { makeStyles } from "@/theme/theme";
+import { colors, fonts, radius } from "@/theme/tokens";
+
+import { Glass } from "./glass";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
-/** Pastille ronde colorée et libellé (catégories de l'accueil, d'après la maquette). */
+/** Pastille de catégorie en verre : rond coloré, pictogramme et libellé. */
 export function CategoryButton({
   label,
   icon,
@@ -17,24 +20,42 @@ export function CategoryButton({
   color: string;
   onPress: () => void;
 }) {
+  const s = useStyles();
   return (
-    <Pressable onPress={onPress} style={styles.item} accessibilityRole="button">
-      <View style={[styles.circle, { backgroundColor: color }]}>
-        <Ionicons name={icon} size={24} color={colors.white} />
-      </View>
-      <Text style={styles.label}>{label}</Text>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+    >
+      <Glass rounded={radius.pill}>
+        <View style={s.row}>
+          <View style={[s.dot, { backgroundColor: color }]}>
+            <Ionicons name={icon} size={14} color={colors.white} />
+          </View>
+          <Text style={s.label}>{label}</Text>
+        </View>
+      </Glass>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  item: { alignItems: "center", gap: 6, flex: 1 },
-  circle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  label: { fontFamily: fonts.textMedium, fontSize: 12, color: colors.teal900, textAlign: "center" },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      paddingLeft: 6,
+      paddingRight: 14,
+      paddingVertical: 6,
+    },
+    dot: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    label: { fontFamily: fonts.textMedium, fontSize: 13, color: t.text },
+  }),
+);

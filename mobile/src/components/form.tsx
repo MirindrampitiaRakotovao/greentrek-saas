@@ -3,6 +3,7 @@ import { type ComponentProps, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
+  type StyleProp,
   StyleSheet,
   Text,
   TextInput,
@@ -10,7 +11,8 @@ import {
   type ViewStyle,
 } from "react-native";
 
-import { colors, fonts, radius } from "@/theme/tokens";
+import { makeStyles, useTheme } from "@/theme/theme";
+import { fonts, radius } from "@/theme/tokens";
 
 type FieldProps = ComponentProps<typeof TextInput> & {
   label: string;
@@ -18,29 +20,45 @@ type FieldProps = ComponentProps<typeof TextInput> & {
   hint?: string;
   /** Élément placé à droite dans le champ (ex. bouton « afficher le mot de passe »). */
   trailing?: React.ReactNode;
+  /** Champ posé sur une photo ou du verre : fond translucide. */
+  onGlass?: boolean;
 };
 
-/** Champ à libellé posé dans la bordure (même style que la connexion du site). */
-export function Field({ label, error, hint, trailing, style, ...props }: FieldProps) {
+/** Champ : libellé au-dessus, zone de saisie arrondie sans bordure (style iOS). */
+export function Field({ label, error, hint, trailing, onGlass, style, ...props }: FieldProps) {
+  const s = useStyles();
+  const { theme } = useTheme();
+  const [focused, setFocused] = useState(false);
   return (
-    <View style={styles.field}>
-      <View style={[styles.box, error ? styles.boxError : null]}>
-        <Text style={styles.label}>{label}</Text>
+    <View style={s.field}>
+      <Text style={s.label}>{label}</Text>
+      <View
+        style={[s.box, onGlass && s.boxGlass, focused && s.boxFocused, error ? s.boxError : null]}
+      >
         <TextInput
           {...props}
+          onFocus={(e) => {
+            setFocused(true);
+            props.onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            props.onBlur?.(e);
+          }}
           accessibilityLabel={label}
           accessibilityHint={error ?? hint}
-          placeholderTextColor={colors.muted}
-          style={[styles.input, style]}
+          placeholderTextColor={theme.textMuted}
+          selectionColor={theme.accent}
+          style={[s.input, style]}
         />
         {trailing}
       </View>
       {error ? (
-        <Text style={styles.error} accessibilityLiveRegion="polite">
+        <Text style={s.error} accessibilityLiveRegion="polite">
           {error}
         </Text>
       ) : hint ? (
-        <Text style={styles.hint}>{hint}</Text>
+        <Text style={s.hint}>{hint}</Text>
       ) : null}
     </View>
   );
@@ -49,6 +67,7 @@ export function Field({ label, error, hint, trailing, style, ...props }: FieldPr
 /** Mot de passe avec un bouton « œil » pour l'afficher ou le masquer. */
 export function PasswordField(props: Omit<FieldProps, "secureTextEntry" | "trailing">) {
   const [visible, setVisible] = useState(false);
+  const { theme } = useTheme();
   return (
     <Field
       {...props}
@@ -58,14 +77,14 @@ export function PasswordField(props: Omit<FieldProps, "secureTextEntry" | "trail
       trailing={
         <Pressable
           onPress={() => setVisible((v) => !v)}
-          style={styles.eye}
+          style={{ padding: 6 }}
           accessibilityRole="button"
           accessibilityLabel={visible ? "Masquer le mot de passe" : "Afficher le mot de passe"}
         >
           <Ionicons
             name={visible ? "eye-off-outline" : "eye-outline"}
             size={20}
-            color={colors.muted}
+            color={theme.textMuted}
           />
         </Pressable>
       }
@@ -73,13 +92,14 @@ export function PasswordField(props: Omit<FieldProps, "secureTextEntry" | "trail
   );
 }
 
-/** Bouton principal (plein) ou secondaire (contour), avec état d'attente. */
+/** Bouton : principal (plein), secondaire (teinté), danger, avec état d'attente. */
 export function Button({
   label,
   onPress,
   pending = false,
   variant = "primary",
   disabled = false,
+  icon,
   style,
 }: {
   label: string;
@@ -87,105 +107,104 @@ export function Button({
   pending?: boolean;
   variant?: "primary" | "secondary" | "danger";
   disabled?: boolean;
-  style?: ViewStyle;
+  icon?: React.ComponentProps<typeof Ionicons>["name"];
+  style?: StyleProp<ViewStyle>;
 }) {
-  const v = variants[variant];
+  const s = useStyles();
+  const { theme } = useTheme();
+  const v = {
+    primary: { box: s.primary, color: theme.onPrimary },
+    secondary: { box: s.secondary, color: theme.text },
+    danger: { box: s.dangerButton, color: theme.danger },
+  }[variant];
   return (
     <Pressable
       onPress={onPress}
       disabled={pending || disabled}
       style={({ pressed }) => [
-        styles.button,
-        v.button,
-        (pending || disabled) && styles.disabled,
-        pressed && styles.pressed,
+        s.button,
+        v.box,
+        (pending || disabled) && s.disabled,
+        pressed && s.pressed,
         style,
       ]}
       accessibilityRole="button"
       accessibilityState={{ busy: pending, disabled: pending || disabled }}
     >
-      {pending ? <ActivityIndicator color={v.text.color} /> : null}
-      <Text style={[styles.buttonText, v.text]}>{label}</Text>
+      {pending ? (
+        <ActivityIndicator color={v.color} />
+      ) : icon ? (
+        <Ionicons name={icon} size={18} color={v.color} />
+      ) : null}
+      <Text style={[s.buttonText, { color: v.color }]}>{label}</Text>
     </Pressable>
   );
 }
 
 /** Message d'erreur général d'un formulaire. */
 export function FormError({ message }: { message: string | null }) {
+  const s = useStyles();
+  const { theme } = useTheme();
   if (!message) return null;
   return (
-    <View style={styles.alert} accessibilityRole="alert">
-      <Ionicons name="alert-circle" size={18} color={colors.danger} />
-      <Text style={styles.alertText}>{message}</Text>
+    <View style={s.alert} accessibilityRole="alert">
+      <Ionicons name="alert-circle" size={18} color={theme.danger} />
+      <Text style={s.alertText}>{message}</Text>
     </View>
   );
 }
 
-const variants = {
-  primary: { button: { backgroundColor: colors.teal900 }, text: { color: colors.white } },
-  secondary: {
-    button: { backgroundColor: colors.white, borderWidth: 1.5, borderColor: colors.teal900 },
-    text: { color: colors.teal900 },
-  },
-  danger: {
-    button: { backgroundColor: colors.white, borderWidth: 1.5, borderColor: colors.danger },
-    text: { color: colors.danger },
-  },
-} as const;
-
-const styles = StyleSheet.create({
-  field: { gap: 4 },
-  box: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "rgba(150, 190, 202, 0.8)",
-    borderRadius: radius.sm + 2,
-    backgroundColor: colors.white,
-    minHeight: 56,
-    paddingHorizontal: 14,
-    marginTop: 8,
-  },
-  boxError: { borderColor: colors.danger },
-  label: {
-    position: "absolute",
-    top: -10,
-    left: 10,
-    paddingHorizontal: 5,
-    backgroundColor: colors.white,
-    fontFamily: fonts.text,
-    fontSize: 12,
-    color: colors.muted,
-  },
-  input: {
-    flex: 1,
-    fontFamily: fonts.text,
-    fontSize: 15,
-    color: colors.teal900,
-    paddingVertical: 14,
-  },
-  eye: { padding: 6 },
-  error: { fontFamily: fonts.text, fontSize: 12, color: colors.danger },
-  hint: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
-  button: {
-    minHeight: 54,
-    borderRadius: radius.sm + 2,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingHorizontal: 18,
-  },
-  buttonText: { fontFamily: fonts.textSemiBold, fontSize: 15 },
-  disabled: { opacity: 0.55 },
-  pressed: { opacity: 0.85 },
-  alert: {
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "flex-start",
-    backgroundColor: "#FEF3F2",
-    borderRadius: radius.sm,
-    padding: 12,
-  },
-  alertText: { flex: 1, fontFamily: fonts.text, fontSize: 13, color: colors.danger },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    field: { gap: 6 },
+    label: { fontFamily: fonts.textMedium, fontSize: 13, color: t.text, marginLeft: 4 },
+    box: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderRadius: radius.sm + 4,
+      backgroundColor: t.surfaceAlt,
+      minHeight: 54,
+      paddingHorizontal: 16,
+      borderWidth: 1.5,
+      borderColor: "transparent",
+    },
+    boxGlass: {
+      backgroundColor: t.dark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.72)",
+    },
+    boxFocused: { borderColor: t.accent },
+    boxError: { borderColor: t.danger },
+    input: {
+      flex: 1,
+      fontFamily: fonts.text,
+      fontSize: 15,
+      color: t.text,
+      paddingVertical: 14,
+    },
+    error: { fontFamily: fonts.text, fontSize: 12, color: t.danger, marginLeft: 4 },
+    hint: { fontFamily: fonts.text, fontSize: 12, color: t.textMuted, marginLeft: 4 },
+    button: {
+      minHeight: 54,
+      borderRadius: radius.pill,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      paddingHorizontal: 22,
+    },
+    primary: { backgroundColor: t.primary },
+    secondary: { backgroundColor: t.accentSoft },
+    dangerButton: { backgroundColor: t.dangerSoft },
+    buttonText: { fontFamily: fonts.textSemiBold, fontSize: 15 },
+    disabled: { opacity: 0.5 },
+    pressed: { opacity: 0.85, transform: [{ scale: 0.99 }] },
+    alert: {
+      flexDirection: "row",
+      gap: 8,
+      alignItems: "flex-start",
+      backgroundColor: t.dangerSoft,
+      borderRadius: radius.sm,
+      padding: 12,
+    },
+    alertText: { flex: 1, fontFamily: fonts.text, fontSize: 13, color: t.danger },
+  }),
+);

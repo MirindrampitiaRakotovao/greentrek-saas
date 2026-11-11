@@ -37,4 +37,23 @@ describe("carte de l'application mobile", () => {
     expect(safeJson({ a: "<b>&" })).toBe('{"a":"\\u003cb\\u003e\\u0026"}');
     expect(JSON.parse(safeJson({ a: "<b>&" }))).toEqual({ a: "<b>&" });
   });
+
+  it("noms des étapes affichés comme du texte, jamais comme du HTML (étiquettes)", () => {
+    const html = buildMapHtml({
+      steps: [{ ordre: 1, nom: "<img src=x onerror=alert(1)>", latitude: 0, longitude: 0 }],
+      trace: null,
+      interactive: false,
+      labels: true,
+    });
+    expect(html).toContain("label.textContent = s.nom");
+    expect(html).not.toContain("bindTooltip(s.nom");
+    expect(html).not.toContain("<img src=x");
+  });
+
+  it("mode sombre : tuiles assombries ; mode clair : tuiles d'origine", () => {
+    const dark = buildMapHtml({ steps, trace: null, interactive: false, dark: true });
+    const light = buildMapHtml({ steps, trace: null, interactive: false });
+    expect(dark).toContain("invert(1)");
+    expect(light).not.toContain("invert(1)");
+  });
 });

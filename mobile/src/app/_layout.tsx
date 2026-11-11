@@ -14,15 +14,17 @@ import { View } from "react-native";
 
 import { AnimatedSplash } from "@/components/animated-splash";
 import { ActivityProvider } from "@/context/activity";
-import { AuthProvider } from "@/context/auth";
+import { AuthProvider, useAuth } from "@/context/auth";
 import { FavoritesProvider } from "@/context/favorites";
+import { ThemeProvider, useTheme } from "@/theme/theme";
 import { colors } from "@/theme/tokens";
 
 SplashScreen.preventAutoHideAsync();
 
 /**
  * Racine de l'application Green Trek (voyageurs) : polices du site (Nohemi, Poppins, Dancing
- * Script), puis une pile de navigation : les onglets, et la fiche d'un circuit par-dessus.
+ * Script), thème clair ou sombre, écran d'ouverture animé, puis la connexion (obligatoire) et
+ * l'application : les onglets, et les écrans empilés par-dessus.
  */
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -47,43 +49,66 @@ export default function RootLayout() {
   if (!loaded && !error) return null;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.teal900 }}>
-      <App />
-      {intro ? <AnimatedSplash onDone={endIntro} /> : null}
-    </View>
+    <ThemeProvider>
+      <View style={{ flex: 1, backgroundColor: colors.teal900 }}>
+        <App />
+        {intro ? <AnimatedSplash onDone={endIntro} /> : null}
+      </View>
+    </ThemeProvider>
   );
 }
 
 function App() {
+  const { theme } = useTheme();
   return (
     <KeyboardProvider>
       <AuthProvider>
         <ActivityProvider>
           <FavoritesProvider>
-            <StatusBar style="dark" />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: colors.white },
-              }}
-            >
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="circuit/[agence]/[slug]" />
-              <Stack.Screen name="reserver/[depart]" />
-              <Stack.Screen name="paiement/[id]" />
-              <Stack.Screen name="reservation/[id]" />
-              <Stack.Screen name="connexion" options={{ presentation: "modal" }} />
-              <Stack.Screen name="inscription" options={{ presentation: "modal" }} />
-              <Stack.Screen name="mot-de-passe-oublie" options={{ presentation: "modal" }} />
-              <Stack.Screen name="profil" />
-              <Stack.Screen name="notifications" />
-              <Stack.Screen name="messages/index" />
-              <Stack.Screen name="messages/[id]" />
-              <Stack.Screen name="messages/nouveau" />
-            </Stack>
+            <StatusBar style={theme.dark ? "light" : "dark"} />
+            <Navigation />
           </FavoritesProvider>
         </ActivityProvider>
       </AuthProvider>
     </KeyboardProvider>
+  );
+}
+
+/**
+ * Navigation protégée : sans session, seuls la connexion, l'inscription, le mot de passe oublié
+ * et l'adresse du serveur existent ; connecté, tout le reste. Le changement de session (connexion,
+ * déconnexion, jeton refusé) bascule d'un groupe à l'autre sans code de redirection.
+ */
+function Navigation() {
+  const { user } = useAuth();
+  const { theme } = useTheme();
+  const signedIn = user !== null;
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: theme.bg },
+        animation: "fade_from_bottom",
+      }}
+    >
+      <Stack.Protected guard={signedIn} redirectTo="/connexion">
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="circuit/[agence]/[slug]" options={{ animation: "default" }} />
+        <Stack.Screen name="reserver/[depart]" />
+        <Stack.Screen name="paiement/[id]" />
+        <Stack.Screen name="reservation/[id]" />
+        <Stack.Screen name="profil" />
+        <Stack.Screen name="notifications" />
+        <Stack.Screen name="messages/index" />
+        <Stack.Screen name="messages/[id]" />
+        <Stack.Screen name="messages/nouveau" />
+      </Stack.Protected>
+      <Stack.Protected guard={!signedIn} redirectTo="/">
+        <Stack.Screen name="connexion" options={{ animation: "fade" }} />
+        <Stack.Screen name="inscription" options={{ animation: "fade" }} />
+        <Stack.Screen name="mot-de-passe-oublie" />
+      </Stack.Protected>
+      <Stack.Screen name="serveur" options={{ presentation: "modal" }} />
+    </Stack>
   );
 }

@@ -3,13 +3,14 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
 
 import { AvisForm } from "@/components/avis-form";
 import { Button, FormError } from "@/components/form";
+import { GlassIconButton } from "@/components/glass";
 import { RequireAuth } from "@/components/require-auth";
 import { ErrorState, Loading } from "@/components/states";
 import { Stars } from "@/components/stars";
@@ -19,6 +20,7 @@ import { ApiError, cancelReservation, fetchReservation, imageUrl } from "@/lib/a
 import { apiBaseUrl } from "@/lib/config";
 import { confirmAction } from "@/lib/confirm";
 import { formatDayRange, formatMoney } from "@/lib/format";
+import { makeStyles, useTheme } from "@/theme/theme";
 import { colors, fonts, radius } from "@/theme/tokens";
 
 /**
@@ -34,6 +36,8 @@ export default function ReservationScreen() {
 }
 
 function ReservationDetail() {
+  const styles = useStyles();
+  const { theme } = useTheme();
   const { id, paye } = useLocalSearchParams<{ id: string; paye?: string }>();
   const insets = useSafeAreaInsets();
   const { data: r, error, reload } = useAsync(() => fetchReservation(id), id);
@@ -42,14 +46,13 @@ function ReservationDetail() {
   const [pending, setPending] = useState(false);
 
   const back = (
-    <Pressable
-      onPress={() => (router.canGoBack() ? router.back() : router.replace("/reservations"))}
-      style={[styles.back, { top: insets.top + 8 }]}
-      accessibilityRole="button"
-      accessibilityLabel="Retour"
-    >
-      <Ionicons name="chevron-back" size={22} color={colors.teal900} />
-    </Pressable>
+    <View style={[styles.back, { top: insets.top + 8 }]}>
+      <GlassIconButton
+        icon="chevron-back"
+        label="Retour"
+        onPress={() => (router.canGoBack() ? router.back() : router.replace("/reservations"))}
+      />
+    </View>
   );
 
   if (error)
@@ -100,7 +103,8 @@ function ReservationDetail() {
         <View style={styles.hero}>
           {uri ? <Image source={uri} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
           <LinearGradient
-            colors={["rgba(0,0,0,0.3)", "rgba(15,65,77,0.95)"]}
+            colors={["rgba(6,26,31,0.45)", "rgba(6,26,31,0.35)", theme.bg]}
+            locations={[0, 0.55, 1]}
             style={StyleSheet.absoluteFill}
           />
           <View style={styles.heroBody}>
@@ -117,7 +121,7 @@ function ReservationDetail() {
         <View style={styles.content}>
           {confirmee ? (
             <View style={styles.success} accessibilityRole="alert">
-              <Ionicons name="checkmark-circle" size={24} color={colors.white} />
+              <Ionicons name="checkmark-circle" size={24} color={theme.onPrimary} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.successTitle}>
                   {r.statut === "CONFIRMEE" ? "Réservation confirmée !" : "Paiement enregistré"}
@@ -254,56 +258,54 @@ function ReservationDetail() {
   );
 }
 
-const card = {
-  backgroundColor: colors.white,
-  borderRadius: radius.md,
-  padding: 16,
-  gap: 8,
-} as const;
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.canvas },
-  back: {
-    position: "absolute",
-    left: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.92)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  hero: { height: 240, justifyContent: "flex-end", backgroundColor: colors.teal900 },
-  heroBody: { padding: 20, gap: 4 },
-  reference: {
-    fontFamily: fonts.textMedium,
-    fontSize: 13,
-    letterSpacing: 1,
-    color: colors.sand300,
-  },
-  title: { fontFamily: fonts.display, fontSize: 26, lineHeight: 30, color: colors.white },
-  heroMeta: { fontFamily: fonts.text, fontSize: 13, color: "rgba(255,255,255,0.9)" },
-  content: { padding: 18, gap: 14 },
-  success: {
-    flexDirection: "row",
-    gap: 12,
-    backgroundColor: colors.teal700,
+const useStyles = makeStyles((t) => {
+  const card = {
+    backgroundColor: t.surface,
     borderRadius: radius.md,
     padding: 16,
-  },
-  successTitle: { fontFamily: fonts.textSemiBold, fontSize: 16, color: colors.white },
-  successText: {
-    fontFamily: fonts.text,
-    fontSize: 13,
-    lineHeight: 19,
-    color: "rgba(255,255,255,0.92)",
-  },
-  notice: { fontFamily: fonts.textMedium, fontSize: 14, color: colors.teal700 },
-  card,
-  between: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 10 },
-  h2: { fontFamily: fonts.display, fontSize: 18, color: colors.teal900 },
-  amount: { fontFamily: fonts.display, fontSize: 28, color: colors.teal900 },
-  paragraph: { fontFamily: fonts.text, fontSize: 14, lineHeight: 20, color: colors.muted },
-  strong: { fontFamily: fonts.textSemiBold, fontSize: 14, color: colors.teal900 },
-  small: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
+    gap: 8,
+  } as const;
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: t.bg },
+    back: { position: "absolute", left: 16 },
+    hero: { height: 300, justifyContent: "flex-end", backgroundColor: colors.teal900 },
+    heroBody: { padding: 20, gap: 4 },
+    reference: {
+      fontFamily: fonts.textMedium,
+      fontSize: 13,
+      letterSpacing: 1,
+      color: colors.sand300,
+    },
+    title: { fontFamily: fonts.display, fontSize: 28, lineHeight: 32, color: colors.white },
+    heroMeta: { fontFamily: fonts.text, fontSize: 13, color: "rgba(255,255,255,0.9)" },
+    content: { padding: 18, gap: 14 },
+    success: {
+      flexDirection: "row",
+      gap: 12,
+      backgroundColor: t.primary,
+      borderRadius: radius.md,
+      padding: 16,
+    },
+    successTitle: { fontFamily: fonts.textSemiBold, fontSize: 16, color: t.onPrimary },
+    successText: {
+      fontFamily: fonts.text,
+      fontSize: 13,
+      lineHeight: 19,
+      color: t.onPrimary,
+      opacity: 0.9,
+    },
+    notice: { fontFamily: fonts.textMedium, fontSize: 14, color: t.accent },
+    card,
+    between: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: 10,
+    },
+    h2: { fontFamily: fonts.display, fontSize: 18, color: t.text },
+    amount: { fontFamily: fonts.display, fontSize: 28, color: t.text },
+    paragraph: { fontFamily: fonts.text, fontSize: 14, lineHeight: 20, color: t.textMuted },
+    strong: { fontFamily: fonts.textSemiBold, fontSize: 14, color: t.text },
+    small: { fontFamily: fonts.text, fontSize: 12, color: t.textMuted },
+  });
 });

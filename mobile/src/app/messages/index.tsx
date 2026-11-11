@@ -12,7 +12,8 @@ import { useActivity } from "@/context/activity";
 import { useAsync } from "@/hooks/use-async";
 import { fetchConversations } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
-import { colors, fonts, radius } from "@/theme/tokens";
+import { makeStyles, useTheme } from "@/theme/theme";
+import { fonts, radius } from "@/theme/tokens";
 
 export default function MessagesScreen() {
   return (
@@ -24,6 +25,8 @@ export default function MessagesScreen() {
 
 /** Conversations du voyageur avec son agence (même messagerie que le site). */
 function Conversations() {
+  const styles = useStyles();
+  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { unread } = useActivity();
   const { data, error, loading, reload } = useAsync(
@@ -62,7 +65,7 @@ function Conversations() {
               accessibilityLabel={`${item.nonLue ? "Non lu. " : ""}${item.sujet}`}
             >
               <View style={styles.icon}>
-                <Ionicons name="chatbubbles-outline" size={20} color={colors.teal700} />
+                <Ionicons name="chatbubbles-outline" size={20} color={theme.accent} />
               </View>
               <View style={{ flex: 1, gap: 3 }}>
                 <View style={styles.between}>
@@ -87,32 +90,34 @@ function Conversations() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.canvas },
-  list: { padding: 18 },
-  card: {
-    flexDirection: "row",
-    gap: 12,
-    backgroundColor: colors.white,
-    borderRadius: radius.md,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "transparent",
-  },
-  unread: { borderColor: colors.teal600 },
-  icon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.teal100,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  between: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
-  title: { flex: 1, fontFamily: fonts.textMedium, fontSize: 14, color: colors.teal900 },
-  bold: { fontFamily: fonts.textSemiBold },
-  time: { fontFamily: fonts.text, fontSize: 11, color: colors.muted },
-  excerpt: { fontFamily: fonts.text, fontSize: 13, lineHeight: 19, color: colors.muted },
-  author: { fontFamily: fonts.textMedium, color: colors.teal800 },
-  dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.danger, marginTop: 4 },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: t.bg },
+    list: { padding: 18 },
+    card: {
+      flexDirection: "row",
+      gap: 12,
+      backgroundColor: t.surface,
+      borderRadius: radius.md,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: "transparent",
+    },
+    unread: { borderColor: t.accent },
+    icon: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: t.accentSoft,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    between: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
+    title: { flex: 1, fontFamily: fonts.textMedium, fontSize: 14, color: t.text },
+    bold: { fontFamily: fonts.textSemiBold },
+    time: { fontFamily: fonts.text, fontSize: 11, color: t.textMuted },
+    excerpt: { fontFamily: fonts.text, fontSize: 13, lineHeight: 19, color: t.textMuted },
+    author: { fontFamily: fonts.textMedium, color: t.text },
+    dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: t.danger, marginTop: 4 },
+  }),
+);

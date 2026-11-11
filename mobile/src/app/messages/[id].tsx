@@ -21,6 +21,7 @@ import { useAsync } from "@/hooks/use-async";
 import { fetchThread, postMessage } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { playSentSound } from "@/lib/sounds";
+import { makeStyles, useTheme } from "@/theme/theme";
 import { colors, fonts, radius } from "@/theme/tokens";
 
 /** Fil ouvert : relu toutes les 5 secondes (réponse et accusé de lecture sans action). */
@@ -40,6 +41,8 @@ export default function ThreadScreen() {
 }
 
 function Thread() {
+  const styles = useStyles();
+  const { theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { refresh } = useActivity();
@@ -130,7 +133,7 @@ function Thread() {
                 style={styles.reservation}
                 accessibilityRole="link"
               >
-                <Ionicons name="ticket-outline" size={16} color={colors.teal700} />
+                <Ionicons name="ticket-outline" size={16} color={theme.accent} />
                 <Text style={styles.reservationText} numberOfLines={1}>
                   {data.reservation.circuit} · {data.reservation.reference}
                 </Text>
@@ -178,7 +181,7 @@ function Thread() {
                 onChangeText={setText}
                 onFocus={() => setTimeout(toEnd, 250)}
                 placeholder="Votre message…"
-                placeholderTextColor={colors.muted}
+                placeholderTextColor={theme.textMuted}
                 multiline
                 maxLength={MESSAGE_MAX}
                 style={styles.input}
@@ -191,7 +194,7 @@ function Thread() {
                 accessibilityRole="button"
                 accessibilityLabel="Envoyer"
               >
-                <Ionicons name="send" size={18} color={colors.white} />
+                <Ionicons name="send" size={18} color={theme.onPrimary} />
               </Pressable>
             </View>
           </View>
@@ -212,6 +215,7 @@ const STATUS: Record<
 
 /** Heure et, sous mes messages, statut : pictogramme ET texte (jamais la couleur seule). */
 function Meta({ at, mine, statut }: { at?: string; mine: boolean; statut: Statut | null }) {
+  const styles = useStyles();
   const s = mine && statut ? STATUS[statut] : null;
   return (
     <View style={styles.meta}>
@@ -232,64 +236,72 @@ function Meta({ at, mine, statut }: { at?: string; mine: boolean; statut: Statut
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.canvas },
-  thread: { padding: 18, gap: 10 },
-  reservation: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    alignSelf: "center",
-    backgroundColor: colors.teal100,
-    borderRadius: radius.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginBottom: 6,
-    maxWidth: "100%",
-  },
-  reservationText: { fontFamily: fonts.textMedium, fontSize: 12, color: colors.teal800 },
-  bubble: { maxWidth: "82%", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10, gap: 3 },
-  mine: { alignSelf: "flex-end", backgroundColor: colors.teal700, borderBottomRightRadius: 4 },
-  theirs: { alignSelf: "flex-start", backgroundColor: colors.white, borderBottomLeftRadius: 4 },
-  pending: { opacity: 0.75 },
-  failed: { backgroundColor: colors.teal900 },
-  failedText: { fontFamily: fonts.textMedium, fontSize: 11, color: colors.sand300 },
-  author: { fontFamily: fonts.textSemiBold, fontSize: 12, color: colors.teal700 },
-  body: { fontFamily: fonts.text, fontSize: 14, lineHeight: 20, color: colors.teal900 },
-  bodyMine: { color: colors.white },
-  meta: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-end" },
-  time: { fontFamily: fonts.text, fontSize: 10, color: colors.muted },
-  timeMine: { color: "rgba(255,255,255,0.85)" },
-  read: { fontFamily: fonts.textSemiBold, color: colors.sand300 },
-  composer: {
-    backgroundColor: colors.white,
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    gap: 6,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  row: { flexDirection: "row", alignItems: "flex-end", gap: 10 },
-  input: {
-    flex: 1,
-    minHeight: 44,
-    maxHeight: 120,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: colors.mist,
-    paddingHorizontal: 16,
-    paddingTop: 11,
-    paddingBottom: 11,
-    fontFamily: fonts.text,
-    fontSize: 14,
-    color: colors.teal900,
-  },
-  send: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.teal700,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: t.bg },
+    thread: { padding: 18, gap: 10 },
+    reservation: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      alignSelf: "center",
+      backgroundColor: t.accentSoft,
+      borderRadius: radius.pill,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      marginBottom: 6,
+      maxWidth: "100%",
+    },
+    reservationText: { fontFamily: fonts.textMedium, fontSize: 12, color: t.text },
+    bubble: {
+      maxWidth: "82%",
+      borderRadius: 16,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      gap: 3,
+    },
+    mine: { alignSelf: "flex-end", backgroundColor: colors.teal700, borderBottomRightRadius: 4 },
+    theirs: { alignSelf: "flex-start", backgroundColor: t.surface, borderBottomLeftRadius: 4 },
+    pending: { opacity: 0.75 },
+    failed: { backgroundColor: colors.teal900 },
+    failedText: { fontFamily: fonts.textMedium, fontSize: 11, color: colors.sand300 },
+    author: { fontFamily: fonts.textSemiBold, fontSize: 12, color: t.accent },
+    body: { fontFamily: fonts.text, fontSize: 14, lineHeight: 20, color: t.text },
+    bodyMine: { color: colors.white },
+    meta: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-end" },
+    time: { fontFamily: fonts.text, fontSize: 10, color: t.textMuted },
+    timeMine: { color: "rgba(255,255,255,0.85)" },
+    read: { fontFamily: fonts.textSemiBold, color: colors.sand300 },
+    composer: {
+      backgroundColor: t.surface,
+      paddingHorizontal: 14,
+      paddingTop: 10,
+      gap: 6,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+    },
+    row: { flexDirection: "row", alignItems: "flex-end", gap: 10 },
+    input: {
+      flex: 1,
+      minHeight: 44,
+      maxHeight: 120,
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: t.border,
+      paddingHorizontal: 16,
+      paddingTop: 11,
+      paddingBottom: 11,
+      fontFamily: fonts.text,
+      fontSize: 14,
+      color: t.text,
+    },
+    send: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: t.primary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+  }),
+);

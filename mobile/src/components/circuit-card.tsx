@@ -1,20 +1,23 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { type CircuitResume, imageUrl } from "@/lib/api";
-import { formatMoney } from "@/lib/format";
+import { formatDuree, formatMoney } from "@/lib/format";
+import { makeStyles } from "@/theme/theme";
 import { colors, fonts, radius } from "@/theme/tokens";
 
 import { FavoriteButton } from "./favorite-button";
+import { Glass } from "./glass";
 import { Stars } from "./stars";
 
 /**
- * Carte photo d'un circuit (« Destinations populaires » de la maquette) : photo, voile sombre,
- * titre, agence, note et prix « à partir de ».
+ * Carte photo d'un circuit (carrousel de l'accueil) : grande photo, cœur en verre, et panneau
+ * en verre posé en bas avec le titre, l'agence, la note, la durée et le prix « à partir de ».
  */
-export function CircuitCard({ circuit, width = 168 }: { circuit: CircuitResume; width?: number }) {
+export function CircuitCard({ circuit, width = 230 }: { circuit: CircuitResume; width?: number }) {
   const uri = imageUrl(circuit.image);
   return (
     <Link
@@ -25,7 +28,10 @@ export function CircuitCard({ circuit, width = 168 }: { circuit: CircuitResume; 
       asChild
     >
       <Pressable
-        style={StyleSheet.flatten([styles.card, { width }])}
+        style={({ pressed }) => [
+          styles.card,
+          { width, transform: [{ scale: pressed ? 0.98 : 1 }] },
+        ]}
         accessibilityRole="link"
         accessibilityLabel={`${circuit.titre}, ${circuit.agence.nom}, à partir de ${formatMoney(circuit.prixMin, circuit.agence.devise)} par personne`}
       >
@@ -35,43 +41,87 @@ export function CircuitCard({ circuit, width = 168 }: { circuit: CircuitResume; 
           <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.teal700 }]} />
         )}
         <LinearGradient
-          colors={["transparent", "rgba(15, 65, 77, 0.92)"]}
-          locations={[0.35, 1]}
+          colors={["rgba(0,0,0,0.25)", "transparent"]}
+          locations={[0, 0.3]}
           style={StyleSheet.absoluteFill}
         />
-        <View style={styles.heart}>
+        <View style={styles.top}>
+          {circuit.note ? (
+            <Glass rounded={radius.pill}>
+              <View style={{ paddingHorizontal: 10, paddingVertical: 5 }}>
+                <Stars note={circuit.note} />
+              </View>
+            </Glass>
+          ) : (
+            <View />
+          )}
           <FavoriteButton
             agence={circuit.agence.slug}
             circuit={circuit.slug}
             titre={circuit.titre}
-            size={32}
           />
         </View>
-        <View style={styles.body}>
-          {circuit.note ? <Stars note={circuit.note} light /> : null}
-          <Text style={styles.title} numberOfLines={2}>
-            {circuit.titre}
-          </Text>
-          <Text style={styles.agence} numberOfLines={1}>
-            {circuit.agence.nom}
-          </Text>
-          <Text style={styles.price}>{formatMoney(circuit.prixMin, circuit.agence.devise)}</Text>
-        </View>
+        <Glass strong rounded={radius.md}>
+          <View style={styles.panelBody}>
+            <PanelContent circuit={circuit} />
+          </View>
+        </Glass>
       </Pressable>
     </Link>
   );
 }
 
+function PanelContent({ circuit }: { circuit: CircuitResume }) {
+  const s = usePanelStyles();
+  return (
+    <>
+      <Text style={s.title} numberOfLines={2}>
+        {circuit.titre}
+      </Text>
+      <Text style={s.agence} numberOfLines={1}>
+        {circuit.agence.nom}
+      </Text>
+      <View style={s.footer}>
+        <View style={s.fact}>
+          <Ionicons name="time-outline" size={13} color={s.icon.color} />
+          <Text style={s.factText}>{formatDuree(circuit.dureeJours)}</Text>
+        </View>
+        <Text style={s.price}>
+          {formatMoney(circuit.prixMin, circuit.agence.devise)}
+          <Text style={s.unit}> /pers.</Text>
+        </Text>
+      </View>
+    </>
+  );
+}
+
+const usePanelStyles = makeStyles((t) =>
+  StyleSheet.create({
+    title: { fontFamily: fonts.display, fontSize: 16, lineHeight: 19, color: t.text },
+    agence: { fontFamily: fonts.text, fontSize: 12, color: t.textMuted, marginTop: 2 },
+    footer: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginTop: 8,
+    },
+    fact: { flexDirection: "row", alignItems: "center", gap: 4 },
+    factText: { fontFamily: fonts.text, fontSize: 12, color: t.textMuted },
+    icon: { color: t.accent },
+    price: { fontFamily: fonts.textSemiBold, fontSize: 14, color: t.text },
+    unit: { fontFamily: fonts.text, fontSize: 11, color: t.textMuted },
+  }),
+);
+
 const styles = StyleSheet.create({
   card: {
-    height: 220,
+    height: 300,
     borderRadius: radius.lg,
     overflow: "hidden",
     backgroundColor: colors.teal700,
+    justifyContent: "space-between",
+    padding: 10,
   },
-  heart: { position: "absolute", top: 10, right: 10, zIndex: 1 },
-  body: { flex: 1, justifyContent: "flex-end", padding: 12, gap: 2 },
-  title: { fontFamily: fonts.display, fontSize: 16, lineHeight: 19, color: colors.white },
-  agence: { fontFamily: fonts.text, fontSize: 12, color: "rgba(255,255,255,0.88)" },
-  price: { fontFamily: fonts.textSemiBold, fontSize: 15, color: colors.white, marginTop: 4 },
+  top: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+  panelBody: { padding: 12 },
 });

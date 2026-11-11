@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "greentrek",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {},
     "android": {
       "adaptiveIcon": {

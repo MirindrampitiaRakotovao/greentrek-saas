@@ -12,7 +12,8 @@ import { useActivity } from "@/context/activity";
 import { useAsync } from "@/hooks/use-async";
 import { type AppNotification, fetchNotifications, markNotificationsRead } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
-import { colors, fonts, radius } from "@/theme/tokens";
+import { makeStyles, useTheme } from "@/theme/theme";
+import { fonts, radius } from "@/theme/tokens";
 
 export default function NotificationsScreen() {
   return (
@@ -24,6 +25,8 @@ export default function NotificationsScreen() {
 
 /** Notifications du voyageur (confirmation, paiement, annulation…), les plus récentes d'abord. */
 function Notifications() {
+  const styles = useStyles();
+  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { refresh } = useActivity();
   const { data, error, reload } = useAsync(() => fetchNotifications(), "notifications");
@@ -77,7 +80,7 @@ function Notifications() {
               accessibilityLabel={`${item.lue ? "" : "Non lue. "}${item.titre}. ${item.message}`}
             >
               <View style={styles.icon}>
-                <Ionicons name="notifications-outline" size={20} color={colors.teal700} />
+                <Ionicons name="notifications-outline" size={20} color={theme.accent} />
               </View>
               <View style={{ flex: 1, gap: 3 }}>
                 <Text style={styles.title}>{item.titre}</Text>
@@ -93,29 +96,31 @@ function Notifications() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.canvas },
-  list: { padding: 18 },
-  card: {
-    flexDirection: "row",
-    gap: 12,
-    backgroundColor: colors.white,
-    borderRadius: radius.md,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "transparent",
-  },
-  unread: { borderColor: colors.teal600 },
-  icon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.teal100,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  title: { fontFamily: fonts.textSemiBold, fontSize: 14, color: colors.teal900 },
-  message: { fontFamily: fonts.text, fontSize: 13, lineHeight: 19, color: colors.muted },
-  time: { fontFamily: fonts.text, fontSize: 11, color: colors.muted },
-  dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.danger, marginTop: 4 },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: t.bg },
+    list: { padding: 18 },
+    card: {
+      flexDirection: "row",
+      gap: 12,
+      backgroundColor: t.surface,
+      borderRadius: radius.md,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: "transparent",
+    },
+    unread: { borderColor: t.accent },
+    icon: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: t.accentSoft,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    title: { fontFamily: fonts.textSemiBold, fontSize: 14, color: t.text },
+    message: { fontFamily: fonts.text, fontSize: 13, lineHeight: 19, color: t.textMuted },
+    time: { fontFamily: fonts.text, fontSize: 11, color: t.textMuted },
+    dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: t.danger, marginTop: 4 },
+  }),
+);

@@ -8,13 +8,15 @@ import { Button, Field, FormError } from "@/components/form";
 import { Loading } from "@/components/states";
 import { useAsync } from "@/hooks/use-async";
 import { ApiError, fetchCatalogue, forgotPassword } from "@/lib/api";
-import { colors, fonts } from "@/theme/tokens";
+import { useTheme } from "@/theme/theme";
+import { fonts } from "@/theme/tokens";
 
 /**
  * Mot de passe oublié : l'e-mail contient un lien vers la page de réinitialisation du site de
  * l'agence (même parcours que sur le site). Réponse identique que le compte existe ou non.
  */
 export default function MotDePasseOublieScreen() {
+  const { theme } = useTheme();
   const params = useLocalSearchParams<{ agence?: string }>();
   const { data } = useAsync(() => fetchCatalogue(), "agences");
   const [agence, setAgence] = useState(params.agence ?? "");
@@ -45,7 +47,7 @@ export default function MotDePasseOublieScreen() {
     >
       {sent ? (
         <>
-          <Text style={styles.sent} accessibilityLiveRegion="polite">
+          <Text style={[styles.sent, { color: theme.text }]} accessibilityLiveRegion="polite">
             {sent}
           </Text>
           <Button
@@ -68,6 +70,7 @@ export default function MotDePasseOublieScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
+            onGlass
           />
           <Button
             label={pending ? "Envoi…" : "Recevoir le lien par e-mail"}
@@ -81,5 +84,5 @@ export default function MotDePasseOublieScreen() {
 }
 
 const styles = StyleSheet.create({
-  sent: { fontFamily: fonts.text, fontSize: 14, lineHeight: 21, color: colors.teal800 },
+  sent: { fontFamily: fonts.text, fontSize: 14, lineHeight: 21 },
 });

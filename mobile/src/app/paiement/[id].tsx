@@ -12,6 +12,7 @@ import { ErrorState, Loading } from "@/components/states";
 import { useAsync } from "@/hooks/use-async";
 import { ApiError, fetchReservation, type MethodePaiement, payReservation } from "@/lib/api";
 import { formatDayRange, formatMoney } from "@/lib/format";
+import { makeStyles, useTheme } from "@/theme/theme";
 import { colors, fonts, radius } from "@/theme/tokens";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -62,6 +63,8 @@ export default function PaiementScreen() {
 }
 
 function Paiement() {
+  const styles = useStyles();
+  const { theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { data: r, error, reload } = useAsync(() => fetchReservation(id), id);
@@ -148,7 +151,7 @@ function Paiement() {
                   accessibilityRole="radio"
                   accessibilityState={{ checked: on }}
                 >
-                  <Ionicons name={m.icon} size={22} color={on ? colors.white : colors.teal700} />
+                  <Ionicons name={m.icon} size={22} color={on ? theme.onPrimary : theme.accent} />
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.optionLabel, on && styles.optionLabelOn]}>{m.label}</Text>
                     <Text style={[styles.optionText, on && styles.optionTextOn]}>{m.text}</Text>
@@ -156,7 +159,7 @@ function Paiement() {
                   <Ionicons
                     name={on ? "radio-button-on" : "radio-button-off"}
                     size={20}
-                    color={on ? colors.white : colors.mist}
+                    color={on ? theme.onPrimary : theme.border}
                   />
                 </Pressable>
               );
@@ -194,28 +197,37 @@ function Paiement() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.canvas },
-  content: { padding: 18, gap: 14 },
-  paragraph: { fontFamily: fonts.text, fontSize: 14, lineHeight: 20, color: colors.muted },
-  h2: { fontFamily: fonts.display, fontSize: 18, color: colors.teal900, marginTop: 4 },
-  amount: { backgroundColor: colors.teal900, borderRadius: radius.lg, padding: 20, gap: 2 },
-  amountLabel: { fontFamily: fonts.script, fontSize: 22, color: colors.sand300 },
-  amountValue: { fontFamily: fonts.display, fontSize: 34, color: colors.white },
-  amountMeta: { fontFamily: fonts.text, fontSize: 12, color: "rgba(255,255,255,0.85)" },
-  option: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    backgroundColor: colors.white,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: colors.mist,
-    padding: 14,
-  },
-  optionOn: { backgroundColor: colors.teal900, borderColor: colors.teal900 },
-  optionLabel: { fontFamily: fonts.textSemiBold, fontSize: 15, color: colors.teal900 },
-  optionLabelOn: { color: colors.white },
-  optionText: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
-  optionTextOn: { color: "rgba(255,255,255,0.85)" },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: t.bg },
+    content: { padding: 18, gap: 14 },
+    paragraph: { fontFamily: fonts.text, fontSize: 14, lineHeight: 20, color: t.textMuted },
+    h2: { fontFamily: fonts.display, fontSize: 18, color: t.text, marginTop: 4 },
+    amount: {
+      backgroundColor: colors.teal900,
+      borderRadius: radius.lg,
+      padding: 20,
+      gap: 2,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: t.border,
+    },
+    amountLabel: { fontFamily: fonts.script, fontSize: 22, color: colors.sand300 },
+    amountValue: { fontFamily: fonts.display, fontSize: 34, color: colors.white },
+    amountMeta: { fontFamily: fonts.text, fontSize: 12, color: "rgba(255,255,255,0.85)" },
+    option: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      backgroundColor: t.surface,
+      borderRadius: radius.md,
+      borderWidth: 1.5,
+      borderColor: t.border,
+      padding: 14,
+    },
+    optionOn: { backgroundColor: t.primary, borderColor: t.primary },
+    optionLabel: { fontFamily: fonts.textSemiBold, fontSize: 15, color: t.text },
+    optionLabelOn: { color: t.onPrimary },
+    optionText: { fontFamily: fonts.text, fontSize: 12, color: t.textMuted },
+    optionTextOn: { color: "rgba(255,255,255,0.85)" },
+  }),
+);
