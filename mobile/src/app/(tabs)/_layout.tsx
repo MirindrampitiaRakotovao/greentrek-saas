@@ -2,6 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Tabs } from "expo-router";
 import type { ColorValue } from "react-native";
 
+import { useActivity } from "@/context/activity";
 import { colors, fonts } from "@/theme/tokens";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -32,6 +33,8 @@ function TabIcon({
  * Onglets (comme la maquette) : Accueil, Explorer, Favoris, Réservations, Compte.
  */
 export default function TabsLayout() {
+  const { unread } = useActivity();
+  const unreadTotal = unread.notifications + unread.conversations;
   return (
     <Tabs
       screenOptions={{
@@ -82,6 +85,8 @@ export default function TabsLayout() {
         name="compte"
         options={{
           title: "Compte",
+          tabBarBadge: unreadTotal > 0 ? unreadTotal : undefined,
+          tabBarBadgeStyle: { backgroundColor: colors.danger, fontFamily: fonts.textSemiBold },
           tabBarIcon: (p) => <TabIcon {...p} active="person" inactive="person-outline" />,
         }}
       />

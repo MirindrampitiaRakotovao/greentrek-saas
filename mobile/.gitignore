@@ -44,3 +44,7 @@ example
 
 # Adresse du site propre à chaque ordinateur (voir .env.example)
 .env
+
+# Clé privée du compte de service Firebase (notifications push) : jamais dans git
+*-firebase-adminsdk-*.json
+service-account*.json

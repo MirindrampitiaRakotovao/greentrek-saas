@@ -276,3 +276,88 @@ export function postAvis(reservationId: string, input: { note: number; commentai
     json: input,
   });
 }
+
+/* ─── Notifications et messagerie (lot A4c) ───────────────────────────────────── */
+
+export type AppNotification = {
+  id: string;
+  titre: string;
+  message: string;
+  lue: boolean;
+  at: string;
+  reservationId: string | null;
+};
+
+export type Unread = { notifications: number; conversations: number };
+
+export type Activity = {
+  serveur: string;
+  nonLues: Unread;
+  notifications: AppNotification[];
+  messages: { id: string; conversationId: string; sujet: string; auteur: string }[];
+};
+
+export type ConversationSummary = {
+  id: string;
+  sujet: string;
+  nonLue: boolean;
+  at: string;
+  reservation: { id: string; reference: string } | null;
+  dernierMessage: { extrait: string; deMoi: boolean; auteur: string } | null;
+};
+
+export type Thread = {
+  id: string;
+  sujet: string;
+  reservation: { id: string; reference: string; circuit: string } | null;
+  messages: {
+    id: string;
+    contenu: string;
+    at: string;
+    deMoi: boolean;
+    auteur: string;
+    cote: string;
+  }[];
+};
+
+export function fetchActivity(depuis: string | null) {
+  return request<Activity>(`/activite${depuis ? `?depuis=${encodeURIComponent(depuis)}` : ""}`);
+}
+
+export function fetchNotifications() {
+  return request<{ nonLues: number; notifications: AppNotification[] }>("/notifications");
+}
+
+export function markNotificationsRead(ids?: string[]) {
+  return request<{ ok: true }>("/notifications/lues", { json: ids ? { ids } : {} });
+}
+
+export function fetchConversations() {
+  return request<{ conversations: ConversationSummary[] }>("/messages");
+}
+
+export function fetchThread(id: string) {
+  return request<Thread>(`/messages/${encodeURIComponent(id)}`);
+}
+
+export function postMessage(conversationId: string, contenu: string) {
+  return request<{ conversationId: string }>(`/messages/${encodeURIComponent(conversationId)}`, {
+    json: { contenu },
+  });
+}
+
+export function startConversation(input: {
+  reservationId: string | null;
+  sujet: string | null;
+  contenu: string;
+}) {
+  return request<{ conversationId: string }>("/messages", { json: input });
+}
+
+export function registerDevice(token: string, plateforme: "android" | "ios") {
+  return request<{ ok: true }>("/appareils", { json: { token, plateforme } });
+}
+
+export function unregisterDevice(token: string) {
+  return request<{ ok: true }>("/appareils", { method: "DELETE", json: { token } });
+}

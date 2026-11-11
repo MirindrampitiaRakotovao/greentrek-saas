@@ -1,11 +1,20 @@
 import bcrypt from "bcryptjs";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { Role } from "@/generated/prisma/client";
 import { parseIsoDate } from "@/lib/departs";
+import { mobileActivity, mobileNotifications, toMobileThread } from "@/lib/mobile/activite";
 import { toMobileReservation } from "@/lib/mobile/reservations";
 import { mobileClientFromRequest, mobileLogin, mobileProfile } from "@/lib/mobile/session";
+import {
+  pushSettled,
+  registerDevice,
+  setPushTransport,
+  unregisterDevice,
+} from "@/lib/services/appareils";
 import { createAvis } from "@/lib/services/avis";
+import { confirmReservation } from "@/lib/services/gestion-reservations";
+import { getConversation, sendMessage, startConversation } from "@/lib/services/messagerie";
 import { getCatalogueCircuit, listCatalogue } from "@/lib/services/catalogue";
 import {
   cancelReservationByClient,
@@ -379,5 +388,195 @@ describe("compte et avis depuis l'application (lot A4b)", () => {
       peutDonnerAvis: false,
       avis: { note: 5, statut: "EN_ATTENTE" },
     });
+  });
+});
+
+describe("messagerie et notifications de l'application (lot A4c)", () => {
+  const TOKEN = "ExponentPushToken[telephone-du-voyageur]";
+  let sent: { to: string; title: string; body: string; data: unknown }[] = [];
+  let refuse = new Set<string>();
+
+  beforeEach(() => {
+    sent = [];
+    refuse = new Set();
+    setPushTransport(async (_url, init) => {
+      const batch = JSON.parse(String(init.body)) as typeof sent;
+      sent.push(...batch);
+      return Response.json({
+        data: batch.map((m) =>
+          refuse.has(m.to)
+            ? { status: "error", details: { error: "DeviceNotRegistered" } }
+            : { status: "ok" },
+        ),
+      });
+    }, raw);
+  });
+  afterEach(() => setPushTransport(undefined));
+
+  async function connect(email: string, agence = agenceA) {
+    await user(email, "CLIENT", agence.id);
+    const session = await mobileLogin(
+      { email, password: PASSWORD, agenceSlug: agence.slug },
+      raw,
+      NOW,
+    );
+    return (await mobileClientFromRequest(request(session!.token), raw, NOW))!;
+  }
+
+  async function reservationOf(ctx: Awaited<ReturnType<typeof connect>>) {
+    const c = await circuit(ctx.user.agenceId, "sentier", "Sentier côtier");
+    const d = await depart(ctx.user.agenceId, c.id, "2026-12-20");
+    return raw.reservation.create({
+      data: {
+        agenceId: ctx.user.agenceId,
+        reference: "GTM-2026-0001",
+        clientId: ctx.user.id,
+        sessionId: d.id,
+        nombrePersonnes: 1,
+        montantTotal: 100_000,
+      },
+    });
+  }
+
+  it("confirmation par l'agence : notification enregistrée et téléphone prévenu après le commit", async () => {
+    const ctx = await connect("voyageur@example.com");
+    const r = await reservationOf(ctx);
+    await registerDevice(ctx.db, {
+      agenceId: ctx.user.agenceId,
+      utilisateurId: ctx.user.id,
+      expoPushToken: TOKEN,
+      plateforme: "android",
+    });
+    // Personnel actif : notifié dans le site, mais il n'a pas l'application (aucun envoi).
+    await user("admin@example.com", "ADMIN_AGENCE", agenceA.id);
+
+    const before = new Date();
+    const res = await confirmReservation(ctx.db, r.id, NOW);
+    expect(res.ok).toBe(true);
+    await pushSettled();
+
+    expect(sent).toEqual([
+      expect.objectContaining({
+        to: TOKEN,
+        title: "Réservation GTM-2026-0001 confirmée",
+        sound: "default",
+        data: { type: "reservation", reservationId: r.id },
+      }),
+    ]);
+    expect(JSON.stringify(sent)).not.toMatch(/100\s?000/);
+
+    const list = await mobileNotifications(ctx.db, ctx.user.id);
+    expect(list.nonLues).toBe(1);
+    expect(list.notifications[0]).toMatchObject({ reservationId: r.id, lue: false });
+
+    const activity = await mobileActivity(
+      ctx.db,
+      { id: ctx.user.id, role: "CLIENT" },
+      new Date(before.getTime() - 60_000),
+      new Date(Date.now() + 60_000),
+    );
+    expect(activity.notifications).toHaveLength(1);
+    expect(activity.nonLues.notifications).toBe(1);
+  });
+
+  it("message de l'agence : téléphone prévenu (sans le texte), visible dans le fil et les nouveautés", async () => {
+    const ctx = await connect("voyageur@example.com");
+    const r = await reservationOf(ctx);
+    await registerDevice(ctx.db, {
+      agenceId: ctx.user.agenceId,
+      utilisateurId: ctx.user.id,
+      expoPushToken: TOKEN,
+      plateforme: "ios",
+    });
+    const voyageur = { id: ctx.user.id, role: "CLIENT" as const };
+    const started = await startConversation(
+      ctx.db,
+      voyageur,
+      {
+        agenceId: agenceA.id,
+        reservationId: r.id,
+        sujet: null,
+        contenu: "Faut-il des chaussures de marche ?",
+      },
+      NOW,
+    );
+    expect(started.ok).toBe(true);
+    const conversationId = started.ok ? started.data.conversationId : "";
+    await pushSettled();
+    expect(sent).toHaveLength(0); // son propre message ne fait pas sonner son téléphone
+
+    const admin = await user("admin@example.com", "ADMIN_AGENCE", agenceA.id);
+    const later = new Date(NOW.getTime() + 60_000);
+    await sendMessage(
+      ctx.db,
+      { id: admin.id, role: "ADMIN_AGENCE" },
+      { conversationId, contenu: "Oui, et le code du portail est 4521." },
+      later,
+    );
+    await pushSettled();
+    expect(sent).toEqual([
+      expect.objectContaining({
+        to: TOKEN,
+        title: "Nouveau message de Hery T.",
+        body: "Sentier côtier · GTM-2026-0001",
+        data: { type: "message", conversationId },
+      }),
+    ]);
+    expect(JSON.stringify(sent)).not.toContain("4521");
+
+    const activity = await mobileActivity(ctx.db, voyageur, NOW, later);
+    expect(activity.messages).toEqual([
+      expect.objectContaining({ conversationId, auteur: "Hery T." }),
+    ]);
+    expect(activity.nonLues.conversations).toBe(1);
+
+    const thread = toMobileThread(
+      (await getConversation(ctx.db, voyageur, conversationId))!,
+      ctx.user.id,
+    );
+    expect(thread.messages.map((m) => [m.deMoi, m.cote])).toEqual([
+      [true, "Voyageur"],
+      [false, "Agence"],
+    ]);
+  });
+
+  it("téléphone désinstallé : jeton oublié ; déconnexion : jeton retiré", async () => {
+    const ctx = await connect("voyageur@example.com");
+    const r = await reservationOf(ctx);
+    const device = {
+      agenceId: ctx.user.agenceId,
+      utilisateurId: ctx.user.id,
+      expoPushToken: TOKEN,
+      plateforme: "android",
+    };
+    await registerDevice(ctx.db, device);
+    refuse.add(TOKEN);
+    await confirmReservation(ctx.db, r.id, NOW);
+    await pushSettled();
+    expect(sent).toHaveLength(1);
+    expect(await raw.appareilMobile.count()).toBe(0);
+
+    await registerDevice(ctx.db, device);
+    expect((await unregisterDevice(ctx.db, ctx.user.id, TOKEN)).ok).toBe(true);
+    expect(await raw.appareilMobile.count()).toBe(0);
+  });
+
+  it("même téléphone : le dernier compte connecté de l'agence le reçoit ; agences isolées", async () => {
+    const a = await connect("voyageur@example.com");
+    const b = await connect("autre@example.com");
+    const c = await connect("voyageur@example.com", agenceB);
+    for (const ctx of [a, b, c]) {
+      await registerDevice(ctx.db, {
+        agenceId: ctx.user.agenceId,
+        utilisateurId: ctx.user.id,
+        expoPushToken: TOKEN,
+        plateforme: "android",
+      });
+    }
+    const rows = await raw.appareilMobile.findMany({ select: { utilisateurId: true } });
+    expect(rows.map((r) => r.utilisateurId).sort()).toEqual([b.user.id, c.user.id].sort());
+    // Un voyageur de l'agence A ne voit pas le téléphone enregistré dans l'agence B.
+    expect(await a.db.appareilMobile.count()).toBe(1);
+    expect((await unregisterDevice(a.db, c.user.id, TOKEN)).ok).toBe(false);
   });
 });

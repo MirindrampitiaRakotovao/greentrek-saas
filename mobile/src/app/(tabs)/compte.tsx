@@ -1,10 +1,12 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { CountBadge } from "@/components/badge";
 import { Button } from "@/components/form";
 import { ServerSettings } from "@/components/server-settings";
+import { useActivity } from "@/context/activity";
 import { useAuth } from "@/context/auth";
 import { confirmAction } from "@/lib/confirm";
 import { colors, fonts, radius } from "@/theme/tokens";
@@ -12,6 +14,7 @@ import { colors, fonts, radius } from "@/theme/tokens";
 /** Onglet « Compte » : profil du voyageur et déconnexion, ou invitation à se connecter. */
 export default function CompteScreen() {
   const { user, logout } = useAuth();
+  const { unread } = useActivity();
 
   async function signOut() {
     const ok = await confirmAction({
@@ -70,6 +73,18 @@ export default function CompteScreen() {
                   <Text style={styles.strong}>{user.agenceNom}</Text>
                 </View>
               </View>
+              <InboxLink
+                icon="chatbubbles-outline"
+                label="Messages"
+                count={unread.conversations}
+                onPress={() => router.push("/messages")}
+              />
+              <InboxLink
+                icon="notifications-outline"
+                label="Notifications"
+                count={unread.notifications}
+                onPress={() => router.push("/notifications")}
+              />
               <Button
                 label="Modifier mon profil"
                 variant="secondary"
@@ -82,6 +97,35 @@ export default function CompteScreen() {
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+/** Ligne « Messages » ou « Notifications » du compte, avec le nombre de non lus. */
+function InboxLink({
+  icon,
+  label,
+  count,
+  onPress,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+  label: string;
+  count: number;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={styles.row}
+      accessibilityRole="link"
+      accessibilityLabel={count ? `${label}, ${count} non lus` : label}
+    >
+      <View>
+        <Ionicons name={icon} size={20} color={colors.teal700} />
+        <CountBadge count={count} />
+      </View>
+      <Text style={[styles.strong, { flex: 1 }]}>{label}</Text>
+      <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+    </Pressable>
   );
 }
 

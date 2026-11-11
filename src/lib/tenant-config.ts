@@ -115,6 +115,7 @@ export const TENANT_CONFIG: Readonly<Record<ModelName, ModelConfig>> = {
     scope: { kind: "child", relation: "utilisateur" },
     references: { utilisateurId: "Utilisateur" },
   },
+  AppareilMobile: { scope: { kind: "tenant" }, references: { utilisateurId: "Utilisateur" } },
   LectureConversation: {
     scope: { kind: "child", relation: "conversation" },
     references: { conversationId: "Conversation", utilisateurId: "Utilisateur" },

@@ -25,9 +25,11 @@ Aperçu dans un navigateur, sans téléphone : `npx expo start --web`.
 - `src/app/` : écrans (Expo Router)
   - onglets : `(tabs)/index.tsx` accueil, `(tabs)/explorer.tsx` recherche, `(tabs)/favoris.tsx` favoris (gardés sur le téléphone), `(tabs)/reservations.tsx` mes réservations, `(tabs)/compte.tsx` compte
   - `circuit/[agence]/[slug].tsx` fiche d'un circuit, `reserver/[depart].tsx` réservation, `paiement/[id].tsx` paiement, `reservation/[id].tsx` fiche d'une réservation
+  - `messages/` (liste, fil, nouveau message) et `notifications.tsx`
   - `connexion.tsx`, `inscription.tsx`, `mot-de-passe-oublie.tsx` : compte voyageur (propre à une agence) ; `profil.tsx` : profil et mot de passe
 - `src/components/` : cartes, bannière, catégories, formulaires, états de chargement, `RequireAuth`
 - `src/context/auth.tsx` : session du voyageur (jeton et profil, stockage chiffré du téléphone)
+- `src/context/activity.tsx` : nouveautés (toutes les 20 s, application ouverte), pastilles, sonnerie, enregistrement du téléphone pour le push ; `src/lib/notifications.ts` : notifications du téléphone
 - `src/lib/` : client de l'API, adresse du site (réglable dans l'onglet Compte), formats français, page de la carte (Leaflet), stockage de la session
 - `src/theme/tokens.ts` : palette et polices du site (Nohemi, Poppins, Dancing Script)
 
@@ -35,12 +37,21 @@ Aperçu dans un navigateur, sans téléphone : `npx expo start --web`.
 
 Compte de démonstration : `client@green-trek-mada.test`, mot de passe `Demo2026!`, agence **Green Trek Mada**. Une carte dont le numéro se termine par `0000` est refusée ; `4242 4242 4242 4242` est acceptée. Relancer `npm run db:seed` à la racine pour retrouver la base d'origine.
 
+## Notifications qui sonnent
+
+- **Dans Expo Go** (niveau 1) : application ouverte, chaque nouveauté (message de l'agence, confirmation, paiement, annulation) fait sonner le téléphone dans les 20 secondes. Accepter la demande d'autorisation à la connexion.
+- **Avec l'APK** (niveau 2) : le téléphone sonne même application fermée (service push d'Expo). Configuration à faire une fois, avant la fabrication (étapes 2 bis ci-dessous).
+
 ## Fabriquer l'APK Android (lien de téléchargement pour la démonstration)
 
 L'application n'est pas publiée sur les stores (hors périmètre, cahier des charges §2). Pour la démonstration, on fabrique un fichier **APK** installable sur Android, et on le partage par un lien (Google Drive). Sur iPhone, l'installation hors App Store n'est pas possible : utiliser Expo Go.
 
 1. Créer un compte gratuit sur [expo.dev](https://expo.dev), puis, dans `mobile/` : `npx eas-cli@latest login`.
 2. (Facultatif) Dans `eas.json`, profil `apk`, renseigner `EXPO_PUBLIC_API_URL` avec l'adresse de l'ordinateur sur le Wi-Fi, par exemple `http://192.168.1.20:3000`. Sinon, la régler dans l'application (étape 6).
+2 bis. **Notifications push** (pour que le téléphone sonne application fermée) :
+   - `npx eas-cli@latest init` : crée le projet sur expo.dev et ajoute son identifiant (`extra.eas.projectId`) à `app.json` ;
+   - créer un projet gratuit sur [console.firebase.google.com](https://console.firebase.google.com), y ajouter une application Android de nom de paquet `mg.greentrek.voyageurs`, télécharger `google-services.json` dans `mobile/`, et ajouter `"googleServicesFile": "./google-services.json"` dans la section `android` de `app.json` ;
+   - dans Firebase, « Paramètres du projet » → « Comptes de service » → « Générer une nouvelle clé privée », puis `npx eas-cli@latest credentials` → Android → « Google Service Account » → « FCM V1 » : y déposer ce fichier. **Ne jamais committer cette clé privée.**
 3. `npx eas-cli@latest build -p android --profile apk` : la fabrication se fait sur les serveurs d'Expo (une dizaine de minutes) ; un lien de téléchargement du fichier `.apk` s'affiche à la fin.
 4. Déposer le fichier `.apk` sur Google Drive, puis « Partager » → « Tous les utilisateurs disposant du lien ».
 5. Dans le `.env` du site : `MOBILE_APP_URL="<lien de partage Drive>"`, puis redémarrer le site. L'encart « Téléchargez l'application » apparaît sur l'accueil de la plateforme et des sites vitrines, avec un QR code.

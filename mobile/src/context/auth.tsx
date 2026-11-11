@@ -8,8 +8,10 @@ import {
   register as apiRegister,
   type Session,
   setAuthToken,
+  unregisterDevice,
 } from "@/lib/api";
 import { loadApiBaseUrl } from "@/lib/config";
+import { registeredPushToken } from "@/lib/notifications";
 import { readSession, writeSession } from "@/lib/session-store";
 
 type AuthState = {
@@ -82,6 +84,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login: async (input) => open(await apiLogin(input)),
     register: async (input) => open(await apiRegister(input)),
     logout: async () => {
+      // Ce téléphone ne doit plus sonner pour ce compte (avant d'oublier le jeton de session).
+      const device = registeredPushToken();
+      if (device) await unregisterDevice(device).catch(() => undefined);
       setAuthToken(null);
       setToken(null);
       await writeSession(null);

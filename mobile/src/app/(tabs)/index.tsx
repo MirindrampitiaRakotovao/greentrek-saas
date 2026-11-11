@@ -18,8 +18,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CategoryButton } from "@/components/category-button";
 import { CircuitCard } from "@/components/circuit-card";
+import { CountBadge } from "@/components/badge";
 import { DepartBanner } from "@/components/depart-banner";
 import { ErrorState, Loading } from "@/components/states";
+import { useActivity } from "@/context/activity";
+import { useAuth } from "@/context/auth";
 import { useAsync } from "@/hooks/use-async";
 import { fetchCatalogue, imageUrl } from "@/lib/api";
 import { colors, difficultyColors, fonts, radius } from "@/theme/tokens";
@@ -71,6 +74,7 @@ export default function HomeScreen() {
           style={StyleSheet.absoluteFill}
         />
         <SafeAreaView edges={["top"]} style={styles.heroContent}>
+          <InboxButtons />
           <Text style={styles.script}>Explorez Madagascar</Text>
           <Text style={styles.title} accessibilityRole="header">
             Découvrez.{"\n"}Marchez.{"\n"}
@@ -167,7 +171,45 @@ export default function HomeScreen() {
   );
 }
 
+/** Accès aux notifications et aux messages (voyageur connecté), avec le nombre de non lus. */
+function InboxButtons() {
+  const { user } = useAuth();
+  const { unread } = useActivity();
+  if (!user) return null;
+  return (
+    <View style={styles.inbox}>
+      <Pressable
+        onPress={() => router.push("/messages")}
+        style={styles.inboxButton}
+        accessibilityRole="button"
+        accessibilityLabel={`Messages${unread.conversations ? `, ${unread.conversations} non lus` : ""}`}
+      >
+        <Ionicons name="chatbubbles-outline" size={22} color={colors.teal900} />
+        <CountBadge count={unread.conversations} />
+      </Pressable>
+      <Pressable
+        onPress={() => router.push("/notifications")}
+        style={styles.inboxButton}
+        accessibilityRole="button"
+        accessibilityLabel={`Notifications${unread.notifications ? `, ${unread.notifications} non lues` : ""}`}
+      >
+        <Ionicons name="notifications-outline" size={22} color={colors.teal900} />
+        <CountBadge count={unread.notifications} />
+      </Pressable>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  inbox: { position: "absolute", top: 12, right: 18, flexDirection: "row", gap: 10, zIndex: 2 },
+  inboxButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.92)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   screen: { flex: 1, backgroundColor: colors.white },
   hero: { height: 330 },
   heroImage: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0 },

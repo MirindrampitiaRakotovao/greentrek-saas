@@ -38,6 +38,30 @@ export function formatDay(isoDay: string): string {
   return `${d === 1 ? "1er" : d} ${MOIS[m]} ${y}`;
 }
 
+/** Madagascar : UTC+3 toute l'année (pas d'heure d'été), comme `src/lib/dates.ts` du site. */
+const MADAGASCAR_OFFSET_MS = 3 * 60 * 60 * 1000;
+
+/**
+ * Date et heure d'un message ou d'une notification, à l'heure de Madagascar :
+ * « 14:05 » aujourd'hui, sinon « 9 nov. à 14:05 » (« 9 nov. 2025 à 14:05 » une autre année).
+ */
+export function formatDateTime(iso: string, now: Date = new Date()): string {
+  const local = new Date(new Date(iso).getTime() + MADAGASCAR_OFFSET_MS);
+  const today = new Date(now.getTime() + MADAGASCAR_OFFSET_MS);
+  const time = `${String(local.getUTCHours()).padStart(2, "0")}:${String(local.getUTCMinutes()).padStart(2, "0")}`;
+  const sameYear = local.getUTCFullYear() === today.getUTCFullYear();
+  if (
+    sameYear &&
+    local.getUTCMonth() === today.getUTCMonth() &&
+    local.getUTCDate() === today.getUTCDate()
+  ) {
+    return time;
+  }
+  const d = local.getUTCDate();
+  const day = `${d === 1 ? "1er" : d} ${MOIS[local.getUTCMonth()]}`;
+  return `${sameYear ? day : `${day} ${local.getUTCFullYear()}`} à ${time}`;
+}
+
 /** « 12 – 14 nov. 2026 », « 30 oct. – 2 nov. 2026 », ou un seul jour. */
 export function formatDayRange(debut: string, fin: string): string {
   if (debut === fin) return formatDay(debut);

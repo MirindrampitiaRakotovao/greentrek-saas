@@ -1,6 +1,7 @@
 import { Prisma, type Role } from "@/generated/prisma/client";
 import { isUnread } from "@/lib/messagerie";
 import { publish } from "@/lib/realtime/bus";
+import { pushToDevices } from "@/lib/services/appareils";
 import { excerpt } from "@/lib/realtime/events";
 import { type Paginated, pageArgs, pageCount } from "@/lib/pagination";
 import { can } from "@/lib/permissions";
@@ -99,13 +100,16 @@ async function publishMessage(
     ...equipe.map((u) => u.id),
     ...(guideId ? [guideId] : []),
   ].filter((id) => id !== auteurId);
-  publish(destinataires, {
-    type: "message",
+  const event = {
+    type: "message" as const,
     conversationId,
     sujet: conversation.sujet,
     auteur: `${auteur.prenom} ${auteur.nom.charAt(0)}.`,
     extrait: excerpt(contenu),
-  });
+  };
+  publish(destinataires, event);
+  // Seuls les voyageurs ont l'application mobile : leurs téléphones sonnent (après le commit).
+  await pushToDevices(db, destinataires, event);
 }
 
 async function appendMessage(

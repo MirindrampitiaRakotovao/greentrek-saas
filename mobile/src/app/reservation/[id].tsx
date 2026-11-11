@@ -178,6 +178,16 @@ function ReservationDetail() {
             )}
           </View>
 
+          <Button
+            label="Contacter l'agence"
+            variant="secondary"
+            onPress={() =>
+              router.push({
+                pathname: "/messages/nouveau",
+                params: { reservation: r.id, reference: r.reference },
+              })
+            }
+          />
           {r.facture ? (
             <Button
               label="Voir la facture"

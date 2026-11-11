@@ -148,6 +148,7 @@ model Agence {
   itinerairesCalcules ItineraireCalcule[]
   abonnements         Abonnement[]
   conversations       Conversation[]
+  appareilsMobiles    AppareilMobile[]
 }
 
 // ─── 2. Utilisateur ────────────────────────────────────────────────────────────
@@ -176,6 +177,7 @@ model Utilisateur {
   messages               Message[]
   lectures               LectureConversation[]
   jetonsReinitialisation JetonReinitialisation[]
+  appareilsMobiles       AppareilMobile[]
 
   // RG 3. L'unicité de l'e-mail du personnel sur toute la plateforme (connexion via
   // /connexion) est vérifiée par l'application : MySQL n'a pas d'index unique partiel.
@@ -632,4 +634,26 @@ model JetonReinitialisation {
   utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
 
   @@index([utilisateurId, createdAt])
+}
+
+// ─── Application mobile : téléphones à prévenir (hors cahier des charges, après E12) ──
+
+// Jeton de notification push (service Expo) d'un téléphone où un voyageur est connecté.
+// Enregistré à la connexion dans l'application, retiré à la déconnexion ou quand le
+// service répond que l'application a été désinstallée. Un même téléphone peut servir à
+// deux comptes de deux agences : unicité par agence.
+model AppareilMobile {
+  id            String   @id @default(cuid())
+  agenceId      String
+  utilisateurId String
+  expoPushToken String   @db.VarChar(255)
+  plateforme    String   @db.VarChar(20)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  agence      Agence      @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@unique([agenceId, expoPushToken])
+  @@index([utilisateurId])
 }

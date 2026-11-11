@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@/generated/prisma/client";
 import { publish } from "@/lib/realtime/bus";
+import { pushToDevices } from "@/lib/services/appareils";
 import type { TenantDb, TenantTx } from "@/lib/tenant";
 
 /**
@@ -62,12 +63,15 @@ export async function notifyReservationClient(
   await db.notification.create({
     data: { ...input, agenceId: agence.id, utilisateurId: reservation.clientId, lienUrl },
   });
-  publish([reservation.clientId], {
-    type: "notification",
+  const event = {
+    type: "notification" as const,
     titre: input.titre,
     message: input.message,
     lienUrl,
-  });
+  };
+  publish([reservation.clientId], event);
+  // Téléphone du voyageur (application mobile) : notification push, après le commit.
+  await pushToDevices(db, [reservation.clientId], event);
 }
 
 /** Marque comme lues les notifications de l'utilisateur (toutes, ou celles données). */

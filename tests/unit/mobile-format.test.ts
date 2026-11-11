@@ -5,6 +5,7 @@ import {
   absoluteUrl,
   apiBaseFromHost,
   formatDay,
+  formatDateTime,
   formatDayRange,
   formatMoney,
   formatNote,
@@ -66,5 +67,16 @@ describe("adresse du serveur saisie dans l'application", () => {
     expect(normalizeServerUrl("")).toBeNull();
     expect(normalizeServerUrl("ftp://serveur")).toBeNull();
     expect(normalizeServerUrl(null)).toBeNull();
+  });
+});
+
+describe("date et heure des messages et notifications", () => {
+  it("heure de Madagascar ; jour masqué aujourd'hui, année masquée cette année", () => {
+    const now = new Date("2026-11-11T09:00:00Z"); // 12:00 à Madagascar
+    expect(formatDateTime("2026-11-11T06:05:00Z", now)).toBe("09:05");
+    // 22:30 UTC le 10 = 01:30 le 11 à Madagascar : aujourd'hui.
+    expect(formatDateTime("2026-11-10T22:30:00Z", now)).toBe("01:30");
+    expect(formatDateTime("2026-11-01T11:00:00Z", now)).toBe("1er nov. à 14:00");
+    expect(formatDateTime("2025-12-24T17:45:00Z", now)).toBe("24 déc. 2025 à 20:45");
   });
 });
