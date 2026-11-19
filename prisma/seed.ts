@@ -386,7 +386,7 @@ async function seedAgence(
     ),
   ];
   const clientIds = [clientCompte.id];
-  for (const person of people.slice(1)) {
+  for (const [index, person] of people.slice(1).entries()) {
     const client = await db.utilisateur.create({
       data: {
         agenceId,
@@ -395,6 +395,8 @@ async function seedAgence(
         email: exampleEmail(person),
         motDePasseHash,
         role: "CLIENT",
+        // Un voyageur sur trois a été ajouté par l'agence (hypothèse de démonstration).
+        origine: index % 3 === 0 ? "AGENCE" : "INSCRIPTION",
       },
     });
     clientIds.push(client.id);

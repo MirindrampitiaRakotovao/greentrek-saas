@@ -21,17 +21,24 @@ export default async function AgencyResetPasswordPage({
 }: PageProps<"/a/[slug]/reinitialiser-mot-de-passe">) {
   const { slug } = await params;
   const { agence, brand, showcase } = await loadAgencyAuth(slug);
-  const jeton = (await searchParams).jeton;
+  const query = await searchParams;
+  const jeton = query.jeton;
+  // Invitation d'un client ajouté par l'agence : même lien, autres mots.
+  const bienvenue = query.bienvenue === "1";
   const valide =
     typeof jeton === "string" ? await checkResetToken(getAdminDb(), jeton, agence.slug) : null;
   return (
     <AuthLayout
       brand={brand}
-      title={valide ? "Nouveau mot de passe" : "Lien expiré"}
+      title={valide ? (bienvenue ? "Bienvenue" : "Nouveau mot de passe") : "Lien expiré"}
       subtitle={
         valide
-          ? `Bonjour ${valide.prenom}, choisissez votre nouveau mot de passe.`
-          : "Ce lien n'est plus valable : il a déjà servi ou date de plus d'une heure."
+          ? bienvenue
+            ? `Bonjour ${valide.prenom}, choisissez votre mot de passe pour activer votre compte.`
+            : `Bonjour ${valide.prenom}, choisissez votre nouveau mot de passe.`
+          : bienvenue
+            ? "Ce lien d'invitation n'est plus valable (déjà utilisé ou plus de 7 jours). Demandez un nouveau lien ci-dessous."
+            : "Ce lien n'est plus valable : il a déjà servi ou date de plus d'une heure."
       }
       footer={
         <Link href={`/a/${slug}/connexion`} className="font-medium text-gt-teal-700 underline">

@@ -153,18 +153,27 @@ model Agence {
 
 // ─── 2. Utilisateur ────────────────────────────────────────────────────────────
 
+/// Origine d'un compte voyageur (après E12) : inscription en ligne ou ajout par l'agence.
+enum OrigineClient {
+  INSCRIPTION
+  AGENCE
+}
+
 model Utilisateur {
-  id             String    @id @default(cuid())
+  id             String        @id @default(cuid())
   agenceId       String? // null uniquement pour SUPER_ADMIN
-  nom            String    @db.VarChar(100)
-  prenom         String    @db.VarChar(100)
-  email          String    @db.VarChar(191)
-  motDePasseHash String    @db.VarChar(255)
-  telephone      String?   @db.VarChar(30)
+  nom            String        @db.VarChar(100)
+  prenom         String        @db.VarChar(100)
+  email          String        @db.VarChar(191)
+  motDePasseHash String        @db.VarChar(255)
+  telephone      String?       @db.VarChar(30)
   role           Role
-  actif          Boolean   @default(true)
+  actif          Boolean       @default(true)
+  // Voyageur (rôle CLIENT) : inscrit lui-même sur le site ou l'application, ou ajouté par
+  // l'agence (qui peut alors réserver pour lui). Sans objet pour le personnel.
+  origine        OrigineClient @default(INSCRIPTION)
   dernierLoginAt DateTime?
-  createdAt      DateTime  @default(now())
+  createdAt      DateTime      @default(now())
 
   agence                 Agence?                 @relation(fields: [agenceId], references: [id], onDelete: Restrict)
   guide                  Guide?

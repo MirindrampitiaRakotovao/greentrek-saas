@@ -4,7 +4,7 @@ import { formatDate } from "@/lib/format";
 import { firstBookableDate, placesReservees } from "@/lib/departs";
 import { generateReference, referencePrefix } from "@/lib/reference";
 import { refreshSessionStatut } from "@/lib/services/departs";
-import { notifyAgencyStaff } from "@/lib/services/notifications";
+import { notifyAgencyStaff, notifyReservationClient } from "@/lib/services/notifications";
 import { failure, type ServiceResult, success } from "@/lib/services/result";
 import type { TenantDb, TenantTx } from "@/lib/tenant";
 import {
@@ -68,6 +68,11 @@ export type CreateReservationInput = ReservationInput & {
   agenceId: string;
   agenceSlug: string;
   clientId: string;
+  /**
+   * Réservation faite par l'agence pour un de ses clients (après E12) : mêmes règles ; le
+   * client est prévenu (notification, téléphone), et non l'équipe.
+   */
+  parAgence?: boolean;
 };
 
 /** Création d'une réservation EN_ATTENTE et de ses participants, sans surbooking possible. */
@@ -83,6 +88,14 @@ export async function createReservation(
     try {
       return await db.$tenantTransaction(async (tx) => {
         if (!(await lockSession(tx, input.sessionId))) return failure("Départ introuvable.");
+        if (input.parAgence) {
+          // Le titulaire doit être un voyageur actif de l'agence (client confiné : la sienne).
+          const client = await tx.utilisateur.findFirst({
+            where: { id: input.clientId, role: "CLIENT", actif: true },
+            select: { id: true },
+          });
+          if (!client) return failure("Client introuvable.");
+        }
         const session = await tx.sessionDepart.findUnique({
           where: { id: input.sessionId },
           select: {
@@ -134,12 +147,20 @@ export async function createReservation(
           data: input.participants.map((p) => ({ ...p, reservationId: reservation.id })),
         });
         await refreshSessionStatut(tx, input.sessionId, now); // RG 11
-        await notifyAgencyStaff(tx, {
-          type: "RESERVATION",
-          titre: `Nouvelle réservation ${reservation.reference}`,
-          message: `${nombrePersonnes} personne${nombrePersonnes > 1 ? "s" : ""} · départ du ${formatDate(session.dateDebut)}`,
-          lienUrl: `/dashboard/reservations/${reservation.id}`,
-        });
+        if (input.parAgence) {
+          await notifyReservationClient(tx, reservation.id, {
+            type: "RESERVATION",
+            titre: `Réservation ${reservation.reference} créée par votre agence`,
+            message: `${nombrePersonnes} personne${nombrePersonnes > 1 ? "s" : ""} · départ du ${formatDate(session.dateDebut)}. Retrouvez-la dans vos réservations.`,
+          });
+        } else {
+          await notifyAgencyStaff(tx, {
+            type: "RESERVATION",
+            titre: `Nouvelle réservation ${reservation.reference}`,
+            message: `${nombrePersonnes} personne${nombrePersonnes > 1 ? "s" : ""} · départ du ${formatDate(session.dateDebut)}`,
+            lienUrl: `/dashboard/reservations/${reservation.id}`,
+          });
+        }
         return success(reservation);
       });
     } catch (error: unknown) {

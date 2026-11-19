@@ -2,12 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AgencyBookingForm } from "@/components/clients/agency-booking-form";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, EmptyState, StatusPill } from "@/components/dashboard/widgets";
+import { Badge } from "@/components/ui/badge";
+import { FormModal } from "@/components/ui/form-modal";
 import { requireAgencyUser } from "@/lib/auth/session";
 import { formatDate, formatDateRange, formatDateTime, formatMoney } from "@/lib/format";
 import { getAgencySettings } from "@/lib/services/agency-settings";
-import { getClientDetail } from "@/lib/services/clients";
+import { can } from "@/lib/permissions";
+import { getClientDetail, listBookableDeparts } from "@/lib/services/clients";
+import { ORIGINE_LABELS } from "@/lib/validators/clients";
 
 export const metadata: Metadata = { title: "Client — Green Trek" };
 
@@ -15,9 +20,11 @@ export const metadata: Metadata = { title: "Client — Green Trek" };
 export default async function ClientPage({ params }: PageProps<"/dashboard/clients/[id]">) {
   const { user, db } = await requireAgencyUser(["ADMIN_AGENCE", "STAFF"]);
   const { id } = await params;
-  const [client, { devise }] = await Promise.all([
+  const peutReserver = can(user.role, "creer", "reservation");
+  const [client, { devise }, departs] = await Promise.all([
     getClientDetail(db, id),
     getAgencySettings(db, user.agenceId),
+    peutReserver ? listBookableDeparts(db) : Promise.resolve([]),
   ]);
   if (!client) notFound();
   const actives = client.reservations.filter((r) => r.statut !== "ANNULEE");
@@ -30,10 +37,36 @@ export default async function ClientPage({ params }: PageProps<"/dashboard/clien
       </Link>
       <PageHeader
         title={`${client.prenom} ${client.nom}`}
-        description={`Inscrit le ${formatDate(client.createdAt)} · dernière connexion : ${formatDateTime(client.dernierLoginAt, "jamais")}`}
+        description={`${client.origine === "AGENCE" ? "Ajouté par l'agence" : "Inscrit en ligne"} le ${formatDate(client.createdAt)} · dernière connexion : ${formatDateTime(client.dernierLoginAt, "jamais")}`}
+        actions={
+          peutReserver && client.actif ? (
+            <FormModal
+              triggerLabel="Réserver pour ce client"
+              title={`Réserver pour ${client.prenom} ${client.nom}`}
+              description="Mêmes règles que sur le site (places, prix figé). Le client est prévenu et retrouve la réservation dans son espace et l'application."
+              icon="calendar"
+              size="lg"
+            >
+              <AgencyBookingForm
+                client={{ id: client.id, prenom: client.prenom, nom: client.nom }}
+                departs={departs.map((d) => ({
+                  id: d.id,
+                  label: `${d.circuit} · ${formatDateRange(d.dateDebut, d.dateFin)}`,
+                  placesLibres: d.placesLibres,
+                  prix: formatMoney(d.prix, devise),
+                }))}
+              />
+            </FormModal>
+          ) : null
+        }
       />
       <div className="grid gap-5 md:grid-cols-3">
         <Card title="Contact">
+          <div className="mb-2">
+            <Badge tone={client.origine === "AGENCE" ? "teal" : "neutral"}>
+              {ORIGINE_LABELS[client.origine]}
+            </Badge>
+          </div>
           <p className="text-sm text-gt-teal-900">{client.email}</p>
           <p className="text-sm text-gt-teal-900/75">
             {client.telephone ?? "Téléphone non renseigné"}

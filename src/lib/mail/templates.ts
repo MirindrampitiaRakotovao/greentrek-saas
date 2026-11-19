@@ -56,3 +56,45 @@ export function passwordResetMail(input: {
 </table></td></tr></table></body></html>`;
   return { subject, text, html };
 }
+
+/** E-mail d'invitation d'un client ajouté par son agence : choisir son mot de passe. */
+export function clientInvitationMail(input: {
+  prenom: string;
+  agence: string;
+  lien: string;
+  validiteJours: number;
+}) {
+  const subject = `${input.agence} vous a créé un compte voyageur`;
+  const text = [
+    `Bonjour ${input.prenom},`,
+    "",
+    `${input.agence} vous a créé un compte voyageur sur Green Trek : vous y retrouverez vos réservations, vos itinéraires et la messagerie avec l'agence, sur le site et dans l'application.`,
+    `Ouvrez ce lien pour choisir votre mot de passe (valable ${input.validiteJours} jours, une seule fois) :`,
+    input.lien,
+    "",
+    "Si vous ne connaissez pas cette agence, ignorez cet e-mail.",
+    "",
+    "Green Trek",
+  ].join("\n");
+  const prenom = escapeHtml(input.prenom);
+  const agence = escapeHtml(input.agence);
+  const lien = escapeHtml(input.lien);
+  const html = `<!doctype html>
+<html lang="fr"><body style="margin:0;padding:0;background:#eef3f3;font-family:Arial,Helvetica,sans-serif;color:#0f414d">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef3f3;padding:32px 12px">
+<tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:16px;overflow:hidden">
+<tr><td style="padding:28px 32px 8px;text-align:center"><img src="cid:${LOGO_CID}" alt="Green Trek" width="120" style="width:120px;height:auto"></td></tr>
+<tr><td style="padding:8px 32px 0">
+<h1 style="font-size:20px;margin:16px 0 8px">Bienvenue chez ${agence}</h1>
+<p style="font-size:15px;line-height:1.6;margin:0 0 12px">Bonjour ${prenom},</p>
+<p style="font-size:15px;line-height:1.6;margin:0 0 20px"><strong>${agence}</strong> vous a créé un compte voyageur sur Green Trek : vous y retrouverez vos réservations, vos itinéraires et la messagerie avec l'agence, sur le site et dans l'application.</p>
+<p style="text-align:center;margin:0 0 20px"><a href="${lien}" style="display:inline-block;background:#0f6775;color:#ffffff;text-decoration:none;font-weight:bold;padding:14px 28px;border-radius:999px">Choisir mon mot de passe</a></p>
+<p style="font-size:13px;line-height:1.6;color:#4d6f78;margin:0 0 8px">Ce lien est valable ${input.validiteJours} jours et ne peut servir qu'une fois. Si le bouton ne fonctionne pas, copiez cette adresse dans votre navigateur :</p>
+<p style="font-size:12px;word-break:break-all;color:#0f6775;margin:0 0 20px">${lien}</p>
+<p style="font-size:13px;line-height:1.6;color:#4d6f78;margin:0 0 28px">Si vous ne connaissez pas cette agence, ignorez cet e-mail.</p>
+</td></tr>
+<tr><td style="background:#025e69;color:#ffffff;font-size:12px;padding:14px 32px;text-align:center">Green Trek · plateforme des agences de randonnée</td></tr>
+</table></td></tr></table></body></html>`;
+  return { subject, text, html };
+}

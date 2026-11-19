@@ -22,6 +22,8 @@ import { failure, type ServiceResult, success } from "@/lib/services/result";
  */
 
 export const RESET_VALIDITY_MINUTES = 60;
+/** Lien d'invitation d'un client ajouté par l'agence : le temps de lire l'e-mail. */
+export const INVITATION_VALIDITY_DAYS = 7;
 export const RESET_MAX_PER_HOUR = 3;
 const BCRYPT_COST = 10;
 
@@ -85,6 +87,23 @@ export async function requestPasswordReset(
     jeton,
     espace: input.agenceSlug && user.agence ? user.agence.nom : "Green Trek",
     agenceSlug: input.agenceSlug,
+  };
+}
+
+/**
+ * Lien d'invitation (client ajouté par l'agence) : même mécanisme que « mot de passe
+ * oublié » (seule l'empreinte est enregistrée, usage unique), valable 7 jours. Renvoie le
+ * jeton (à envoyer par e-mail) et la ligne à enregistrer dans la transaction de création.
+ */
+export function newInvitationToken(now: Date = new Date()) {
+  const jeton = randomBytes(32).toString("base64url");
+  return {
+    jeton,
+    data: {
+      empreinte: hashResetToken(jeton),
+      expireAt: new Date(now.getTime() + INVITATION_VALIDITY_DAYS * 24 * 3_600_000),
+      createdAt: now,
+    },
   };
 }
 

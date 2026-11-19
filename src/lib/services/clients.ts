@@ -1,10 +1,17 @@
+import { randomBytes } from "node:crypto";
+
 import bcrypt from "bcryptjs";
 
 import { Prisma, type PrismaClient } from "@/generated/prisma/client";
 import { getAdminDb } from "@/lib/admin-db";
+import { calendarDate } from "@/lib/dates";
+import { firstBookableDate, placesReservees } from "@/lib/departs";
 import { type Paginated, pageArgs, pageCount } from "@/lib/pagination";
+import { newInvitationToken } from "@/lib/services/mot-de-passe";
+import { failure, type ServiceResult, success } from "@/lib/services/result";
 import type { TenantDb } from "@/lib/tenant";
 import type { ClientRegistrationInput } from "@/lib/validators/auth";
+import type { CreateClientInput, Origine } from "@/lib/validators/clients";
 
 const BCRYPT_COST = 10;
 
@@ -66,6 +73,7 @@ export type ClientRow = {
   nom: string;
   email: string;
   telephone: string | null;
+  origine: Origine;
   createdAt: Date;
   reservations: number;
   /** Montant des réservations non annulées. */
@@ -77,10 +85,12 @@ export async function listClients(
   db: TenantDb,
   q: string | undefined,
   page: number,
+  origine?: Origine,
 ): Promise<Paginated<ClientRow>> {
   const search = q?.trim();
   const where: Prisma.UtilisateurWhereInput = {
     role: "CLIENT",
+    ...(origine ? { origine } : {}),
     ...(search
       ? {
           OR: [
@@ -101,6 +111,7 @@ export async function listClients(
         nom: true,
         email: true,
         telephone: true,
+        origine: true,
         createdAt: true,
       },
       ...pageArgs(page),
@@ -145,6 +156,8 @@ export function getClientDetail(db: TenantDb, id: string) {
       nom: true,
       email: true,
       telephone: true,
+      origine: true,
+      actif: true,
       createdAt: true,
       dernierLoginAt: true,
       reservations: {
@@ -163,4 +176,93 @@ export function getClientDetail(db: TenantDb, id: string) {
       },
     },
   });
+}
+
+export const CLIENT_EMAIL_TAKEN = "Un compte utilise déjà cette adresse dans votre agence.";
+
+/**
+ * Client ajouté par l'agence (après E12) : compte voyageur de l'agence (RG 2), e-mail unique
+ * dans l'agence (RG 3), sans mot de passe utilisable ; le client reçoit un lien d'invitation
+ * (7 jours, usage unique) pour choisir le sien. Renvoie le jeton à envoyer par e-mail (jamais
+ * conservé en clair).
+ */
+export async function createClientByAgency(
+  db: TenantDb,
+  agenceId: string,
+  input: CreateClientInput,
+  now: Date = new Date(),
+): Promise<ServiceResult<{ id: string; jeton: string }>> {
+  const existing = await db.utilisateur.findFirst({
+    where: { email: input.email },
+    select: { id: true },
+  });
+  if (existing) return failure(CLIENT_EMAIL_TAKEN, "email");
+  // Mot de passe aléatoire jamais communiqué : le compte n'est utilisable qu'après l'invitation.
+  const motDePasseHash = await bcrypt.hash(randomBytes(32).toString("base64url"), BCRYPT_COST);
+  try {
+    return await db.$tenantTransaction(async (tx) => {
+      const client = await tx.utilisateur.create({
+        data: {
+          agenceId,
+          prenom: input.prenom,
+          nom: input.nom,
+          email: input.email,
+          telephone: input.telephone,
+          role: "CLIENT",
+          origine: "AGENCE",
+          motDePasseHash,
+          createdAt: now,
+        },
+        select: { id: true },
+      });
+      const invitation = newInvitationToken(now);
+      await tx.jetonReinitialisation.create({
+        data: { utilisateurId: client.id, ...invitation.data },
+      });
+      return success({ id: client.id, jeton: invitation.jeton });
+    });
+  } catch (error: unknown) {
+    // Deux ajouts simultanés de la même adresse : l'index unique (agence, e-mail) tranche.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return failure(CLIENT_EMAIL_TAKEN, "email");
+    }
+    throw error;
+  }
+}
+
+/**
+ * Départs que l'agence peut réserver pour un client : mêmes conditions que le site (ouverts,
+ * circuit publié, à partir du lendemain) et au moins une place libre.
+ */
+export async function listBookableDeparts(db: TenantDb, now: Date = new Date()) {
+  const sessions = await db.sessionDepart.findMany({
+    where: {
+      statut: "OUVERTE",
+      dateDebut: { gte: firstBookableDate(calendarDate(now)) },
+      circuit: { statut: "PUBLIE" },
+    },
+    orderBy: { dateDebut: "asc" },
+    select: {
+      id: true,
+      dateDebut: true,
+      dateFin: true,
+      placesTotal: true,
+      prixParPersonne: true,
+      circuit: { select: { titre: true, prixParPersonne: true } },
+      reservations: {
+        where: { statut: { not: "ANNULEE" } },
+        select: { nombrePersonnes: true, statut: true },
+      },
+    },
+  });
+  return sessions
+    .map((s) => ({
+      id: s.id,
+      circuit: s.circuit.titre,
+      dateDebut: s.dateDebut,
+      dateFin: s.dateFin,
+      placesLibres: s.placesTotal - placesReservees(s.reservations),
+      prix: s.prixParPersonne ?? s.circuit.prixParPersonne,
+    }))
+    .filter((s) => s.placesLibres > 0);
 }
