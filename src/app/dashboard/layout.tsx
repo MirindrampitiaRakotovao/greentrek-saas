@@ -26,8 +26,16 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
       ? countUnreadConversations(db, { id: user.id, role: user.role })
       : Promise.resolve(0),
   ]);
+  // Demandes d'itinéraire des voyageurs en attente de réponse (pastille du menu).
+  const demandes = can(user.role, "creer", "reservation")
+    ? await db.itinerairePersonnalise.count({ where: { origine: "CLIENT", statut: "EN_ATTENTE" } })
+    : 0;
   const nav = navigationFor(user.role, { expert: await isExpertMode() }).map((item) =>
-    item.href === "/dashboard/messages" ? { ...item, badge: messagesNonLus } : item,
+    item.href === "/dashboard/messages"
+      ? { ...item, badge: messagesNonLus }
+      : item.href === "/dashboard/itineraires-sur-mesure"
+        ? { ...item, badge: demandes, badgeLabel: { one: "en attente", many: "en attente" } }
+        : item,
   );
 
   let promo: ShellProps["promo"];

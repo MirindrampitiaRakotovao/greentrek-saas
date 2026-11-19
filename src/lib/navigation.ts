@@ -8,6 +8,8 @@ export type NavItem = {
   icon: IconName;
   /** Pastille (ex. conversations non lues), affichée si > 0. */
   badge?: number;
+  /** Sens de la pastille pour les lecteurs d'écran (par défaut « non lu »). */
+  badgeLabel?: { one: string; many: string };
 };
 
 type NavEntry = NavItem & {
@@ -86,6 +88,13 @@ const NAVIGATION: readonly NavEntry[] = [
     label: "Calcul d'itinéraire",
     icon: "navigation",
     permission: ["lire", "troncon"],
+  },
+  {
+    href: "/dashboard/itineraires-sur-mesure",
+    label: "Itinéraires sur mesure",
+    icon: "map",
+    // Propositions aux clients et demandes des voyageurs (après E12).
+    permission: ["creer", "reservation"],
   },
   {
     href: "/dashboard/performances",

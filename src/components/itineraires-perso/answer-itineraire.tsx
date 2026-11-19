@@ -4,10 +4,13 @@ import { useState, useTransition } from "react";
 
 import { useNotify } from "@/components/ui/dialogs";
 import { FormAlert } from "@/components/ui/form-alert";
-import { answerItineraireAction } from "@/lib/actions/itineraires-perso";
+import { answerDemandeAction, answerItineraireAction } from "@/lib/actions/itineraires-perso";
 
-/** Réponse du voyageur à l'itinéraire proposé : accepter ou décliner, avec un mot facultatif. */
-export function AnswerItineraire({ id }: { id: string }) {
+/**
+ * Réponse à un itinéraire, avec un mot facultatif : le voyageur répond à une proposition de
+ * l'agence (`as="client"`), ou l'agence à la demande d'un voyageur (`as="agence"`).
+ */
+export function AnswerItineraire({ id, as = "client" }: { id: string; as?: "client" | "agence" }) {
   const notify = useNotify();
   const [reponse, setReponse] = useState("");
   const [error, setError] = useState<string>();
@@ -16,7 +19,8 @@ export function AnswerItineraire({ id }: { id: string }) {
   function answer(decision: "ACCEPTE" | "DECLINE") {
     setError(undefined);
     startTransition(async () => {
-      const result = await answerItineraireAction({ id, decision, reponse });
+      const action = as === "agence" ? answerDemandeAction : answerItineraireAction;
+      const result = await action({ id, decision, reponse });
       if (result.error) return setError(result.error);
       if (result.success) notify(result.success);
     });
@@ -25,7 +29,7 @@ export function AnswerItineraire({ id }: { id: string }) {
   return (
     <div className="space-y-3">
       <label className="block text-sm font-medium text-gt-teal-900">
-        Un mot pour l&apos;agence (facultatif)
+        {as === "agence" ? "Réponse au voyageur (facultatif)" : "Un mot pour l'agence (facultatif)"}
         <textarea
           value={reponse}
           onChange={(e) => setReponse(e.target.value)}
@@ -42,7 +46,7 @@ export function AnswerItineraire({ id }: { id: string }) {
           onClick={() => answer("ACCEPTE")}
           className="rounded-full bg-gt-teal-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-gt-teal-800 disabled:opacity-50"
         >
-          Accepter cet itinéraire
+          {as === "agence" ? "Accepter la demande" : "Accepter cet itinéraire"}
         </button>
         <button
           type="button"

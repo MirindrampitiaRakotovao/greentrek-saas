@@ -109,7 +109,9 @@ export default function ItineraireScreen() {
 
           {it.message ? (
             <View style={s.card}>
-              <Text style={s.h2}>Message de l&apos;agence</Text>
+              <Text style={s.h2}>
+                {it.origine === "AGENCE" ? "Message de l'agence" : "Votre message"}
+              </Text>
               <Text style={s.paragraph}>« {it.message} »</Text>
             </View>
           ) : null}
@@ -153,10 +155,19 @@ export default function ItineraireScreen() {
             </View>
           ) : it.reponduAt ? (
             <View style={s.card}>
-              <Text style={s.h2}>Votre réponse</Text>
+              <Text style={s.h2}>
+                {it.origine === "AGENCE" ? "Votre réponse" : "Réponse de l'agence"}
+              </Text>
               <Text style={s.paragraph}>
                 {it.statutLabel} le {formatDateTime(it.reponduAt)}
                 {it.reponse ? ` : « ${it.reponse} »` : "."}
+              </Text>
+            </View>
+          ) : it.origine === "CLIENT" ? (
+            <View style={s.card}>
+              <Text style={s.paragraph}>
+                Demande envoyée : l&apos;agence vous répondra ici, et vous serez prévenu sur ce
+                téléphone.
               </Text>
             </View>
           ) : null}

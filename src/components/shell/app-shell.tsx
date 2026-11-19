@@ -162,7 +162,12 @@ export function AppShell({
                     {item.badge ? (
                       <span className="grid min-w-5 place-items-center rounded-full bg-gt-teal-700 px-1.5 text-[11px] font-bold text-white">
                         {item.badge}
-                        <span className="sr-only"> non lu{item.badge > 1 ? "s" : ""}</span>
+                        <span className="sr-only">
+                          {" "}
+                          {item.badge > 1
+                            ? (item.badgeLabel?.many ?? "non lus")
+                            : (item.badgeLabel?.one ?? "non lu")}
+                        </span>
                       </span>
                     ) : null}
                   </Link>

@@ -77,6 +77,12 @@ export default function CompteScreen() {
             value="Proposés par votre agence ou demandés"
             onPress={() => router.push("/itineraires")}
           />
+          <ListRow
+            icon="add-circle-outline"
+            label="Créer mon itinéraire"
+            value="Villages, sentiers, le meilleur parcours"
+            onPress={() => router.push("/itineraires/nouveau")}
+          />
         </ListGroup>
 
         <ListGroup title="Compte">

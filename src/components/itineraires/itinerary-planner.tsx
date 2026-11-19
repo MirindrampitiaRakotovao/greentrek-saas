@@ -8,7 +8,11 @@ import { useNotify } from "@/components/ui/dialogs";
 import { FormAlert } from "@/components/ui/form-alert";
 import { Icon } from "@/components/ui/icon";
 import { calculerItineraireAction } from "@/lib/actions/itineraires";
-import { proposeItineraireAction } from "@/lib/actions/itineraires-perso";
+import {
+  computeClientItineraireAction,
+  proposeItineraireAction,
+  requestItineraireAction,
+} from "@/lib/actions/itineraires-perso";
 import { MAX_FREE_WAYPOINTS } from "@/lib/graph/waypoints";
 import { CRITERIA_LABELS, CRITERIA_PRESETS } from "@/lib/graph/weights";
 import type { AlgorithmOutcome } from "@/lib/services/itineraires";
@@ -62,8 +66,11 @@ export function ItineraryPlanner({
   troncons,
   expert = false,
   proposeTo,
+  voyageur,
 }: {
   expert?: boolean;
+  /** Étape 4b : calcul par un voyageur sur le réseau de son agence, puis envoi à l'agence. */
+  voyageur?: { agenceSlug: string };
   /** Composition d'un itinéraire pour un client (fiche client) : envoi après le calcul. */
   proposeTo?: { clientId: string; nom: string };
   etapes: readonly PlannerEtape[];
@@ -157,18 +164,26 @@ export function ItineraryPlanner({
     setError(undefined);
     startTransition(async () => {
       const preset = critere === "PERSONNALISE" ? null : CRITERIA_PRESETS[critere];
-      const result = await calculerItineraireAction({
-        etapeDepartId: depart,
-        etapeArriveeId: arrivee,
-        etapesImposees: imposees,
-        ordreLibre,
-        critere,
-        alpha: preset ? preset.alpha : Number(coefs.alpha.replace(",", ".")),
-        beta: preset ? preset.beta : Number(coefs.beta.replace(",", ".")),
-        gamma: preset ? preset.gamma : Number(coefs.gamma.replace(",", ".")),
-        // Hors mode expert : un seul calcul (A*), sans vocabulaire technique.
-        algorithme: expert ? algorithme : "ASTAR",
-      });
+      const result = voyageur
+        ? await computeClientItineraireAction({
+            etapeDepartId: depart,
+            etapeArriveeId: arrivee,
+            etapesImposees: imposees,
+            ordreLibre,
+            critere,
+          })
+        : await calculerItineraireAction({
+            etapeDepartId: depart,
+            etapeArriveeId: arrivee,
+            etapesImposees: imposees,
+            ordreLibre,
+            critere,
+            alpha: preset ? preset.alpha : Number(coefs.alpha.replace(",", ".")),
+            beta: preset ? preset.beta : Number(coefs.beta.replace(",", ".")),
+            gamma: preset ? preset.gamma : Number(coefs.gamma.replace(",", ".")),
+            // Hors mode expert : un seul calcul (A*), sans vocabulaire technique.
+            algorithme: expert ? algorithme : "ASTAR",
+          });
       if (result.error) {
         setError(Object.values(result.fieldErrors ?? {})[0] ?? result.error);
         setOutcomes([]);
@@ -457,19 +472,32 @@ export function ItineraryPlanner({
               defaultTitre={`${nom(found.path[0]?.id ?? "")} – ${nom(found.path.at(-1)?.id ?? "")}`}
             />
           ) : null}
+          {voyageur && found?.historiqueId ? (
+            <ProposeForm
+              key={found.historiqueId}
+              voyageur={voyageur}
+              historiqueId={found.historiqueId}
+              defaultTitre={`${nom(found.path[0]?.id ?? "")} – ${nom(found.path.at(-1)?.id ?? "")}`}
+            />
+          ) : null}
         </div>
       </aside>
     </div>
   );
 }
 
-/** Envoi au client de l'itinéraire calculé (titre et message), puis retour à sa fiche. */
+/**
+ * Envoi de l'itinéraire calculé (titre et message) : au client par l'agence (retour à sa
+ * fiche), ou à l'agence par le voyageur (ouverture de sa demande).
+ */
 function ProposeForm({
   client,
+  voyageur,
   historiqueId,
   defaultTitre,
 }: {
-  client: { clientId: string; nom: string };
+  client?: { clientId: string; nom: string };
+  voyageur?: { agenceSlug: string };
   historiqueId: string;
   defaultTitre: string;
 }) {
@@ -483,18 +511,18 @@ function ProposeForm({
   function envoyer() {
     setError(undefined);
     startTransition(async () => {
-      const result = await proposeItineraireAction({
-        clientId: client.clientId,
-        historiqueId,
-        titre,
-        message,
-      });
+      const result = client
+        ? await proposeItineraireAction({ clientId: client.clientId, historiqueId, titre, message })
+        : await requestItineraireAction({ historiqueId, titre, message });
       if (result.error) {
         setError(Object.values(result.fieldErrors ?? {})[0] ?? result.error);
         return;
       }
       if (result.success) notify(result.success);
-      router.push(`/dashboard/clients/${client.clientId}`);
+      if (client) router.push(`/dashboard/clients/${client.clientId}`);
+      else if (voyageur && "id" in result && typeof result.id === "string") {
+        router.push(`/a/${voyageur.agenceSlug}/mon-compte/itineraires/${result.id}`);
+      }
     });
   }
 
@@ -504,7 +532,7 @@ function ProposeForm({
       className="space-y-3 rounded-2xl border border-gt-teal-700/30 bg-gt-teal-50 p-4"
     >
       <h2 id="it-envoi" className="text-sm font-semibold text-gt-teal-900">
-        Proposer cet itinéraire à {client.nom}
+        {client ? `Proposer cet itinéraire à ${client.nom}` : "Envoyer cet itinéraire à l'agence"}
       </h2>
       <label className="block text-xs font-medium text-gt-teal-900">
         Titre
@@ -522,7 +550,11 @@ function ProposeForm({
           onChange={(e) => setMessage(e.target.value)}
           rows={3}
           maxLength={1000}
-          placeholder="Points forts, conseils, période idéale…"
+          placeholder={
+            client
+              ? "Points forts, conseils, période idéale…"
+              : "Dates souhaitées, nombre de voyageurs, questions…"
+          }
           className="mt-1 w-full rounded-xl border border-gt-mist bg-white px-3 py-2 text-sm"
         />
       </label>
@@ -534,7 +566,7 @@ function ProposeForm({
         className="flex w-full items-center justify-center gap-2 rounded-full bg-gt-teal-700 px-5 py-3 font-medium text-white hover:bg-gt-teal-800 disabled:opacity-50"
       >
         <Icon name="send" className="size-4" />
-        {pending ? "Envoi…" : `Envoyer à ${client.nom}`}
+        {pending ? "Envoi…" : client ? `Envoyer à ${client.nom}` : "Envoyer à l'agence"}
       </button>
     </section>
   );

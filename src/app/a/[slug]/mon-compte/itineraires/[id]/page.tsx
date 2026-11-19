@@ -93,7 +93,7 @@ export default async function ItinerairePage({
               ))}
             </ol>
           </Card>
-          <Card title="Votre réponse">
+          <Card title={it.origine === "AGENCE" ? "Votre réponse" : "Réponse de l'agence"}>
             {peutRepondre ? (
               <AnswerItineraire id={it.id} />
             ) : it.reponduAt ? (

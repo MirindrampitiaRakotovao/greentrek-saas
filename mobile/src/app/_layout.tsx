@@ -103,6 +103,7 @@ function Navigation() {
         <Stack.Screen name="messages/[id]" />
         <Stack.Screen name="messages/nouveau" />
         <Stack.Screen name="itineraires/index" />
+        <Stack.Screen name="itineraires/nouveau" />
         <Stack.Screen name="itineraires/[id]" />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn} redirectTo="/">

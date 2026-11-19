@@ -1,9 +1,11 @@
 import type { Prisma, StatutItineraire } from "@/generated/prisma/client";
-import { CRITERIA_LABELS } from "@/lib/graph/weights";
+import { CRITERIA_LABELS, CRITERIA_PRESETS } from "@/lib/graph/weights";
 import { type Paginated, pageArgs, pageCount } from "@/lib/pagination";
+import { type AlgorithmOutcome, computeItineraire } from "@/lib/services/itineraires";
 import { notifyAgencyStaff, notifyClientUser } from "@/lib/services/notifications";
 import { failure, type ServiceResult, success } from "@/lib/services/result";
 import type { TenantDb } from "@/lib/tenant";
+import type { ClientCalculInput } from "@/lib/validators/itineraires-perso";
 
 /**
  * Itinéraires sur mesure (après E12, demande de l'étudiant) : entre des villages du réseau
@@ -212,7 +214,134 @@ export async function answerItineraire(
       type: "ITINERAIRE",
       titre: `Itinéraire ${input.decision === "ACCEPTE" ? "accepté" : "décliné"} par ${row.client.prenom} ${row.client.nom}`,
       message: row.titre,
-      lienUrl: `/dashboard/clients/${input.clientId}`,
+      lienUrl: `/dashboard/itineraires-sur-mesure/${input.id}`,
+    });
+    return success(undefined);
+  });
+}
+
+/* ─── Étape 4b : le voyageur compose son itinéraire ───────────────────────────── */
+
+/** Calculs d'itinéraire autorisés par voyageur et par heure (limite contre les abus). */
+export const CLIENT_CALCULS_PAR_HEURE = 30;
+
+/**
+ * Calcul par un voyageur, sur le réseau de SON agence (client confiné) : critère prédéfini,
+ * meilleur itinéraire (A*, même optimum que Dijkstra). Le calcul est enregistré dans
+ * l'historique à son nom, comme ceux de l'agence.
+ */
+export async function computeForClient(
+  db: TenantDb,
+  input: ClientCalculInput & { agenceId: string; clientId: string },
+  now: Date = new Date(),
+): Promise<ServiceResult<AlgorithmOutcome>> {
+  const recents = await db.itineraireCalcule.count({
+    where: { creeParId: input.clientId, createdAt: { gte: new Date(now.getTime() - 3_600_000) } },
+  });
+  if (recents >= CLIENT_CALCULS_PAR_HEURE) {
+    return failure("Vous avez fait beaucoup de calculs : réessayez dans une heure.");
+  }
+  const preset = CRITERIA_PRESETS[input.critere];
+  const result = await computeItineraire(db, input.agenceId, input.clientId, {
+    etapeDepartId: input.etapeDepartId,
+    etapeArriveeId: input.etapeArriveeId,
+    etapesImposees: input.etapesImposees,
+    ordreLibre: input.ordreLibre,
+    critere: input.critere,
+    ...preset,
+    algorithme: "ASTAR",
+  });
+  if (!result.ok) return result;
+  return success(result.data[0]!);
+}
+
+/** Le voyageur envoie à son agence un itinéraire qu'il a calculé (ses calculs seulement). */
+export async function requestItineraire(
+  db: TenantDb,
+  input: {
+    agenceId: string;
+    clientId: string;
+    historiqueId: string;
+    titre: string;
+    message: string | null;
+  },
+  now: Date = new Date(),
+): Promise<ServiceResult<{ id: string }>> {
+  if (!input.historiqueId) return failure("Calculez d'abord l'itinéraire.");
+  const [calcul, client] = await Promise.all([
+    db.itineraireCalcule.findFirst({
+      where: { id: input.historiqueId, creeParId: input.clientId },
+      select: { id: true },
+    }),
+    db.utilisateur.findFirst({
+      where: { id: input.clientId, role: "CLIENT", actif: true },
+      select: { prenom: true, nom: true },
+    }),
+  ]);
+  if (!client) return failure("Connectez-vous avec votre compte voyageur.");
+  if (!calcul) return failure("Calculez d'abord l'itinéraire.");
+  return db.$tenantTransaction(async (tx) => {
+    const created = await tx.itinerairePersonnalise.create({
+      data: {
+        agenceId: input.agenceId,
+        clientId: input.clientId,
+        creeParId: input.clientId,
+        itineraireCalculeId: input.historiqueId,
+        origine: "CLIENT",
+        titre: input.titre,
+        message: input.message,
+        createdAt: now,
+      },
+      select: { id: true },
+    });
+    await notifyAgencyStaff(tx, {
+      type: "ITINERAIRE",
+      titre: `Demande d'itinéraire de ${client.prenom} ${client.nom}`,
+      message: input.titre,
+      lienUrl: `/dashboard/itineraires-sur-mesure/${created.id}`,
+    });
+    return success(created);
+  });
+}
+
+/** Un itinéraire de l'agence (back-office), ou null : 404. */
+export async function getItineraireAgence(db: TenantDb, id: string) {
+  const row = await db.itinerairePersonnalise.findFirst({ where: { id }, select });
+  return row ? toItineraire(row) : null;
+}
+
+/** Réponse de l'agence à la demande d'un voyageur : accepter ou décliner (une fois). */
+export async function answerDemande(
+  db: TenantDb,
+  input: {
+    id: string;
+    agenceSlug: string;
+    decision: "ACCEPTE" | "DECLINE";
+    reponse: string | null;
+  },
+  now: Date = new Date(),
+): Promise<ServiceResult> {
+  const row = await db.itinerairePersonnalise.findFirst({
+    where: { id: input.id },
+    select: { origine: true, statut: true, titre: true, clientId: true },
+  });
+  if (!row) return failure("Itinéraire introuvable.");
+  if (row.origine !== "CLIENT") return failure("Cet itinéraire attend la réponse du voyageur.");
+  if (row.statut !== "EN_ATTENTE") return failure("Cette demande a déjà reçu une réponse.");
+  return db.$tenantTransaction(async (tx) => {
+    const { count } = await tx.itinerairePersonnalise.updateMany({
+      where: { id: input.id, statut: "EN_ATTENTE" },
+      data: { statut: input.decision, reponse: input.reponse, reponduAt: now },
+    });
+    if (count !== 1) return failure("Cette demande a déjà reçu une réponse.");
+    await notifyClientUser(tx, row.clientId, {
+      type: "ITINERAIRE",
+      titre:
+        input.decision === "ACCEPTE"
+          ? "Votre agence accepte votre itinéraire"
+          : "Votre agence a répondu à votre itinéraire",
+      message: row.titre,
+      lienUrl: `/a/${input.agenceSlug}/mon-compte/itineraires/${input.id}`,
     });
     return success(undefined);
   });

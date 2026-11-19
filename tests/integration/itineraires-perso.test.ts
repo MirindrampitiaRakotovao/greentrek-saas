@@ -3,11 +3,15 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { pushContent } from "@/lib/push/expo";
 import { computeItineraire } from "@/lib/services/itineraires";
 import {
+  answerDemande,
   answerItineraire,
+  CLIENT_CALCULS_PAR_HEURE,
+  computeForClient,
   getItineraireClient,
   listItinerairesAgence,
   listItinerairesClient,
   proposeItineraire,
+  requestItineraire,
 } from "@/lib/services/itineraires-perso";
 import { getTenantDb, type TenantDb } from "@/lib/tenant";
 
@@ -232,5 +236,155 @@ describe("itinéraire proposé par l'agence", () => {
     expect(it).toMatchObject({ statut: "ACCEPTE", reponse: "Parfait !" });
     const staff = await raw.notification.findMany({ where: { utilisateurId: adminA } });
     expect(staff.map((n) => n.titre)).toEqual(["Itinéraire accepté par Hery Test"]);
+  });
+});
+
+describe("itinéraire composé par le voyageur (4b)", () => {
+  const calculClient = (clientId = client1, to = "F") =>
+    computeForClient(dbA, {
+      agenceId: agenceA.id,
+      clientId,
+      etapeDepartId: node.A!,
+      etapeArriveeId: node[to]!,
+      etapesImposees: [],
+      ordreLibre: false,
+      critere: "PLUS_FACILE",
+    });
+  const demande = (historiqueId: string, clientId = client1) =>
+    requestItineraire(
+      dbA,
+      {
+        agenceId: agenceA.id,
+        clientId,
+        historiqueId,
+        titre: "Ma randonnée",
+        message: "Deux voyageurs, en mai.",
+      },
+      NOW,
+    );
+
+  it("calcul sur le réseau de SON agence, enregistré à son nom", async () => {
+    const res = await calculClient();
+    expect(res.ok && res.data.found).toBe(true);
+    const id = res.ok ? res.data.historiqueId! : "";
+    const row = await raw.itineraireCalcule.findUniqueOrThrow({ where: { id } });
+    expect(row).toMatchObject({ creeParId: client1, critere: "PLUS_FACILE", algorithme: "ASTAR" });
+    // Une étape d'une autre agence est inconnue.
+    const ailleurs = await computeForClient(dbA, {
+      agenceId: agenceA.id,
+      clientId: client1,
+      etapeDepartId: node["B-A"]!,
+      etapeArriveeId: node.F!,
+      etapesImposees: [],
+      ordreLibre: false,
+      critere: "PLUS_COURT",
+    });
+    expect(ailleurs).toEqual({
+      ok: false,
+      error: "Étape introuvable dans le réseau de l'agence.",
+    });
+  });
+
+  it(`au plus ${CLIENT_CALCULS_PAR_HEURE} calculs par heure et par voyageur`, async () => {
+    await raw.itineraireCalcule.createMany({
+      data: Array.from({ length: CLIENT_CALCULS_PAR_HEURE }, () => ({
+        agenceId: agenceA.id,
+        algorithme: "ASTAR" as const,
+        critere: "PLUS_COURT" as const,
+        alpha: 1,
+        beta: 0,
+        gamma: 0,
+        cheminJson: { etapes: [] },
+        distanceTotaleKm: 1,
+        dureeTotaleMin: 10,
+        difficulteCumulee: 1,
+        noeudsExplores: 1,
+        tempsCalculMs: 0.1,
+        creeParId: client1,
+      })),
+    });
+    expect((await calculClient()).ok).toBe(false);
+    // L'autre voyageur n'est pas concerné.
+    expect((await calculClient(client2)).ok).toBe(true);
+  });
+
+  it("envoi à l'agence : ses propres calculs seulement ; l'équipe est prévenue", async () => {
+    const res = await calculClient();
+    const historiqueId = res.ok ? res.data.historiqueId! : "";
+    // Le calcul d'un autre (l'agence, un autre voyageur) ne peut pas être envoyé.
+    const autre = await calcul(dbA, agenceA.id, adminA);
+    expect(await demande(autre)).toEqual({ ok: false, error: "Calculez d'abord l'itinéraire." });
+    expect(await demande(historiqueId, client2)).toEqual({
+      ok: false,
+      error: "Calculez d'abord l'itinéraire.",
+    });
+
+    const ok = await demande(historiqueId);
+    expect(ok.ok).toBe(true);
+    const id = ok.ok ? ok.data.id : "";
+    const [it] = (await listItinerairesAgence(dbA, { origine: "CLIENT" })).items;
+    expect(it).toMatchObject({
+      id,
+      origine: "CLIENT",
+      statut: "EN_ATTENTE",
+      titre: "Ma randonnée",
+    });
+    const notif = await raw.notification.findFirstOrThrow({ where: { utilisateurId: adminA } });
+    expect(notif).toMatchObject({
+      titre: "Demande d'itinéraire de Hery Test",
+      lienUrl: `/dashboard/itineraires-sur-mesure/${id}`,
+    });
+  });
+
+  it("l'agence répond une fois ; le voyageur est prévenu ; chacun ne répond qu'à l'autre", async () => {
+    const res = await calculClient();
+    const ok = await demande(res.ok ? res.data.historiqueId! : "");
+    const id = ok.ok ? ok.data.id : "";
+
+    // Le voyageur ne répond pas à sa propre demande.
+    expect(
+      (
+        await answerItineraire(
+          dbA,
+          { id, clientId: client1, decision: "ACCEPTE", reponse: null },
+          NOW,
+        )
+      ).ok,
+    ).toBe(false);
+    const answer = (decision: "ACCEPTE" | "DECLINE") =>
+      answerDemande(
+        dbA,
+        { id, agenceSlug: agenceA.slug, decision, reponse: "Départ possible le 12 mai." },
+        NOW,
+      );
+    expect(await answer("ACCEPTE")).toEqual({ ok: true, data: undefined });
+    expect(await answer("DECLINE")).toEqual({
+      ok: false,
+      error: "Cette demande a déjà reçu une réponse.",
+    });
+    const notif = await raw.notification.findFirstOrThrow({ where: { utilisateurId: client1 } });
+    expect(notif).toMatchObject({
+      titre: "Votre agence accepte votre itinéraire",
+      lienUrl: `/a/agence-a/mon-compte/itineraires/${id}`,
+    });
+
+    // L'agence ne répond pas à sa propre proposition ; une autre agence ne voit pas la demande.
+    const proposition = await propose(dbA, await calcul(dbA, agenceA.id, adminA));
+    expect(
+      await answerDemande(dbA, {
+        id: proposition.ok ? proposition.data.id : "",
+        agenceSlug: agenceA.slug,
+        decision: "ACCEPTE",
+        reponse: null,
+      }),
+    ).toEqual({ ok: false, error: "Cet itinéraire attend la réponse du voyageur." });
+    expect(
+      await answerDemande(dbB, {
+        id,
+        agenceSlug: agenceB.slug,
+        decision: "ACCEPTE",
+        reponse: null,
+      }),
+    ).toEqual({ ok: false, error: "Itinéraire introuvable." });
   });
 });

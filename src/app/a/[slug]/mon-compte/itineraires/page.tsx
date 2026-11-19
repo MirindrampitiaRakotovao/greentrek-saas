@@ -26,6 +26,14 @@ export default async function MesItinerairesPage({
       <PageHeader
         title="Mes itinéraires"
         description="Itinéraires sur mesure entre les villages du réseau de l'agence."
+        actions={
+          <Link
+            href={`/a/${slug}/mon-compte/itineraires/nouveau`}
+            className="rounded-full bg-gt-teal-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-gt-teal-800"
+          >
+            Créer mon itinéraire
+          </Link>
+        }
       />
       {itineraires.length === 0 ? (
         <EmptyState>Aucun itinéraire pour l&apos;instant.</EmptyState>

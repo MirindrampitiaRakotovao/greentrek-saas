@@ -403,3 +403,39 @@ export function answerItineraire(
     json: input,
   });
 }
+
+export type Village = {
+  id: string;
+  nom: string;
+  type: string;
+  latitude: number;
+  longitude: number;
+};
+export type CritereVoyageur = "PLUS_COURT" | "PLUS_RAPIDE" | "PLUS_FACILE";
+export type Calcul = {
+  found: boolean;
+  message: string | null;
+  historiqueId: string | null;
+  distanceKm: number;
+  dureeMinutes: number;
+  difficulteMoyenne: number;
+  etapes: { id: string; nom: string; latitude: number; longitude: number }[];
+};
+
+export function fetchReseau() {
+  return request<{ etapes: Village[] }>("/reseau");
+}
+
+export function computeItineraire(input: {
+  etapeDepartId: string;
+  etapeArriveeId: string;
+  etapesImposees: string[];
+  ordreLibre: boolean;
+  critere: CritereVoyageur;
+}) {
+  return request<Calcul>("/itineraires/calcul", { json: input });
+}
+
+export function requestItineraire(input: { historiqueId: string; titre: string; message: string }) {
+  return request<{ id: string }>("/itineraires", { json: input });
+}

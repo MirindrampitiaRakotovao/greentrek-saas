@@ -4,6 +4,8 @@ import { useCallback } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Button } from "@/components/form";
+import { GlassIconButton } from "@/components/glass";
 import { ScreenHeader } from "@/components/screen-header";
 import { Empty, ErrorState, Loading } from "@/components/states";
 import { useAsync } from "@/hooks/use-async";
@@ -24,7 +26,17 @@ export default function ItinerairesScreen() {
 
   return (
     <View style={s.screen}>
-      <ScreenHeader kicker="Voyages sur mesure" title="Mes itinéraires" />
+      <ScreenHeader
+        kicker="Voyages sur mesure"
+        title="Mes itinéraires"
+        right={
+          <GlassIconButton
+            icon="add"
+            label="Créer mon itinéraire"
+            onPress={() => router.push("/itineraires/nouveau")}
+          />
+        }
+      />
       {error ? (
         <ErrorState message={error} onRetry={reload} />
       ) : !data ? (
@@ -39,10 +51,17 @@ export default function ItinerairesScreen() {
           refreshing={loading}
           onRefresh={reload}
           ListEmptyComponent={
-            <Empty
-              icon="map-outline"
-              message="Aucun itinéraire pour l'instant. Votre agence peut vous en proposer un sur mesure."
-            />
+            <View style={{ gap: 12 }}>
+              <Empty
+                icon="map-outline"
+                message="Aucun itinéraire pour l'instant. Composez le vôtre, ou votre agence vous en proposera un sur mesure."
+              />
+              <Button
+                label="Créer mon itinéraire"
+                icon="add"
+                onPress={() => router.push("/itineraires/nouveau")}
+              />
+            </View>
           }
         />
       )}

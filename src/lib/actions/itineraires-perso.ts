@@ -5,10 +5,19 @@ import { revalidatePath } from "next/cache";
 import { authorize, journal, parseInput, toActionResult } from "@/lib/actions/helpers";
 import type { ActionResult } from "@/lib/actions/types";
 import { getClientContext } from "@/lib/auth/session";
-import { answerItineraire, proposeItineraire } from "@/lib/services/itineraires-perso";
+import type { AlgorithmOutcome } from "@/lib/services/itineraires";
+import {
+  answerDemande,
+  answerItineraire,
+  computeForClient,
+  proposeItineraire,
+  requestItineraire,
+} from "@/lib/services/itineraires-perso";
 import {
   answerItineraireSchema,
+  clientCalculSchema,
   proposeItineraireSchema,
+  requestItineraireSchema,
 } from "@/lib/validators/itineraires-perso";
 
 /*
@@ -53,5 +62,65 @@ export async function answerItineraireAction(input: unknown): Promise<ActionResu
     parsed.data.decision === "ACCEPTE"
       ? "Merci ! L'agence est prévenue que vous acceptez cet itinéraire."
       : "L'agence est prévenue que vous déclinez cet itinéraire.",
+  );
+}
+
+const NOT_CLIENT: ActionResult = { error: "Connectez-vous avec votre compte voyageur." };
+
+/** Étape 4b : le voyageur calcule un itinéraire sur le réseau de son agence. */
+export async function computeClientItineraireAction(
+  input: unknown,
+): Promise<ActionResult & { outcomes?: AlgorithmOutcome[] }> {
+  const ctx = await getClientContext();
+  if (!ctx) return NOT_CLIENT;
+  const parsed = parseInput(clientCalculSchema, input);
+  if (!parsed.ok) return parsed.result;
+  const result = await computeForClient(ctx.db, {
+    ...parsed.data,
+    agenceId: ctx.user.agenceId,
+    clientId: ctx.user.id,
+  });
+  if (!result.ok) return toActionResult(result);
+  return { outcomes: [result.data] };
+}
+
+/** Étape 4b : le voyageur envoie son itinéraire à l'agence, puis ouvre sa fiche. */
+export async function requestItineraireAction(
+  input: unknown,
+): Promise<ActionResult & { id?: string }> {
+  const ctx = await getClientContext();
+  if (!ctx) return NOT_CLIENT;
+  const parsed = parseInput(requestItineraireSchema, input);
+  if (!parsed.ok) return parsed.result;
+  const result = await requestItineraire(ctx.db, {
+    ...parsed.data,
+    agenceId: ctx.user.agenceId,
+    clientId: ctx.user.id,
+  });
+  if (!result.ok) return toActionResult(result);
+  revalidatePath(`/a/${ctx.user.agenceSlug}/mon-compte`, "layout");
+  revalidatePath("/dashboard", "layout");
+  return { success: "Itinéraire envoyé à l'agence.", id: result.data.id };
+}
+
+/** Étape 4b : l'agence accepte ou décline la demande d'un voyageur. */
+export async function answerDemandeAction(input: unknown): Promise<ActionResult> {
+  const auth = await authorize("creer", "reservation");
+  if (!auth.ok) return auth.result;
+  const parsed = parseInput(answerItineraireSchema, input);
+  if (!parsed.ok) return parsed.result;
+  const agence = await auth.db.agence.findFirstOrThrow({ select: { slug: true } });
+  const result = await answerDemande(auth.db, { ...parsed.data, agenceSlug: agence.slug });
+  if (result.ok) {
+    await journal(auth, "ITINERAIRE_REPONDU", "ItinerairePersonnalise", parsed.data.id, {
+      decision: parsed.data.decision,
+    });
+    revalidatePath("/dashboard/itineraires-sur-mesure", "layout");
+  }
+  return toActionResult(
+    result,
+    parsed.data.decision === "ACCEPTE"
+      ? "Demande acceptée : le voyageur est prévenu."
+      : "Demande déclinée : le voyageur est prévenu.",
   );
 }
