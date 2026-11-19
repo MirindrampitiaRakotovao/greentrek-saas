@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { AgencySettingsForm } from "@/components/backoffice/agency-settings-form";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { ImageUploader } from "@/components/profile/image-uploader";
 import { requireAgencyUser } from "@/lib/auth/session";
 import { getAgencySettings } from "@/lib/services/agency-settings";
 
@@ -22,6 +23,16 @@ export default async function ParametresPage() {
           Non modifiable : la changer casserait les liens déjà partagés.
         </dd>
       </dl>
+      <section aria-labelledby="logo" className="rounded-2xl border border-gt-mist bg-white p-6">
+        <h2 id="logo" className="mb-1 text-lg font-semibold text-gt-teal-900">
+          Logo de l&apos;agence
+        </h2>
+        <p className="mb-4 text-sm text-gt-teal-900/75">
+          Affiché sur le site vitrine, dans la messagerie, la communauté et comme photo de
+          l&apos;équipe sans photo personnelle.
+        </p>
+        <ImageUploader kind="logo" name={settings.nom} current={settings.logoUrl} />
+      </section>
       <div className="rounded-2xl border border-gt-mist bg-white p-6">
         <AgencySettingsForm settings={settings} />
       </div>

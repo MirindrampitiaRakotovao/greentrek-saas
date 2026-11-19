@@ -39,6 +39,7 @@ export default async function MonCompteLayout({
       badge: messagesNonLus,
     },
     { href: `/a/${slug}/circuits`, label: "Réserver un circuit", icon: "mountain" },
+    { href: `/a/${slug}/mon-compte/profil`, label: "Mon profil", icon: "user" },
   ];
   const contact = [agence.telephone, agence.email].filter(Boolean).join(" · ");
 
@@ -51,7 +52,7 @@ export default async function MonCompteLayout({
         logoUrl: agence.logoUrl,
       }}
       nav={nav}
-      user={{ name: user.name, subtitle: "Voyageur" }}
+      user={{ name: user.name, subtitle: "Voyageur", photoUrl: user.photoUrl }}
       promo={{
         title: "Une question sur votre voyage ?",
         text: contact

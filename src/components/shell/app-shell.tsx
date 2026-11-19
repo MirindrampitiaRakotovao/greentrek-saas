@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { RealtimeBridge, SoundToggle, useSoundPreference } from "@/components/shell/realtime";
+import { Avatar } from "@/components/ui/avatar";
 import { Icon } from "@/components/ui/icon";
 import { Logo } from "@/components/ui/logo";
 import { logoutAction } from "@/lib/actions/auth";
@@ -40,7 +41,7 @@ export type ShellProps = {
    */
   brand: { name: string; tagline: string; href: string; logoUrl?: string | null };
   nav: readonly NavItem[];
-  user: { name: string; subtitle: string };
+  user: { name: string; subtitle: string; photoUrl?: string | null };
   promo?: { title: string; text: string; cta?: { label: string; href: string } };
   notifications?: { unread: number; items: readonly ShellNotification[] };
   footerNote: string;
@@ -52,15 +53,6 @@ function activeHref(pathname: string, nav: readonly NavItem[]): string | undefin
   return nav
     .filter((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href;
-}
-
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
 }
 
 const notificationDate = new Intl.DateTimeFormat("fr-FR", {
@@ -238,12 +230,7 @@ export function AppShell({
                 <p className="text-sm font-semibold text-gt-teal-900">{user.name}</p>
                 <p className="text-xs text-gt-teal-900/75">{user.subtitle}</p>
               </div>
-              <span
-                aria-hidden="true"
-                className="grid size-10 place-items-center rounded-full bg-gt-teal-700 text-sm font-semibold text-white ring-2 ring-white"
-              >
-                {initials(user.name)}
-              </span>
+              <Avatar name={user.name} src={user.photoUrl} size={40} />
             </div>
           </header>
 

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { playSentSound } from "@/components/shell/realtime";
+import { Avatar } from "@/components/ui/avatar";
 import { Icon } from "@/components/ui/icon";
 import type { Role } from "@/generated/prisma/client";
 import { markConversationReadAction, sendMessageAction } from "@/lib/actions/messagerie";
@@ -17,7 +18,7 @@ export type ThreadMessage = {
   id: string;
   contenu: string;
   createdAt: Date;
-  auteur: { id: string; prenom: string; nom: string; role: Role };
+  auteur: { id: string; prenom: string; nom: string; role: Role; photoUrl?: string | null };
   /** Accusé de lecture de mes messages (calculé par le service), null pour les autres. */
   statut: DeliveryStatus | null;
 };
@@ -37,11 +38,14 @@ export function Thread({
   messages,
   viewerId,
   viewerRole,
+  agenceLogo = null,
 }: {
   conversationId: string;
   messages: readonly ThreadMessage[];
   viewerId: string;
   viewerRole: Role;
+  /** Logo de l'agence : photo des messages de l'équipe (l'agence parle d'une seule voix). */
+  agenceLogo?: string | null;
 }) {
   const router = useRouter();
   const listRef = useRef<HTMLOListElement>(null);
@@ -119,7 +123,15 @@ export function Thread({
               {separator ? (
                 <p className="my-3 text-center text-xs font-medium text-gt-teal-900/75">{day}</p>
               ) : null}
-              <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+              <div className={`flex items-end gap-2 ${mine ? "justify-end" : "justify-start"}`}>
+                {!mine ? (
+                  <Avatar
+                    name={`${m.auteur.prenom} ${m.auteur.nom}`}
+                    src={side === "AGENCE" ? (agenceLogo ?? m.auteur.photoUrl) : m.auteur.photoUrl}
+                    size={32}
+                    className="mb-1"
+                  />
+                ) : null}
                 <div className="max-w-[85%] sm:max-w-[70%]">
                   <p
                     className={`mb-1 text-xs text-gt-teal-900/75 ${mine ? "text-right" : "text-left"}`}

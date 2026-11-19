@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import { forbiddenToResult, journal, parseInput, toActionResult } from "@/lib/actions/helpers";
 import type { ActionResult } from "@/lib/actions/types";
-import { requireAgencyUser } from "@/lib/auth/session";
+import { getCurrentUser, requireAgencyUser } from "@/lib/auth/session";
+import { getTenantDb } from "@/lib/tenant";
 import { assertCan } from "@/lib/permissions";
 import {
   changePassword,
@@ -87,22 +88,33 @@ export async function setMemberActiveAction(input: unknown): Promise<ActionResul
   return toActionResult(result, parsed.data.actif ? "Compte réactivé." : "Compte désactivé.");
 }
 
-/** Profil personnel : tout membre du personnel peut modifier SON propre profil. */
+/**
+ * Compte connecté d'une agence (personnel, guide ou voyageur) : chacun ne modifie que SON
+ * propre profil et SON mot de passe (après E12 : aussi depuis l'espace voyageur du site).
+ */
+async function ownAccount() {
+  const user = await getCurrentUser();
+  return user?.agenceId ? { user, db: getTenantDb(user.agenceId) } : null;
+}
+
+/** Profil personnel : chacun peut modifier SON propre profil. */
 export async function updateProfileAction(input: unknown): Promise<ActionResult> {
-  const { user, db } = await requireAgencyUser();
+  const own = await ownAccount();
+  if (!own) return { error: "Session expirée : reconnectez-vous." };
   const parsed = parseInput(updateProfileSchema, input);
   if (!parsed.ok) return parsed.result;
 
-  const result = await updateProfile(db, user.id, parsed.data);
-  if (result.ok) revalidatePath("/dashboard", "layout"); // le nom apparaît dans le menu
+  const result = await updateProfile(own.db, own.user.id, parsed.data);
+  if (result.ok) revalidatePath("/", "layout"); // le nom apparaît dans le menu
   return toActionResult(result, "Profil mis à jour.");
 }
 
 export async function changePasswordAction(input: unknown): Promise<ActionResult> {
-  const { user, db } = await requireAgencyUser();
+  const own = await ownAccount();
+  if (!own) return { error: "Session expirée : reconnectez-vous." };
   const parsed = parseInput(changePasswordSchema, input);
   if (!parsed.ok) return parsed.result;
 
-  const result = await changePassword(db, user.id, parsed.data);
+  const result = await changePassword(own.db, own.user.id, parsed.data);
   return toActionResult(result, "Mot de passe modifié.");
 }

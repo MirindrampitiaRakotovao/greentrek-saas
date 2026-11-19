@@ -25,7 +25,6 @@ type Settings = {
   ville: string | null;
   pays: string | null;
   devise: string;
-  logoUrl: string | null;
 };
 
 const FIELDS = [
@@ -37,7 +36,6 @@ const FIELDS = [
   "ville",
   "pays",
   "devise",
-  "logoUrl",
 ] as const;
 
 export function AgencySettingsForm({ settings }: { settings: Settings }) {
@@ -62,7 +60,6 @@ export function AgencySettingsForm({ settings }: { settings: Settings }) {
       devise: (DEVISES as readonly string[]).includes(settings.devise)
         ? (settings.devise as (typeof DEVISES)[number])
         : "MGA",
-      logoUrl: settings.logoUrl ?? "",
     },
   });
 
@@ -121,14 +118,6 @@ export function AgencySettingsForm({ settings }: { settings: Settings }) {
           {...register("devise")}
         />
       </div>
-      <TextField
-        label="Adresse du logo (facultatif)"
-        type="url"
-        placeholder="https://…"
-        hint="Adresse web d'une image (le téléversement de fichiers n'est pas prévu)."
-        error={errors.logoUrl?.message}
-        {...register("logoUrl")}
-      />
       <Button type="submit" disabled={pending}>
         {pending ? "Enregistrement…" : "Enregistrer"}
       </Button>

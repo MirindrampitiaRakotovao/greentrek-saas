@@ -9,6 +9,11 @@ import { lanAddress } from "./src/lib/network";
 const lanIp = lanAddress(networkInterfaces());
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Photos de profil, logos et photos de publications : 5 Mo par image (vérifié par
+    // `src/lib/uploads.ts`), plus la marge du formulaire.
+    serverActions: { bodySizeLimit: "6mb" },
+  },
   logging: {
     // En développement, Next.js affiche par défaut les arguments des actions serveur :
     // mots de passe compris. Désactivé (cahier des charges §12 : aucune donnée sensible

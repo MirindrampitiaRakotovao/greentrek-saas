@@ -15,9 +15,10 @@ export default async function ConversationPage({ params }: PageProps<"/dashboard
   const { id } = await params;
   const { user, db } = await requireAgencyUser();
   const viewer = { id: user.id, role: user.role };
-  const [thread, list] = await Promise.all([
+  const [thread, list, agence] = await Promise.all([
     getConversation(db, viewer, id),
     listConversations(db, viewer, 1),
+    db.agence.findFirstOrThrow({ select: { logoUrl: true } }),
   ]);
   if (!thread) notFound();
 
@@ -67,6 +68,7 @@ export default async function ConversationPage({ params }: PageProps<"/dashboard
           messages={thread.messages}
           viewerId={user.id}
           viewerRole={user.role}
+          agenceLogo={agence.logoUrl}
         />
       </MessagingPanel>
     </div>

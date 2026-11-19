@@ -54,7 +54,14 @@
       "expo-audio",
       "expo-asset",
       "expo-status-bar",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Green Trek accède à vos photos pour votre photo de profil et vos publications.",
+          "cameraPermission": "Green Trek utilise l'appareil photo pour votre photo de profil et vos publications."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

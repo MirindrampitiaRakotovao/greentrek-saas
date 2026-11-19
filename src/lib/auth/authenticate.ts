@@ -12,6 +12,8 @@ export type AuthUser = {
   agenceSlug: string | null;
   name: string;
   email: string;
+  /** Photo de profil (« /fichiers/avatars/… »), ou null. */
+  photoUrl?: string | null;
 };
 
 type UtilisateurAvecAgence = Utilisateur & { agence: Agence | null };
@@ -30,6 +32,7 @@ function toAuthUser(utilisateur: UtilisateurAvecAgence): AuthUser {
     agenceSlug: utilisateur.agence?.slug ?? null,
     name: `${utilisateur.prenom} ${utilisateur.nom}`,
     email: utilisateur.email,
+    photoUrl: utilisateur.photoUrl,
   };
 }
 

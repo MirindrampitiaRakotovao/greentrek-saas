@@ -24,7 +24,8 @@ export async function GET(
   const thread = await getConversation(ctx.db, viewer, id);
   if (!thread) return jsonError("Conversation introuvable.", 404);
   await markConversationRead(ctx.db, viewer, id);
-  return json(toMobileThread(thread, ctx.user.id), { private: true });
+  const agence = await ctx.db.agence.findFirstOrThrow({ select: { logoUrl: true } });
+  return json(toMobileThread(thread, ctx.user.id, agence.logoUrl), { private: true });
 }
 
 /** Réponse dans la conversation `{ contenu }`. */

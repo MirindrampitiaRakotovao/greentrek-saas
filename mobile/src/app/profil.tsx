@@ -4,6 +4,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Button, Field, FormError, PasswordField } from "@/components/form";
+import { PhotoEditor } from "@/components/photo-editor";
 import { RequireAuth } from "@/components/require-auth";
 import { ScreenHeader } from "@/components/screen-header";
 import { useAuth } from "@/context/auth";
@@ -82,6 +83,7 @@ function Profil() {
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
           keyboardShouldPersistTaps="handled"
         >
+          <PhotoEditor />
           <View style={styles.card}>
             <Text style={styles.h2}>Coordonnées</Text>
             <Text style={styles.small}>

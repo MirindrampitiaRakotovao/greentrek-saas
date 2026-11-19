@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { useBottomTabBarHeight } from "expo-router/js-tabs";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { Avatar } from "@/components/avatar";
 import { Segmented } from "@/components/glass";
 import { ListGroup, ListRow } from "@/components/list";
 import { TabHeader } from "@/components/tab-header";
@@ -38,12 +39,7 @@ export default function CompteScreen() {
       <TabHeader kicker="Votre espace" title="Compte" />
       <ScrollView contentContainerStyle={[s.content, { paddingBottom: tabBarHeight + 24 }]}>
         <View style={s.profile}>
-          <View style={s.avatar}>
-            <Text style={s.initials}>
-              {(user.prenom[0] ?? "").toUpperCase()}
-              {(user.nom[0] ?? "").toUpperCase()}
-            </Text>
-          </View>
+          <Avatar name={`${user.prenom} ${user.nom}`} photo={user.photoUrl} size={60} />
           <View style={{ flex: 1 }}>
             <Text style={s.name}>
               {user.prenom} {user.nom}

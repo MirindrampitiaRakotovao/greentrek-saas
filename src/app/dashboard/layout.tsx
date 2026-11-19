@@ -16,7 +16,10 @@ import { ROLE_LABELS } from "@/lib/roles";
 export default async function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
   const { user, db } = await requireAgencyUser();
   const [agence, abonnement, notifications, messagesNonLus] = await Promise.all([
-    db.agence.findUniqueOrThrow({ where: { id: user.agenceId }, select: { nom: true } }),
+    db.agence.findUniqueOrThrow({
+      where: { id: user.agenceId },
+      select: { nom: true, logoUrl: true },
+    }),
     db.abonnement.findFirst({
       orderBy: { dateDebut: "desc" },
       select: { statut: true, dateFin: true, plan: { select: { nom: true } } },
@@ -61,7 +64,12 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
     <AppShell
       brand={{ name: "Green Trek", tagline: agence.nom, href: "/dashboard" }}
       nav={nav}
-      user={{ name: user.name, subtitle: ROLE_LABELS[user.role] }}
+      user={{
+        name: user.name,
+        subtitle: ROLE_LABELS[user.role],
+        // Équipe de l'agence sans photo : le logo de l'agence.
+        photoUrl: user.photoUrl ?? (user.role === "GUIDE" ? null : agence.logoUrl),
+      }}
       promo={promo}
       notifications={notifications}
       footerNote="Green Trek · plateforme des agences de randonnée"

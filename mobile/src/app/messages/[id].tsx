@@ -13,6 +13,7 @@ import {
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Avatar } from "@/components/avatar";
 import { RequireAuth } from "@/components/require-auth";
 import { ScreenHeader } from "@/components/screen-header";
 import { ErrorState, Loading } from "@/components/states";
@@ -140,15 +141,18 @@ function Thread() {
               </Pressable>
             ) : null}
             {data.messages.map((m) => (
-              <View key={m.id} style={[styles.bubble, m.deMoi ? styles.mine : styles.theirs]}>
-                {!m.deMoi ? (
-                  <Text style={styles.author}>
-                    {m.auteur}
-                    {m.cote ? ` · ${m.cote}` : ""}
-                  </Text>
-                ) : null}
-                <Text style={[styles.body, m.deMoi && styles.bodyMine]}>{m.contenu}</Text>
-                <Meta at={formatDateTime(m.at)} mine={m.deMoi} statut={m.statut} />
+              <View key={m.id} style={[styles.line, m.deMoi && styles.lineMine]}>
+                {!m.deMoi ? <Avatar name={m.auteur} photo={m.photo} size={30} /> : null}
+                <View style={[styles.bubble, m.deMoi ? styles.mine : styles.theirs]}>
+                  {!m.deMoi ? (
+                    <Text style={styles.author}>
+                      {m.auteur}
+                      {m.cote ? ` · ${m.cote}` : ""}
+                    </Text>
+                  ) : null}
+                  <Text style={[styles.body, m.deMoi && styles.bodyMine]}>{m.contenu}</Text>
+                  <Meta at={formatDateTime(m.at)} mine={m.deMoi} statut={m.statut} />
+                </View>
               </View>
             ))}
             {outbox.map((o) =>
@@ -253,6 +257,8 @@ const useStyles = makeStyles((t) =>
       maxWidth: "100%",
     },
     reservationText: { fontFamily: fonts.textMedium, fontSize: 12, color: t.text },
+    line: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
+    lineMine: { justifyContent: "flex-end" },
     bubble: {
       maxWidth: "82%",
       borderRadius: 16,

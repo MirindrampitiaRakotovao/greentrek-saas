@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Avatar } from "@/components/avatar";
 import { CategoryButton } from "@/components/category-button";
 import { CircuitCard } from "@/components/circuit-card";
 import { DepartBanner } from "@/components/depart-banner";
@@ -82,11 +83,15 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel="Mon compte"
           >
-            <Glass rounded={22} style={s.avatar}>
-              <View style={s.center}>
-                <Text style={s.initials}>{initials}</Text>
-              </View>
-            </Glass>
+            {user?.photoUrl ? (
+              <Avatar name={`${user.prenom} ${user.nom}`} photo={user.photoUrl} size={44} />
+            ) : (
+              <Glass rounded={22} style={s.avatar}>
+                <View style={s.center}>
+                  <Text style={s.initials}>{initials}</Text>
+                </View>
+              </Glass>
+            )}
           </Pressable>
           <View style={s.brand} accessible accessibilityLabel="Green Trek">
             <Image

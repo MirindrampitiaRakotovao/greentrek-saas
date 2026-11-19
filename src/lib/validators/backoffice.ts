@@ -30,7 +30,8 @@ export const agencySettingsSchema = z.object({
   ville: optionalText(100),
   pays: optionalText(100),
   devise: z.enum(DEVISES, { error: "Devise invalide." }),
-  logoUrl: optionalImageUrl,
+  // Le logo ne passe plus par ce formulaire : il est envoyé comme fichier (après E12,
+  // `uploadAgencyLogoAction`), vérifié et nettoyé par le serveur.
 });
 export type AgencySettingsInput = z.infer<typeof agencySettingsSchema>;
 

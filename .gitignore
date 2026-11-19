@@ -43,3 +43,6 @@ next-env.d.ts
 
 # prisma (client généré par `prisma generate`)
 /src/generated/prisma
+
+# Fichiers envoyés par les utilisateurs (photos de profil, logos, publications)
+/uploads/

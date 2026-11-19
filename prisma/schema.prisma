@@ -168,6 +168,8 @@ model Utilisateur {
   email          String        @db.VarChar(191)
   motDePasseHash String        @db.VarChar(255)
   telephone      String?       @db.VarChar(30)
+  // Photo de profil (après E12) : chemin d'un fichier envoyé (« /fichiers/avatars/… »).
+  photoUrl       String?       @db.VarChar(255)
   role           Role
   actif          Boolean       @default(true)
   // Voyageur (rôle CLIENT) : inscrit lui-même sur le site ou l'application, ou ajouté par

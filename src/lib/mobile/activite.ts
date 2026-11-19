@@ -131,7 +131,11 @@ export function toMobileConversation(c: ConversationSummary, viewerId: string) {
 }
 
 /** Fil d'une conversation (messages du plus ancien au plus récent). */
-export function toMobileThread(t: ConversationThread, viewerId: string) {
+export function toMobileThread(
+  t: ConversationThread,
+  viewerId: string,
+  agenceLogo: string | null = null,
+) {
   return {
     id: t.id,
     sujet: t.sujet,
@@ -149,6 +153,11 @@ export function toMobileThread(t: ConversationThread, viewerId: string) {
       deMoi: m.auteur.id === viewerId,
       auteur: `${m.auteur.prenom} ${m.auteur.nom.charAt(0)}.`,
       cote: SIDE_LABELS[messagingSide(m.auteur.role)],
+      // Photo : logo de l'agence pour son équipe, sinon la photo de l'auteur (ou null).
+      photo:
+        messagingSide(m.auteur.role) === "AGENCE"
+          ? (agenceLogo ?? m.auteur.photoUrl ?? null)
+          : (m.auteur.photoUrl ?? null),
       // Accusé de lecture de mes messages : « DISTRIBUE » ou « LU », null pour les autres.
       statut: m.statut,
     })),

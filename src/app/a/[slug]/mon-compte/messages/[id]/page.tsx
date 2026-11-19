@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { MessagingPanel, ThreadHeader } from "@/components/messagerie/messaging-panel";
 import { Thread } from "@/components/messagerie/thread";
+import { getVitrineAgency } from "@/lib/public-agency";
 import { requireClient } from "@/lib/auth/session";
 import { formatDateRange } from "@/lib/format";
 import { getConversation, listConversations } from "@/lib/services/messagerie";
@@ -57,6 +58,7 @@ export default async function ClientConversationPage({
           messages={thread.messages}
           viewerId={user.id}
           viewerRole={user.role}
+          agenceLogo={(await getVitrineAgency(slug))?.logoUrl ?? null}
         />
       </MessagingPanel>
     </div>

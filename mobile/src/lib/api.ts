@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+
 import { apiBaseUrl } from "./config";
 import { absoluteUrl } from "./format";
 
@@ -153,6 +155,9 @@ export type Profile = {
   telephone: string | null;
   agenceSlug: string;
   agenceNom: string;
+  /** Photo de profil et logo de l'agence (chemins du site, voir `imageUrl`), ou null. */
+  photoUrl?: string | null;
+  agenceLogoUrl?: string | null;
 };
 
 export type Session = { token: string; user: Profile };
@@ -318,6 +323,7 @@ export type Thread = {
     deMoi: boolean;
     auteur: string;
     cote: string;
+    photo: string | null;
     statut: "DISTRIBUE" | "LU" | null;
   }[];
 };
@@ -438,4 +444,26 @@ export function computeItineraire(input: {
 
 export function requestItineraire(input: { historiqueId: string; titre: string; message: string }) {
   return request<{ id: string }>("/itineraires", { json: input });
+}
+
+/* ─── Photo de profil (étape 5a) ─────────────────────────────────────────────── */
+
+/**
+ * Envoi de la photo choisie (formulaire multipart, champ « photo »). Sur téléphone, le fichier
+ * est désigné par son adresse locale ; dans l'aperçu web, il est relu en Blob.
+ */
+export async function uploadPhoto(asset: { uri: string; mimeType?: string | null }) {
+  const form = new FormData();
+  const type = asset.mimeType ?? "image/jpeg";
+  if (Platform.OS === "web") {
+    form.append("photo", await (await fetch(asset.uri)).blob(), "photo");
+  } else {
+    // Forme propre à React Native : { uri, name, type }.
+    form.append("photo", { uri: asset.uri, name: "photo.jpg", type } as unknown as Blob);
+  }
+  return request<Profile>("/moi/photo", { method: "POST", body: form });
+}
+
+export function removePhoto() {
+  return request<Profile>("/moi/photo", { method: "DELETE" });
 }

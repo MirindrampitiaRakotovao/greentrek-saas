@@ -406,7 +406,7 @@ export async function getConversation(db: TenantDb, viewer: Viewer, id: string) 
           id: true,
           contenu: true,
           createdAt: true,
-          auteur: { select: { id: true, prenom: true, nom: true, role: true } },
+          auteur: { select: { id: true, prenom: true, nom: true, role: true, photoUrl: true } },
         },
       },
     },

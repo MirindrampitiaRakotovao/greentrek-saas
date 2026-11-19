@@ -23,7 +23,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     <AppShell
       brand={{ name: "Green Trek", tagline: "Console plateforme", href: "/admin" }}
       nav={ADMIN_NAV}
-      user={{ name: user.name, subtitle: ROLE_LABELS[user.role] }}
+      user={{ name: user.name, subtitle: ROLE_LABELS[user.role], photoUrl: user.photoUrl }}
       promo={{
         title: "Console plateforme",
         text: "Supervisez les agences, leurs abonnements et les plans proposés sur la page Tarifs.",
