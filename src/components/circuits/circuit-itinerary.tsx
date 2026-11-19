@@ -246,7 +246,7 @@ export function CircuitItinerary({
         </div>
         <p className="mt-2 text-xs text-gt-teal-900/75">
           {trace
-            ? `Tracé réel à travers les tronçons (A*, critère « Plus court ») : ${trace.distanceKm.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} km, ${Math.floor(trace.dureeMinutes / 60)} h ${String(trace.dureeMinutes % 60).padStart(2, "0")} de marche.`
+            ? `Tracé réel le long des sentiers (itinéraire le plus court) : ${trace.distanceKm.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} km, ${Math.floor(trace.dureeMinutes / 60)} h ${String(trace.dureeMinutes % 60).padStart(2, "0")} de marche.`
             : "Tracé indicatif en ligne droite entre les étapes : calculez le tracé réel à travers les tronçons."}
         </p>
         {canEdit ? (

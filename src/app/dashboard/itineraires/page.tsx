@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 
 import { Pagination } from "@/components/dashboard/pagination";
 import { Card, EmptyState } from "@/components/dashboard/widgets";
+import { ExpertToggle } from "@/components/itineraires/expert-toggle";
 import { ItineraryPlanner } from "@/components/itineraires/itinerary-planner";
 import { requireAgencyUser } from "@/lib/auth/session";
+import { isExpertMode } from "@/lib/expert-mode-server";
 import { formatDateTime } from "@/lib/format";
 import { CRITERIA_LABELS } from "@/lib/graph/weights";
 import { parsePage } from "@/lib/pagination";
@@ -17,6 +19,7 @@ export default async function ItinerairesPage({
 }: PageProps<"/dashboard/itineraires">) {
   const { db } = await requireAgencyUser();
   const page = parsePage((await searchParams).page);
+  const expert = await isExpertMode();
   const [etapes, troncons, historique] = await Promise.all([
     db.etape.findMany({
       select: { id: true, nom: true, latitude: true, longitude: true },
@@ -30,7 +33,15 @@ export default async function ItinerairesPage({
 
   return (
     <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="max-w-2xl text-sm text-gt-teal-900/75">
+          Choisissez un départ, une arrivée et, si besoin, des étapes à visiter : le meilleur
+          itinéraire est calculé sur le réseau de sentiers de l&apos;agence.
+        </p>
+        <ExpertToggle expert={expert} />
+      </div>
       <ItineraryPlanner
+        expert={expert}
         etapes={etapes}
         troncons={troncons.map((t) => ({
           id: t.id,
@@ -45,20 +56,25 @@ export default async function ItinerairesPage({
           <EmptyState>Aucun calcul pour l&apos;instant.</EmptyState>
         ) : (
           <div className="relative -mx-5 overflow-x-auto px-5">
-            <table className="w-full min-w-[760px] text-left text-sm">
+            <table
+              className={`w-full text-left text-sm ${expert ? "min-w-[760px]" : "min-w-[560px]"}`}
+            >
               <caption className="sr-only">Derniers itinéraires calculés</caption>
               <thead className="text-xs text-gt-teal-900/75">
                 <tr className="border-b border-gt-mist/70">
-                  {[
-                    "Date",
-                    "Itinéraire",
-                    "Algorithme",
-                    "Critère",
-                    "Distance",
-                    "Durée",
-                    "Nœuds explorés",
-                    "Temps",
-                  ].map((h) => (
+                  {(expert
+                    ? [
+                        "Date",
+                        "Itinéraire",
+                        "Algorithme",
+                        "Critère",
+                        "Distance",
+                        "Durée",
+                        "Nœuds explorés",
+                        "Temps",
+                      ]
+                    : ["Date", "Itinéraire", "Critère", "Distance", "Durée"]
+                  ).map((h) => (
                     <th key={h} scope="col" className="py-2 pr-3 font-medium">
                       {h}
                     </th>
@@ -81,16 +97,24 @@ export default async function ItinerairesPage({
                         {h.creePar ? `${h.creePar.prenom} ${h.creePar.nom}` : ""}
                       </p>
                     </td>
-                    <td className="py-2.5 pr-3">{h.algorithme === "ASTAR" ? "A*" : "Dijkstra"}</td>
+                    {expert ? (
+                      <td className="py-2.5 pr-3">
+                        {h.algorithme === "ASTAR" ? "A*" : "Dijkstra"}
+                      </td>
+                    ) : null}
                     <td className="py-2.5 pr-3">{CRITERIA_LABELS[h.critere]}</td>
                     <td className="py-2.5 pr-3 whitespace-nowrap">
                       {h.distanceTotaleKm.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} km
                     </td>
                     <td className="py-2.5 pr-3 whitespace-nowrap">{h.dureeTotaleMin} min</td>
-                    <td className="py-2.5 pr-3">{h.noeudsExplores}</td>
-                    <td className="py-2.5 pr-3 whitespace-nowrap">
-                      {h.tempsCalculMs.toLocaleString("fr-FR", { maximumFractionDigits: 3 })} ms
-                    </td>
+                    {expert ? (
+                      <>
+                        <td className="py-2.5 pr-3">{h.noeudsExplores}</td>
+                        <td className="py-2.5 pr-3 whitespace-nowrap">
+                          {h.tempsCalculMs.toLocaleString("fr-FR", { maximumFractionDigits: 3 })} ms
+                        </td>
+                      </>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>

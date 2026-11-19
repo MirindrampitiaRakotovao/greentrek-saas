@@ -151,7 +151,7 @@ export default function CircuitScreen() {
           {c.note ? <Stars note={c.note} /> : null}
           <Text style={s.mapNote}>
             {c.trace
-              ? "Tracé calculé (algorithme A*) à travers les sentiers du réseau de l’agence."
+              ? "Itinéraire optimisé le long des sentiers du réseau de l’agence."
               : "Tracé indicatif en ligne droite entre les étapes."}
           </Text>
 

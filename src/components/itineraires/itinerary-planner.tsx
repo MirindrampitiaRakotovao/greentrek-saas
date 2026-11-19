@@ -13,8 +13,10 @@ import type { Critere, ModeAlgorithme } from "@/lib/validators/itineraires";
 
 /**
  * Page « Calculer un itinéraire » (§6.5), au style du panneau « Itinéraires » de Google Maps :
- * départ, arrivée, étapes imposées, critère, algorithme ; tracé sur la carte, métriques, et
- * comparaison Dijkstra / A* avec affichage des nœuds explorés par chacun.
+ * départ, arrivée, étapes imposées, critère ; tracé sur la carte et métriques.
+ * Par défaut, vocabulaire simple (« meilleur itinéraire ») et calcul par A* (même résultat
+ * optimal que Dijkstra, plus rapide). En mode expert : choix de l'algorithme, critère
+ * personnalisé (α, β, γ), comparaison Dijkstra / A* et nœuds explorés sur la carte.
  */
 
 export type PlannerEtape = { id: string; nom: string; latitude: number; longitude: number };
@@ -55,7 +57,9 @@ function useIsDesktop(): boolean {
 export function ItineraryPlanner({
   etapes,
   troncons,
+  expert = false,
 }: {
+  expert?: boolean;
   etapes: readonly PlannerEtape[];
   troncons: readonly PlannerTroncon[];
 }) {
@@ -63,7 +67,10 @@ export function ItineraryPlanner({
   const [arrivee, setArrivee] = useState("");
   const [imposees, setImposees] = useState<string[]>([]);
   const [ordreLibre, setOrdreLibre] = useState(false);
-  const [critere, setCritere] = useState<Critere>("PLUS_COURT");
+  const [critereChoisi, setCritere] = useState<Critere>("PLUS_COURT");
+  // Le critère personnalisé n'existe qu'en mode expert.
+  const critere: Critere =
+    !expert && critereChoisi === "PERSONNALISE" ? "PLUS_COURT" : critereChoisi;
   const [coefs, setCoefs] = useState({ alpha: "1", beta: "0", gamma: "0" });
   const [algorithme, setAlgorithme] = useState<ModeAlgorithme>("COMPARER");
   const [outcomes, setOutcomes] = useState<AlgorithmOutcome[]>([]);
@@ -153,7 +160,8 @@ export function ItineraryPlanner({
         alpha: preset ? preset.alpha : Number(coefs.alpha.replace(",", ".")),
         beta: preset ? preset.beta : Number(coefs.beta.replace(",", ".")),
         gamma: preset ? preset.gamma : Number(coefs.gamma.replace(",", ".")),
-        algorithme,
+        // Hors mode expert : un seul calcul (A*), sans vocabulaire technique.
+        algorithme: expert ? algorithme : "ASTAR",
       });
       if (result.error) {
         setError(Object.values(result.fieldErrors ?? {})[0] ?? result.error);
@@ -326,7 +334,9 @@ export function ItineraryPlanner({
                 onChange={(e) => setOrdreLibre(e.target.checked)}
                 className="size-4 accent-gt-teal-700"
               />
-              Ordre libre : trouver le meilleur ordre (Held-Karp, {MAX_FREE_WAYPOINTS} étapes max)
+              {expert
+                ? `Ordre libre : trouver le meilleur ordre (Held-Karp, ${MAX_FREE_WAYPOINTS} étapes max)`
+                : `Ordre libre : trouver le meilleur ordre de visite (${MAX_FREE_WAYPOINTS} étapes au plus)`}
             </label>
           </section>
 
@@ -336,7 +346,10 @@ export function ItineraryPlanner({
               Critère
             </h2>
             <div className="mt-2 flex flex-wrap gap-2">
-              {(["PLUS_COURT", "PLUS_RAPIDE", "PLUS_FACILE", "PERSONNALISE"] as const).map((c) => (
+              {(expert
+                ? (["PLUS_COURT", "PLUS_RAPIDE", "PLUS_FACILE", "PERSONNALISE"] as const)
+                : (["PLUS_COURT", "PLUS_RAPIDE", "PLUS_FACILE"] as const)
+              ).map((c) => (
                 <button
                   key={c}
                   type="button"
@@ -348,7 +361,7 @@ export function ItineraryPlanner({
                 </button>
               ))}
             </div>
-            {critere === "PERSONNALISE" ? (
+            {expert && critere === "PERSONNALISE" ? (
               <div className="mt-3 space-y-2 rounded-xl bg-gt-teal-50 p-3">
                 <p className="text-xs text-gt-teal-900/75">
                   w = α · km + β · heures + γ · (difficulté − 1) · km
@@ -371,38 +384,40 @@ export function ItineraryPlanner({
                   ))}
                 </div>
               </div>
-            ) : (
+            ) : expert && critere !== "PERSONNALISE" ? (
               <p className="mt-2 text-xs text-gt-teal-900/75">
                 α = {CRITERIA_PRESETS[critere].alpha}, β = {CRITERIA_PRESETS[critere].beta}, γ ={" "}
                 {CRITERIA_PRESETS[critere].gamma}
               </p>
-            )}
+            ) : null}
           </section>
 
-          {/* ── Algorithme ── */}
-          <section aria-labelledby="it-algo">
-            <h2 id="it-algo" className="text-sm font-semibold text-gt-teal-900">
-              Algorithme
-            </h2>
-            <div
-              role="radiogroup"
-              aria-labelledby="it-algo"
-              className="mt-2 grid grid-cols-3 rounded-full bg-gt-teal-50 p-1"
-            >
-              {(["DIJKSTRA", "ASTAR", "COMPARER"] as const).map((a) => (
-                <button
-                  key={a}
-                  type="button"
-                  role="radio"
-                  aria-checked={algorithme === a}
-                  onClick={() => setAlgorithme(a)}
-                  className={`rounded-full py-2 text-sm font-medium ${algorithme === a ? "bg-white text-gt-teal-900 shadow-sm" : "text-gt-teal-900/75"}`}
-                >
-                  {ALGO_LABELS[a]}
-                </button>
-              ))}
-            </div>
-          </section>
+          {/* ── Algorithme (mode expert) ── */}
+          {expert ? (
+            <section aria-labelledby="it-algo">
+              <h2 id="it-algo" className="text-sm font-semibold text-gt-teal-900">
+                Algorithme
+              </h2>
+              <div
+                role="radiogroup"
+                aria-labelledby="it-algo"
+                className="mt-2 grid grid-cols-3 rounded-full bg-gt-teal-50 p-1"
+              >
+                {(["DIJKSTRA", "ASTAR", "COMPARER"] as const).map((a) => (
+                  <button
+                    key={a}
+                    type="button"
+                    role="radio"
+                    aria-checked={algorithme === a}
+                    onClick={() => setAlgorithme(a)}
+                    className={`rounded-full py-2 text-sm font-medium ${algorithme === a ? "bg-white text-gt-teal-900 shadow-sm" : "text-gt-teal-900/75"}`}
+                  >
+                    {ALGO_LABELS[a]}
+                  </button>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           <button
             type="button"
@@ -413,13 +428,16 @@ export function ItineraryPlanner({
             <Icon name="navigation" className="size-4" />
             {pending
               ? "Calcul…"
-              : algorithme === "COMPARER"
-                ? "Comparer Dijkstra et A*"
-                : "Calculer l'itinéraire"}
+              : !expert
+                ? "Calculer le meilleur itinéraire"
+                : algorithme === "COMPARER"
+                  ? "Comparer Dijkstra et A*"
+                  : "Calculer l'itinéraire"}
           </button>
 
           <FormAlert message={error} />
           <Results
+            expert={expert}
             outcomes={outcomes}
             nom={nom}
             showExplored={showExplored}
@@ -432,11 +450,13 @@ export function ItineraryPlanner({
 }
 
 function Results({
+  expert,
   outcomes,
   nom,
   showExplored,
   setShowExplored,
 }: {
+  expert: boolean;
   outcomes: readonly AlgorithmOutcome[];
   nom: (id: string) => string;
   showExplored: "DIJKSTRA" | "ASTAR" | null;
@@ -468,8 +488,8 @@ function Results({
         </p>
         <p className="text-sm text-gt-teal-900/75">
           Difficulté moyenne{" "}
-          {main.difficulteMoyenne.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} / 5 · coût{" "}
-          {fmtCost(main.cost)}
+          {main.difficulteMoyenne.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} / 5
+          {expert ? ` · coût ${fmtCost(main.cost)}` : ""}
         </p>
         {main.order.length > 1 ? (
           <p className="mt-1 text-xs text-gt-teal-900/75">
@@ -478,7 +498,7 @@ function Results({
         ) : null}
       </div>
 
-      {compare ? (
+      {!expert ? null : compare ? (
         <div>
           <h2 className="text-sm font-semibold text-gt-teal-900">Comparaison Dijkstra / A*</h2>
           <table className="mt-2 w-full text-left text-sm">

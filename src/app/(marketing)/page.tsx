@@ -36,7 +36,7 @@ const FEATURES: { icon: IconName; title: string; text: string }[] = [
   {
     icon: "navigation",
     title: "Itinéraires optimisés",
-    text: "Plus court, plus rapide ou plus facile : calcul par Dijkstra et A* sur le réseau de sentiers de l'agence.",
+    text: "Plus court, plus rapide ou plus facile : le meilleur itinéraire, calculé automatiquement sur le réseau de sentiers de l'agence.",
   },
   {
     icon: "gauge",
@@ -84,7 +84,7 @@ function heroSlides(): HeroSlide[] {
       ...photo("/images/circuits/randonnee-cotiere-pirogue.jpg"),
       accent: "optimisez",
       title: "Vos itinéraires",
-      text: "Plus court, plus rapide ou plus facile : Dijkstra et A* sur le réseau de sentiers de l'agence.",
+      text: "Plus court, plus rapide ou plus facile : le meilleur itinéraire, calculé automatiquement sur le réseau de sentiers de l'agence.",
       cta: { label: "Voir les fonctionnalités", href: "/#fonctionnalites" },
     },
     {

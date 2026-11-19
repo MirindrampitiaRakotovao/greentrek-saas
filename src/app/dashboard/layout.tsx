@@ -2,6 +2,7 @@ import { AppShell, type ShellProps } from "@/components/shell/app-shell";
 import { requireAgencyUser } from "@/lib/auth/session";
 import { getShellNotifications } from "@/lib/dashboard/notifications";
 import { daysUntil } from "@/lib/dates";
+import { isExpertMode } from "@/lib/expert-mode-server";
 import { navigationFor } from "@/lib/navigation";
 import { can } from "@/lib/permissions";
 import { countUnreadConversations } from "@/lib/services/messagerie";
@@ -25,7 +26,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
       ? countUnreadConversations(db, { id: user.id, role: user.role })
       : Promise.resolve(0),
   ]);
-  const nav = navigationFor(user.role).map((item) =>
+  const nav = navigationFor(user.role, { expert: await isExpertMode() }).map((item) =>
     item.href === "/dashboard/messages" ? { ...item, badge: messagesNonLus } : item,
   );
 

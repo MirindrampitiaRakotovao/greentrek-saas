@@ -13,6 +13,8 @@ export type NavItem = {
 type NavEntry = NavItem & {
   /** Permission requise pour voir le lien (absente : visible par tout le personnel). */
   permission?: readonly [Action, Resource];
+  /** Lien du « mode expert » seulement (mesures des algorithmes, soutenance). */
+  expert?: boolean;
 };
 
 /**
@@ -90,6 +92,7 @@ const NAVIGATION: readonly NavEntry[] = [
     label: "Performances",
     icon: "gauge",
     permission: ["modifier", "circuit"],
+    expert: true,
   },
   {
     href: "/dashboard/guides",
@@ -125,8 +128,10 @@ const NAVIGATION: readonly NavEntry[] = [
   { href: "/dashboard/profil", label: "Mon profil", icon: "user" },
 ];
 
-export function navigationFor(role: Role): NavItem[] {
+export function navigationFor(role: Role, options: { expert?: boolean } = {}): NavItem[] {
   return NAVIGATION.filter(
-    (entry) => !entry.permission || can(role, entry.permission[0], entry.permission[1]),
+    (entry) =>
+      (!entry.expert || options.expert === true) &&
+      (!entry.permission || can(role, entry.permission[0], entry.permission[1])),
   ).map(({ href, label, icon }) => ({ href, label, icon }));
 }

@@ -33,8 +33,14 @@ describe("navigationFor : menu selon le rôle", () => {
       "/dashboard/itineraires",
       "/dashboard/profil",
     ]);
-    // La page de performances (banc d'essai) est réservée à l'administrateur et au personnel.
-    expect(hrefs("STAFF")).toContain("/dashboard/performances");
+    // La page de performances (banc d'essai) : administrateur et personnel, en mode expert
+    // seulement (termes techniques masqués par défaut).
+    expect(hrefs("STAFF")).not.toContain("/dashboard/performances");
+    const expert = navigationFor("STAFF", { expert: true }).map((item) => item.href);
+    expect(expert).toContain("/dashboard/performances");
+    expect(navigationFor("GUIDE", { expert: true }).map((i) => i.href)).not.toContain(
+      "/dashboard/performances",
+    );
   });
 
   it("réservations, paiements et clients : ADMIN_AGENCE et STAFF, pas le GUIDE (E10)", () => {
