@@ -98,6 +98,7 @@ function scopeCondition(config: ModelConfig, agenceId: string): Data | null {
     case "root":
       return { id: agenceId };
     case "global":
+    case "platform":
       return null;
   }
 }
@@ -217,6 +218,11 @@ function extendForTenant(base: PrismaClient, agenceId: string, reader: () => Ref
           const config = TENANT_CONFIG[model];
           const next: Data = { ...(args as Data) };
 
+          if (config.scope.kind === "platform") {
+            throw new TenantViolationError(
+              `${model} : table de la plateforme, inaccessible au client d'une agence.`,
+            );
+          }
           if (config.scope.kind === "global" && !READ_OPERATIONS.has(operation)) {
             throw new TenantViolationError(`${model} : table en lecture seule pour une agence.`);
           }

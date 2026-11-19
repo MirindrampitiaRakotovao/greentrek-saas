@@ -197,6 +197,10 @@ model Utilisateur {
   blocagesFaits          Blocage[]                @relation("BlocageAuteur")
   blocagesSubis          Blocage[]                @relation("BlocageCible")
   signalements           Signalement[]
+  publications           Publication[]
+  commentaires           Commentaire[]
+  jaimes                 Jaime[]
+  signalementsCommunaute SignalementCommunaute[]
   messages               Message[]
   lectures               LectureConversation[]
   jetonsReinitialisation JetonReinitialisation[]
@@ -351,6 +355,7 @@ model Reservation {
   participants Participant[]
   paiements    Paiement[]
   avis         Avis?
+  publications Publication[]
   conversation Conversation?
 
   @@index([agenceId, statut])
@@ -769,7 +774,8 @@ enum StatutSignalement {
   TRAITE
 }
 
-// Signalement d'un abus, traité par l'agence concernée (celle de l'auteur du contenu).
+// Signalement d'un message privé entre voyageurs, traité par l'agence (cible MESSAGE).
+// Les publications et commentaires de la communauté sont signalés dans SignalementCommunaute.
 // `cibleId` désigne la ligne signalée (pas de clé étrangère : la cible varie).
 model Signalement {
   id        String            @id @default(cuid())
@@ -787,4 +793,81 @@ model Signalement {
 
   @@unique([auteurId, cible, cibleId])
   @@index([agenceId, statut])
+}
+
+// ─── Communauté (étape 5d) ───────────────────────────────────────────────────────
+// Tables de la PLATEFORME (sans agenceId) : le fil est commun à toutes les agences et
+// modéré par le super admin. Interdites au client confiné d'une agence (portée
+// « platform » du helper tenant) ; accès par src/lib/services/communaute.ts uniquement.
+
+enum StatutContenu {
+  VISIBLE
+  MASQUE
+}
+
+// Publication d'un voyageur après un séjour terminé (la réservation le prouve).
+model Publication {
+  id            String        @id @default(cuid())
+  auteurId      String
+  reservationId String
+  legende       String?       @db.Text
+  // Adresses « /fichiers/publications/<uuid>.webp », dans l'ordre (1 à 4).
+  photos        Json
+  statut        StatutContenu @default(VISIBLE)
+  createdAt     DateTime      @default(now())
+  masqueAt      DateTime?
+
+  auteur       Utilisateur   @relation(fields: [auteurId], references: [id], onDelete: Cascade)
+  reservation  Reservation   @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  commentaires Commentaire[]
+  jaimes       Jaime[]
+
+  @@index([statut, createdAt])
+  @@index([auteurId])
+  @@index([reservationId])
+}
+
+model Commentaire {
+  id            String        @id @default(cuid())
+  publicationId String
+  auteurId      String
+  contenu       String        @db.Text
+  statut        StatutContenu @default(VISIBLE)
+  createdAt     DateTime      @default(now())
+
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  auteur      Utilisateur @relation(fields: [auteurId], references: [id], onDelete: Cascade)
+
+  @@index([publicationId, createdAt])
+  @@index([auteurId])
+}
+
+// « J'aime » : un par voyageur et par publication.
+model Jaime {
+  publicationId String
+  utilisateurId String
+  createdAt     DateTime @default(now())
+
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@id([publicationId, utilisateurId])
+  @@index([utilisateurId])
+}
+
+// Signalement d'une publication ou d'un commentaire, traité par le super admin.
+model SignalementCommunaute {
+  id        String            @id @default(cuid())
+  auteurId  String
+  cible     CibleSignalement
+  cibleId   String            @db.VarChar(30)
+  motif     String?           @db.Text
+  statut    StatutSignalement @default(OUVERT)
+  createdAt DateTime          @default(now())
+  traiteAt  DateTime?
+
+  auteur Utilisateur @relation(fields: [auteurId], references: [id], onDelete: Cascade)
+
+  @@unique([auteurId, cible, cibleId])
+  @@index([statut, createdAt])
 }

@@ -27,7 +27,13 @@ type Scope =
   /** La table `Agence` elle-même : une agence ne voit qu'elle-même. */
   | { kind: "root" }
   /** Table globale en lecture seule (plans). */
-  | { kind: "global" };
+  | { kind: "global" }
+  /**
+   * Table de la plateforme (communauté, étape 5d) : partagée par toutes les agences et
+   * modérée par le super admin, donc INTERDITE au client confiné d'une agence. Accès par le
+   * service de la communauté seulement (client non confiné, voyageur vérifié).
+   */
+  | { kind: "platform" };
 
 export type ModelConfig = {
   scope: Scope;
@@ -86,6 +92,11 @@ export const TENANT_CONFIG: Readonly<Record<ModelName, ModelConfig>> = {
     jsonFields: ["cheminJson"],
   },
   Abonnement: { scope: { kind: "tenant" }, references: {} }, // planId vise une table globale
+  // Communauté (étape 5d) : aucune opération par le client d'une agence, rien à contrôler.
+  Publication: { scope: { kind: "platform" }, references: {}, jsonFields: ["photos"] },
+  Commentaire: { scope: { kind: "platform" }, references: {} },
+  Jaime: { scope: { kind: "platform" }, references: {} },
+  SignalementCommunaute: { scope: { kind: "platform" }, references: {} },
   CircuitEtape: {
     scope: { kind: "child", relation: "circuit" },
     references: { circuitId: "Circuit", etapeId: "Etape" },

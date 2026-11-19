@@ -10,9 +10,9 @@ const lanIp = lanAddress(networkInterfaces());
 
 const nextConfig: NextConfig = {
   experimental: {
-    // Photos de profil, logos et photos de publications : 5 Mo par image (vérifié par
-    // `src/lib/uploads.ts`), plus la marge du formulaire.
-    serverActions: { bodySizeLimit: "6mb" },
+    // Photos de profil, logos (une image) et publications de la communauté (4 images au
+    // plus) : 5 Mo par image, vérifié par `src/lib/uploads.ts`, plus la marge du formulaire.
+    serverActions: { bodySizeLimit: "21mb" },
   },
   logging: {
     // En développement, Next.js affiche par défaut les arguments des actions serveur :

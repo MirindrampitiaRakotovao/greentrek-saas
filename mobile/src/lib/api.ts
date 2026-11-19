@@ -542,3 +542,100 @@ export function fetchMonAvis(agence: string, slug: string) {
     `/agences/${encodeURIComponent(agence)}/circuits/${encodeURIComponent(slug)}/mon-avis`,
   );
 }
+
+/* ─── Communauté (étape 5d) ────────────────────────────────────────────────────── */
+
+export type Publication = {
+  id: string;
+  legende: string | null;
+  /** Chemins du site (voir `imageUrl`). */
+  photos: string[];
+  at: string;
+  auteur: { id: string; nom: string; photo: string | null };
+  agence: { nom: string; slug: string };
+  /** `slug` null : circuit plus publié (pas de lien vers sa fiche). */
+  circuit: { titre: string; slug: string | null };
+  jaimes: number;
+  jAime: boolean;
+  commentaires: number;
+  deMoi: boolean;
+};
+
+export type CommentaireCommunaute = {
+  id: string;
+  contenu: string;
+  at: string;
+  auteur: { id: string; nom: string; photo: string | null };
+  deMoi: boolean;
+};
+
+export type PublicationDetail = Publication & { listeCommentaires: CommentaireCommunaute[] };
+
+export type SejourPartageable = {
+  id: string;
+  reference: string;
+  circuit: string;
+  dateDebut: string;
+  dateFin: string;
+};
+
+export function fetchFeed(page = 1) {
+  return request<{ publications: Publication[]; page: number; pageCount: number }>(
+    `/communaute?page=${page}`,
+  );
+}
+
+export function fetchPublication(id: string) {
+  return request<PublicationDetail>(`/communaute/${encodeURIComponent(id)}`);
+}
+
+export function fetchSejoursPartageables() {
+  return request<{ sejours: SejourPartageable[] }>("/communaute/sejours");
+}
+
+/** Nouvelle publication : photos envoyées comme `uploadPhoto` (forme propre à React Native). */
+export async function createPublication(input: {
+  reservationId: string;
+  legende: string;
+  photos: { uri: string; mimeType?: string | null }[];
+}) {
+  const form = new FormData();
+  form.append("reservationId", input.reservationId);
+  form.append("legende", input.legende);
+  for (const [i, asset] of input.photos.entries()) {
+    const type = asset.mimeType ?? "image/jpeg";
+    if (Platform.OS === "web") {
+      form.append("photos", await (await fetch(asset.uri)).blob(), `photo-${i}`);
+    } else {
+      form.append("photos", { uri: asset.uri, name: `photo-${i}.jpg`, type } as unknown as Blob);
+    }
+  }
+  return request<{ id: string }>("/communaute", { method: "POST", body: form });
+}
+
+export function deletePublication(id: string) {
+  return request<{ ok: true }>(`/communaute/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export function setJaime(id: string, jaime: boolean) {
+  return request<{ jaimes: number }>(`/communaute/${encodeURIComponent(id)}/jaime`, {
+    method: "PUT",
+    json: { jaime },
+  });
+}
+
+export function addCommentaire(publicationId: string, contenu: string) {
+  return request<{ id: string }>(`/communaute/${encodeURIComponent(publicationId)}/commentaires`, {
+    json: { contenu },
+  });
+}
+
+export function deleteCommentaire(id: string) {
+  return request<{ ok: true }>(`/communaute/commentaires/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+export function reportCommunityContent(cible: "PUBLICATION" | "COMMENTAIRE", cibleId: string) {
+  return request<{ ok: true }>("/communaute/signalements", { json: { cible, cibleId } });
+}

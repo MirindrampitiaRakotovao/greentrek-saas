@@ -59,6 +59,12 @@ export default function CompteScreen() {
             onPress={() => router.push("/messages")}
           />
           <ListRow
+            icon="images-outline"
+            label="Communauté"
+            value="Photos de séjour des voyageurs"
+            onPress={() => router.push("/communaute")}
+          />
+          <ListRow
             icon="people-outline"
             label="Voyageurs"
             value="Échanger avec d'autres voyageurs"

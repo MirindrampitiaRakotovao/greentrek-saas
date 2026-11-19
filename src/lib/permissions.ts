@@ -31,6 +31,8 @@ export const RESOURCES = [
   "paiement",
   "avis",
   "message",
+  // Communauté des voyageurs (étape 5d) : modérée par le super admin.
+  "communaute",
 ] as const;
 export type Resource = (typeof RESOURCES)[number];
 
@@ -55,6 +57,7 @@ export const PERMISSIONS: Matrix = {
     reservation: L,
     paiement: L,
     avis: L,
+    communaute: ["lire", "moderer"],
   },
   ADMIN_AGENCE: {
     agence: ["lire", "modifier"], // la sienne, paramètres

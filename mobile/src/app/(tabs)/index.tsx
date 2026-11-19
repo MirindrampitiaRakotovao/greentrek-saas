@@ -107,6 +107,11 @@ export default function HomeScreen() {
           </View>
           <View style={s.actions}>
             <GlassIconButton
+              icon="images-outline"
+              label="Communauté"
+              onPress={() => router.push("/communaute")}
+            />
+            <GlassIconButton
               icon="chatbubbles-outline"
               label={`Messages${unread.conversations ? `, ${unread.conversations} non lus` : ""}`}
               count={unread.conversations}

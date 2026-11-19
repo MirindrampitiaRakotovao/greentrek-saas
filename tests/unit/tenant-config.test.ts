@@ -40,6 +40,11 @@ describe("configuration du helper tenant", () => {
     const scalarNames = fields.filter((f) => f.kind === "scalar").map((f) => f.name);
 
     it(`${model} : contrôle toutes ses clés étrangères`, () => {
+      // Table de la plateforme : le client d'une agence n'y a aucun accès, rien à contrôler.
+      if (config.scope.kind === "platform") {
+        expect(config.references).toEqual({});
+        return;
+      }
       const foreignKeys = scalarNames.filter(
         (name) =>
           name.endsWith("Id") &&
@@ -63,6 +68,8 @@ describe("configuration du helper tenant", () => {
       } else if (scope.kind === "child") {
         expect(scalarNames).not.toContain("agenceId");
         expect(fields.map((f) => f.name)).toContain(scope.relation);
+      } else if (scope.kind === "platform") {
+        expect(scalarNames).not.toContain("agenceId");
       } else {
         expect(["Agence", "Plan"]).toContain(model);
       }
