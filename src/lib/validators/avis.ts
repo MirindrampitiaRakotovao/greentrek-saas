@@ -16,6 +16,13 @@ export const moderationSchema = z.object({
   statut: z.enum(["PUBLIE", "REJETE"]),
 });
 
+/** Statut d'un avis vu par son auteur (le voyageur). */
+export const STATUT_AVIS_VOYAGEUR = {
+  EN_ATTENTE: "En attente de relecture par l'agence",
+  PUBLIE: "Publié sur la fiche du circuit",
+  REJETE: "Non publié par l'agence",
+} as const;
+
 export const STATUT_AVIS_LABELS = {
   EN_ATTENTE: "À modérer",
   PUBLIE: "Publié",

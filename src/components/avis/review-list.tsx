@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Avatar } from "@/components/ui/avatar";
 import { Stars } from "@/components/ui/stars";
 import type { PublicAvis } from "@/lib/services/avis";
 
@@ -33,17 +34,20 @@ export function ReviewList({
             <blockquote className="mt-3 flex-1 text-sm leading-relaxed text-gt-teal-900/85">
               <p>« {a.commentaire} »</p>
             </blockquote>
-            <figcaption className="mt-4 text-sm">
-              <span className="font-semibold text-gt-teal-900">{a.auteur}</span>
-              <span className="text-gt-teal-900/75"> · {monthYear.format(a.createdAt)}</span>
-              {showCircuit ? (
-                <Link
-                  href={`/a/${agenceSlug}/circuits/${a.circuit.slug}`}
-                  className="mt-1 block text-xs font-medium text-gt-teal-700 underline"
-                >
-                  {a.circuit.titre}
-                </Link>
-              ) : null}
+            <figcaption className="mt-4 flex items-center gap-3 text-sm">
+              <Avatar name={a.auteur} src={a.photo} size={36} />
+              <span className="min-w-0">
+                <span className="font-semibold text-gt-teal-900">{a.auteur}</span>
+                <span className="text-gt-teal-900/75"> · {monthYear.format(a.createdAt)}</span>
+                {showCircuit ? (
+                  <Link
+                    href={`/a/${agenceSlug}/circuits/${a.circuit.slug}`}
+                    className="mt-1 block text-xs font-medium text-gt-teal-700 underline"
+                  >
+                    {a.circuit.titre}
+                  </Link>
+                ) : null}
+              </span>
             </figcaption>
           </figure>
         </li>

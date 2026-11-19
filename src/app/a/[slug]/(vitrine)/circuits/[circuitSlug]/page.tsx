@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { RateCircuit, type RateState } from "@/components/avis/rate-circuit";
 import { ReviewList } from "@/components/avis/review-list";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { Stars } from "@/components/ui/stars";
@@ -12,7 +13,9 @@ import { CircuitVisual } from "@/components/vitrine/circuit-visual";
 import { formatDateRange, formatMoney } from "@/lib/format";
 import { creditFor } from "@/lib/photo-credits";
 import { getVitrineAgency } from "@/lib/public-agency";
-import { listPublicAvis } from "@/lib/services/avis";
+import { getCurrentUser } from "@/lib/auth/session";
+import { listPublicAvis, myCircuitAvis } from "@/lib/services/avis";
+import { STATUT_AVIS_VOYAGEUR } from "@/lib/validators/avis";
 import { getPublicCircuit, type PublicCircuitDetail } from "@/lib/services/vitrine";
 import { getTenantDb } from "@/lib/tenant";
 import { TYPE_PARTENAIRE_LABELS } from "@/lib/validators/backoffice";
@@ -51,6 +54,31 @@ export default async function PublicCircuitPage({ params }: Props) {
   const avis = await listPublicAvis(db, { circuitId: circuit.id, take: 6 });
 
   const base = `/a/${agence.slug}`;
+  // Note depuis la fiche (après E12) : selon le visiteur (voyageur de l'agence ou non).
+  const user = await getCurrentUser();
+  let rate: RateState | null = null;
+  if (!user) {
+    rate = {
+      kind: "anonyme",
+      loginHref: `${base}/connexion?retour=${encodeURIComponent(`${base}/circuits/${circuit.slug}#note`)}`,
+    };
+  } else if (user.role === "CLIENT" && user.agenceId === agence.id) {
+    const mine = await myCircuitAvis(db, user.id, circuit.id);
+    rate = mine.reservationId
+      ? {
+          kind: "noter",
+          reservationId: mine.reservationId,
+          sejour: formatDateRange(mine.sejour!.dateDebut, mine.sejour!.dateFin),
+        }
+      : mine.dernierAvis
+        ? {
+            kind: "deja",
+            note: mine.dernierAvis.note,
+            commentaire: mine.dernierAvis.commentaire,
+            statut: STATUT_AVIS_VOYAGEUR[mine.dernierAvis.statut],
+          }
+        : { kind: "rien" };
+  }
   const distance = formatKm(circuit.trace?.distanceKm ?? circuit.distanceKm);
   const facts: { icon: IconName; label: string; value: string }[] = [
     { icon: "calendar", label: "Durée", value: formatDuree(circuit.dureeJours) },
@@ -131,6 +159,11 @@ export default async function PublicCircuitPage({ params }: Props) {
       <div className="relative isolate mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <BlurBlobs preset="both" />
         <div className="min-w-0 space-y-10">
+          {rate ? (
+            <div id="note" className="scroll-mt-24">
+              <RateCircuit state={rate} />
+            </div>
+          ) : null}
           {circuit.description ? (
             <section aria-labelledby="titre-description">
               <h2 id="titre-description" className="text-xl font-semibold text-gt-teal-900">

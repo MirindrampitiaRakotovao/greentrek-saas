@@ -57,7 +57,13 @@ export type CircuitDetail = Omit<CircuitResume, "prochainDepart"> & {
   trace: [number, number][] | null;
   partenaires: { prestation: string; partenaire: string; type: string; inclusDansPrix: boolean }[];
   departs: Depart[];
-  avis: { note: number; commentaire: string | null; auteur: string; date: string }[];
+  avis: {
+    note: number;
+    commentaire: string | null;
+    auteur: string;
+    date: string;
+    photo?: string | null;
+  }[];
 };
 
 export type CatalogueQuery = {
@@ -466,4 +472,19 @@ export async function uploadPhoto(asset: { uri: string; mimeType?: string | null
 
 export function removePhoto() {
   return request<Profile>("/moi/photo", { method: "DELETE" });
+}
+
+/* ─── Note depuis la fiche d'un circuit (étape 5b) ───────────────────────────── */
+
+export type MonAvis = {
+  reservationId: string | null;
+  sejour: { dateDebut: string; dateFin: string } | null;
+  dernierAvis: { note: number; commentaire: string | null; statutLabel: string } | null;
+  autreAgence: boolean;
+};
+
+export function fetchMonAvis(agence: string, slug: string) {
+  return request<MonAvis>(
+    `/agences/${encodeURIComponent(agence)}/circuits/${encodeURIComponent(slug)}/mon-avis`,
+  );
 }

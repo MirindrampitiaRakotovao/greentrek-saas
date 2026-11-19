@@ -6,6 +6,8 @@ import { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AvisForm } from "@/components/avis-form";
+import { Avatar } from "@/components/avatar";
 import { CircuitMap } from "@/components/circuit-map";
 import { FavoriteButton } from "@/components/favorite-button";
 import { Button } from "@/components/form";
@@ -14,7 +16,7 @@ import { Stars } from "@/components/stars";
 import { Empty, ErrorState, Loading } from "@/components/states";
 import { useAuth } from "@/context/auth";
 import { useAsync } from "@/hooks/use-async";
-import { type CircuitDetail, fetchCircuit, imageUrl } from "@/lib/api";
+import { type CircuitDetail, fetchCircuit, fetchMonAvis, imageUrl } from "@/lib/api";
 import { confirmAction } from "@/lib/confirm";
 import {
   DIFFICULTE_LABELS,
@@ -149,6 +151,7 @@ export default function CircuitScreen() {
             {c.titre}
           </Text>
           {c.note ? <Stars note={c.note} /> : null}
+          <MaNote agence={c.agence.slug} slug={c.slug} onPublished={() => setOnglet("avis")} />
           <Text style={s.mapNote}>
             {c.trace
               ? "Itinéraire optimisé le long des sentiers du réseau de l’agence."
@@ -278,9 +281,14 @@ export default function CircuitScreen() {
               ) : (
                 c.avis.map((a, i) => (
                   <View key={i} style={s.card}>
-                    <Stars note={{ moyenne: a.note, nombre: 1 }} />
+                    <View style={s.reviewHead}>
+                      <Avatar name={a.auteur} photo={a.photo} size={36} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.reviewAuthor}>{a.auteur}</Text>
+                        <Stars note={{ moyenne: a.note, nombre: 1 }} />
+                      </View>
+                    </View>
                     {a.commentaire ? <Text style={s.paragraph}>« {a.commentaire} »</Text> : null}
-                    <Text style={s.reviewAuthor}>{a.auteur}</Text>
                   </View>
                 ))
               )}
@@ -432,6 +440,7 @@ const useStyles = makeStyles((t) =>
       paddingVertical: 10,
     },
     reserveText: { fontFamily: fonts.textSemiBold, fontSize: 14, color: t.onPrimary },
+    reviewHead: { flexDirection: "row", alignItems: "center", gap: 10 },
     reviewAuthor: { fontFamily: fonts.textMedium, fontSize: 12, color: t.accent },
     bottomBar: { position: "absolute", left: 14, right: 14, bottom: 0 },
     bottomRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 6, paddingLeft: 20 },
@@ -440,3 +449,62 @@ const useStyles = makeStyles((t) =>
     unit: { fontFamily: fonts.text, fontSize: 12, color: t.textMuted },
   }),
 );
+
+/**
+ * « Votre note », sous le titre (étape 5b) : étoiles et commentaire pour un séjour terminé sur
+ * ce circuit (RG 17 : un avis par séjour, publié après relecture de l'agence) ; sinon l'avis
+ * déjà donné, ou rien pour qui n'a pas fait le circuit.
+ */
+function MaNote({
+  agence,
+  slug,
+  onPublished,
+}: {
+  agence: string;
+  slug: string;
+  onPublished: () => void;
+}) {
+  const s = useStyles();
+  const { user } = useAuth();
+  const [notice, setNotice] = useState<string | null>(null);
+  const { data, reload } = useAsync(
+    () => fetchMonAvis(agence, slug),
+    `${user?.email}/${agence}/${slug}`,
+  );
+  if (!data || data.autreAgence) return null;
+  if (data.reservationId && data.sejour) {
+    return (
+      <View style={[s.card, { marginTop: 14 }]}>
+        <Text style={s.h2}>Votre note</Text>
+        <Text style={s.stepText}>
+          Votre séjour du {formatDayRange(data.sejour.dateDebut, data.sejour.dateFin)}
+        </Text>
+        <AvisForm
+          reservationId={data.reservationId}
+          onDone={(message) => {
+            setNotice(message);
+            reload();
+            onPublished();
+          }}
+        />
+      </View>
+    );
+  }
+  if (data.dernierAvis) {
+    return (
+      <View style={[s.card, { marginTop: 14 }]}>
+        <Text style={s.h2}>Votre note</Text>
+        <Stars note={{ moyenne: data.dernierAvis.note, nombre: 1 }} />
+        {data.dernierAvis.commentaire ? (
+          <Text style={s.paragraph}>« {data.dernierAvis.commentaire} »</Text>
+        ) : null}
+        <Text style={s.stepText}>{notice ?? data.dernierAvis.statutLabel}</Text>
+      </View>
+    );
+  }
+  return (
+    <Text style={[s.mapNote, { marginTop: 8 }]}>
+      Vous pourrez noter ce circuit après votre séjour.
+    </Text>
+  );
+}

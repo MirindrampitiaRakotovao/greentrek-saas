@@ -149,13 +149,42 @@ export async function listPublicAvis(
       commentaire: true,
       createdAt: true,
       circuit: { select: { titre: true, slug: true } },
-      client: { select: { prenom: true, nom: true } },
+      client: { select: { prenom: true, nom: true, photoUrl: true } },
     },
   });
   return avis.map(({ client, ...a }) => ({
     ...a,
     auteur: `${client.prenom} ${client.nom.charAt(0)}.`,
+    photo: client.photoUrl,
   }));
 }
 
 export type PublicAvis = Awaited<ReturnType<typeof listPublicAvis>>[number];
+
+/**
+ * Note d'un circuit depuis sa fiche (après E12) : le séjour TERMINÉ du voyageur sur ce
+ * circuit qui n'a pas encore d'avis (le plus récent), et son dernier avis sur ce circuit.
+ * RG 17 inchangée : sans séjour terminé, pas de note ; un avis par séjour.
+ */
+export async function myCircuitAvis(db: TenantDb, clientId: string, circuitId: string) {
+  const [sejour, dernier] = await Promise.all([
+    db.reservation.findFirst({
+      where: { clientId, statut: "TERMINEE", session: { circuitId }, avis: { is: null } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, session: { select: { dateDebut: true, dateFin: true } } },
+    }),
+    db.avis.findFirst({
+      where: { clientId, circuitId },
+      orderBy: { createdAt: "desc" },
+      select: { note: true, commentaire: true, statut: true, createdAt: true },
+    }),
+  ]);
+  return {
+    /** Séjour à noter (null : rien à noter pour l'instant). */
+    reservationId: sejour?.id ?? null,
+    sejour: sejour
+      ? { dateDebut: sejour.session.dateDebut, dateFin: sejour.session.dateFin }
+      : null,
+    dernierAvis: dernier,
+  };
+}

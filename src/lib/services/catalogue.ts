@@ -194,6 +194,7 @@ export async function getCatalogueCircuit(
       note: a.note,
       commentaire: a.commentaire,
       auteur: a.auteur,
+      photo: a.photo,
       date: a.createdAt.toISOString(),
     })),
   };
