@@ -24,8 +24,11 @@ const { models } = (client as unknown as { _runtimeDataModel: RuntimeDataModel }
 
 /** Clés étrangères non contrôlées : l'agence elle-même et le plan (table globale). */
 const UNCONTROLLED_FOREIGN_KEYS = new Set(["agenceId", "planId"]);
-/** Champs en « …Id » qui ne sont pas des clés étrangères (identifiant polymorphe de l'audit). */
-const NOT_FOREIGN_KEYS = new Set(["JournalActivite.entiteId"]);
+/**
+ * Champs en « …Id » qui ne sont pas des clés étrangères : identifiants polymorphes (objet de
+ * l'audit, contenu signalé : message, publication ou commentaire).
+ */
+const NOT_FOREIGN_KEYS = new Set(["JournalActivite.entiteId", "Signalement.cibleId"]);
 
 describe("configuration du helper tenant", () => {
   it("couvre exactement les tables du schéma", () => {

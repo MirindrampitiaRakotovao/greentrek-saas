@@ -1,5 +1,11 @@
 import { Prisma, type Role } from "@/generated/prisma/client";
-import { deliveryStatus, isUnread, messagingSide, otherSideRoles } from "@/lib/messagerie";
+import {
+  deliveryStatus,
+  isUnreadIn,
+  messagingSide,
+  otherSideRoles,
+  privateDeliveryStatus,
+} from "@/lib/messagerie";
 import { publish } from "@/lib/realtime/bus";
 import { pushToDevices } from "@/lib/services/appareils";
 import { excerpt } from "@/lib/realtime/events";
@@ -22,13 +28,14 @@ export type Viewer = { id: string; role: Role };
 /** Conversations visibles par l'utilisateur (en plus du filtre d'agence). */
 export function conversationAccess(viewer: Viewer): Prisma.ConversationWhereInput {
   switch (viewer.role) {
+    // L'équipe et le guide ne voient jamais les conversations privées entre voyageurs.
     case "ADMIN_AGENCE":
     case "STAFF":
-      return {};
+      return { type: "AGENCE" };
     case "GUIDE":
-      return { reservation: { session: { guide: { utilisateurId: viewer.id } } } };
+      return { type: "AGENCE", reservation: { session: { guide: { utilisateurId: viewer.id } } } };
     case "CLIENT":
-      return { clientId: viewer.id };
+      return { OR: [{ clientId: viewer.id }, { destinataireId: viewer.id }] };
     default:
       return { id: { in: [] } }; // aucune (le super admin n'a pas accès aux échanges privés)
   }
@@ -73,7 +80,9 @@ async function participants(db: TenantDb | TenantTx, conversationId: string) {
       where: { id: conversationId },
       select: {
         sujet: true,
+        type: true,
         clientId: true,
+        destinataireId: true,
         reservation: {
           select: { session: { select: { guide: { select: { utilisateurId: true } } } } },
         },
@@ -84,9 +93,23 @@ async function participants(db: TenantDb | TenantTx, conversationId: string) {
       select: { id: true, role: true },
     }),
   ]);
+  // Conversation privée : les deux voyageurs seulement (l'équipe n'y a pas accès).
+  if (conversation.type === "VOYAGEURS") {
+    return {
+      sujet: conversation.sujet,
+      type: conversation.type,
+      membres: [
+        { id: conversation.clientId, role: "CLIENT" as Role },
+        ...(conversation.destinataireId
+          ? [{ id: conversation.destinataireId, role: "CLIENT" as Role }]
+          : []),
+      ],
+    };
+  }
   const guideId = conversation.reservation?.session.guide?.utilisateurId ?? null;
   return {
     sujet: conversation.sujet,
+    type: conversation.type,
     membres: [
       { id: conversation.clientId, role: "CLIENT" as Role },
       ...equipe,
@@ -159,9 +182,17 @@ export async function sendMessage(
   if (!can(viewer.role, "creer", "message")) return failure("Messagerie non disponible.");
   const conversation = await db.conversation.findFirst({
     where: { id: input.conversationId, ...conversationAccess(viewer) },
-    select: { id: true },
+    select: { id: true, type: true, clientId: true, destinataireId: true },
   });
   if (!conversation) return failure("Conversation introuvable.");
+  if (conversation.type === "VOYAGEURS") {
+    // Blocage dans un sens ou dans l'autre : plus aucun message (étape 5c).
+    const autre =
+      conversation.clientId === viewer.id ? conversation.destinataireId : conversation.clientId;
+    if (autre && (await isBlockedBetween(db, viewer.id, autre))) {
+      return failure("Vous ne pouvez plus écrire à ce voyageur.");
+    }
+  }
   const messageId = await appendMessage(db, viewer, conversation.id, input.contenu, now);
   return success({ conversationId: conversation.id, messageId });
 }
@@ -259,6 +290,18 @@ export async function startConversation(
   }
 }
 
+/** Interlocuteur affiché (photo, présence) ; jamais l'e-mail ni le téléphone. */
+const PERSONNE = {
+  select: {
+    id: true,
+    prenom: true,
+    nom: true,
+    photoUrl: true,
+    derniereActiviteAt: true,
+    presenceVisible: true,
+  },
+} as const;
+
 const lastMessageSelect = {
   orderBy: [{ createdAt: "desc" }, { id: "desc" }],
   take: 1,
@@ -273,8 +316,10 @@ function conversationListSelect(viewerId: string) {
   return {
     id: true,
     sujet: true,
+    type: true,
     dernierMessageAt: true,
-    client: { select: { prenom: true, nom: true } },
+    client: PERSONNE,
+    destinataire: PERSONNE,
     reservation: {
       select: {
         id: true,
@@ -317,10 +362,15 @@ function toSummary(viewer: Viewer, c: ConversationListPayload): ConversationSumm
   return {
     ...rest,
     dernierMessage,
-    nonLue: isUnread(
-      viewer.role,
+    nonLue: isUnreadIn(
+      c.type,
+      viewer,
       dernierMessage
-        ? { createdAt: dernierMessage.createdAt, auteurRole: dernierMessage.auteurRole }
+        ? {
+            createdAt: dernierMessage.createdAt,
+            auteurId: dernierMessage.auteurId,
+            auteurRole: dernierMessage.auteurRole,
+          }
         : null,
       lectures[0]?.luJusqua ?? null,
     ),
@@ -356,15 +406,19 @@ export async function countUnreadConversations(db: TenantDb, viewer: Viewer): Pr
   const conversations = await db.conversation.findMany({
     where: conversationAccess(viewer),
     select: {
+      type: true,
       messages: lastMessageSelect,
       lectures: { where: { utilisateurId: viewer.id }, select: { luJusqua: true } },
     },
   });
   return conversations.filter((c) => {
     const last = c.messages[0];
-    return isUnread(
-      viewer.role,
-      last ? { createdAt: last.createdAt, auteurRole: last.auteur.role } : null,
+    return isUnreadIn(
+      c.type,
+      viewer,
+      last
+        ? { createdAt: last.createdAt, auteurId: last.auteur.id, auteurRole: last.auteur.role }
+        : null,
       c.lectures[0]?.luJusqua ?? null,
     );
   }).length;
@@ -380,8 +434,10 @@ export async function getConversation(db: TenantDb, viewer: Viewer, id: string) 
     select: {
       id: true,
       sujet: true,
+      type: true,
       createdAt: true,
-      client: { select: { id: true, prenom: true, nom: true } },
+      client: PERSONNE,
+      destinataire: PERSONNE,
       reservation: {
         select: {
           id: true,
@@ -398,7 +454,9 @@ export async function getConversation(db: TenantDb, viewer: Viewer, id: string) 
           },
         },
       },
-      lectures: { select: { luJusqua: true, utilisateur: { select: { role: true } } } },
+      lectures: {
+        select: { luJusqua: true, utilisateurId: true, utilisateur: { select: { role: true } } },
+      },
       messages: {
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: THREAD_LIMIT,
@@ -419,11 +477,14 @@ export async function getConversation(db: TenantDb, viewer: Viewer, id: string) 
     // Accusé de lecture de chacun de MES messages (« distribué » ou « lu »), null sinon.
     messages: conversation.messages.reverse().map((m) => ({
       ...m,
-      statut: deliveryStatus(
-        { createdAt: m.createdAt, auteurRole: m.auteur.role },
-        viewer.role,
-        lus,
-      ),
+      statut:
+        conversation.type === "VOYAGEURS"
+          ? privateDeliveryStatus(
+              { createdAt: m.createdAt, auteurId: m.auteur.id },
+              viewer.id,
+              lectures,
+            )
+          : deliveryStatus({ createdAt: m.createdAt, auteurRole: m.auteur.role }, viewer.role, lus),
     })),
   };
 }
@@ -439,9 +500,10 @@ export async function markConversationRead(
 ): Promise<ServiceResult> {
   const conversation = await db.conversation.findFirst({
     where: { id: conversationId, ...conversationAccess(viewer) },
-    select: { id: true },
+    select: { id: true, type: true },
   });
   if (!conversation) return failure("Conversation introuvable.");
+  const prive = conversation.type === "VOYAGEURS";
   const previous = await db.lectureConversation.findUnique({
     where: {
       conversationId_utilisateurId: { conversationId: conversation.id, utilisateurId: viewer.id },
@@ -453,7 +515,10 @@ export async function markConversationRead(
     where: {
       conversationId: conversation.id,
       createdAt: { gt: previous?.luJusqua ?? new Date(0), lte: now },
-      auteur: { role: { in: otherSideRoles(viewer.role) } },
+      // Entre voyageurs : les messages de l'autre ; sinon ceux de l'autre côté.
+      ...(prive
+        ? { auteurId: { not: viewer.id } }
+        : { auteur: { role: { in: otherSideRoles(viewer.role) } } }),
     },
   });
   await markRead(db, conversation.id, viewer.id, now);
@@ -461,9 +526,85 @@ export async function markConversationRead(
     const { membres } = await participants(db, conversation.id);
     const side = messagingSide(viewer.role);
     publish(
-      membres.filter((m) => messagingSide(m.role) !== side).map((m) => m.id),
+      membres
+        .filter((m) => (prive ? m.id !== viewer.id : messagingSide(m.role) !== side))
+        .map((m) => m.id),
       { type: "lecture", conversationId: conversation.id },
     );
   }
   return success(undefined);
+}
+
+/** Blocage entre deux voyageurs, dans un sens ou dans l'autre (étape 5c). */
+export async function isBlockedBetween(db: TenantDb, a: string, b: string): Promise<boolean> {
+  const n = await db.blocage.count({
+    where: {
+      OR: [
+        { bloqueurId: a, bloqueId: b },
+        { bloqueurId: b, bloqueId: a },
+      ],
+    },
+  });
+  return n > 0;
+}
+
+/**
+ * Conversation privée entre deux voyageurs de la même agence (étape 5c). L'autre voyageur
+ * doit être actif, accepter les messages des voyageurs, et aucun blocage ne doit exister. Une
+ * conversation existante entre eux (dans un sens ou l'autre) est reprise.
+ */
+export async function startPrivateConversation(
+  db: TenantDb,
+  viewer: Viewer,
+  input: { agenceId: string; destinataireId: string; contenu: string },
+  now: Date = new Date(),
+): Promise<ServiceResult<SentMessage>> {
+  if (viewer.role !== "CLIENT") return failure("Réservé aux voyageurs.");
+  if (input.destinataireId === viewer.id) return failure("Choisissez un autre voyageur.");
+  const autre = await db.utilisateur.findFirst({
+    where: { id: input.destinataireId, role: "CLIENT", actif: true },
+    select: { messagesVoyageurs: true },
+  });
+  if (!autre) return failure("Voyageur introuvable.");
+  if (await isBlockedBetween(db, viewer.id, input.destinataireId)) {
+    return failure("Vous ne pouvez pas écrire à ce voyageur.");
+  }
+  const existante = await db.conversation.findFirst({
+    where: {
+      type: "VOYAGEURS",
+      OR: [
+        { clientId: viewer.id, destinataireId: input.destinataireId },
+        { clientId: input.destinataireId, destinataireId: viewer.id },
+      ],
+    },
+    select: { id: true },
+  });
+  if (existante) {
+    return sendMessage(db, viewer, { conversationId: existante.id, contenu: input.contenu }, now);
+  }
+  if (!autre.messagesVoyageurs) return failure("Ce voyageur ne reçoit pas de messages.");
+  return db.$tenantTransaction(async (tx) => {
+    const conversation = await tx.conversation.create({
+      data: {
+        agenceId: input.agenceId,
+        type: "VOYAGEURS",
+        clientId: viewer.id,
+        destinataireId: input.destinataireId,
+        sujet: "Conversation entre voyageurs",
+        dernierMessageAt: now,
+        createdAt: now,
+      },
+    });
+    const message = await tx.message.create({
+      data: {
+        conversationId: conversation.id,
+        auteurId: viewer.id,
+        contenu: input.contenu,
+        createdAt: now,
+      },
+    });
+    await markRead(tx, conversation.id, viewer.id, now);
+    await publishMessage(tx, conversation.id, viewer.id, input.contenu);
+    return success({ conversationId: conversation.id, messageId: message.id });
+  });
 }

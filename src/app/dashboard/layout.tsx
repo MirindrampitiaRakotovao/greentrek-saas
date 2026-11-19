@@ -33,12 +33,22 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
   const demandes = can(user.role, "creer", "reservation")
     ? await db.itinerairePersonnalise.count({ where: { origine: "CLIENT", statut: "EN_ATTENTE" } })
     : 0;
+  // Signalements à traiter (pastille du menu).
+  const signalements = can(user.role, "moderer", "avis")
+    ? await db.signalement.count({ where: { statut: "OUVERT" } })
+    : 0;
   const nav = navigationFor(user.role, { expert: await isExpertMode() }).map((item) =>
     item.href === "/dashboard/messages"
       ? { ...item, badge: messagesNonLus }
       : item.href === "/dashboard/itineraires-sur-mesure"
         ? { ...item, badge: demandes, badgeLabel: { one: "en attente", many: "en attente" } }
-        : item,
+        : item.href === "/dashboard/signalements"
+          ? {
+              ...item,
+              badge: signalements,
+              badgeLabel: { one: "à traiter", many: "à traiter" },
+            }
+          : item,
   );
 
   let promo: ShellProps["promo"];

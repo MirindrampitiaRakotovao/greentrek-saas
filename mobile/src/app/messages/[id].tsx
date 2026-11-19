@@ -13,13 +13,14 @@ import {
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Avatar } from "@/components/avatar";
+import { Avatar, presenceLabel } from "@/components/avatar";
 import { RequireAuth } from "@/components/require-auth";
 import { ScreenHeader } from "@/components/screen-header";
 import { ErrorState, Loading } from "@/components/states";
 import { useActivity } from "@/context/activity";
 import { useAsync } from "@/hooks/use-async";
-import { fetchThread, postMessage } from "@/lib/api";
+import { ApiError, blockVoyageur, fetchThread, postMessage, reportMessage } from "@/lib/api";
+import { confirmAction } from "@/lib/confirm";
 import { formatDateTime } from "@/lib/format";
 import { playSentSound } from "@/lib/sounds";
 import { makeStyles, useTheme } from "@/theme/theme";
@@ -99,6 +100,42 @@ function Thread() {
   }
 
   const toEnd = () => scroll.current?.scrollToEnd({ animated: true });
+  const [notice, setNotice] = useState<string | null>(null);
+
+  // Conversation entre voyageurs : signaler un message reçu (appui long), bloquer l'autre.
+  async function report(messageId: string) {
+    const ok = await confirmAction({
+      title: "Signaler ce message ?",
+      message: "L'agence verra ce message (et seulement celui-ci) pour l'examiner.",
+      confirmLabel: "Signaler",
+    });
+    if (!ok) return;
+    try {
+      await reportMessage(messageId);
+      setNotice("Merci : l'agence va examiner ce message.");
+    } catch (e: unknown) {
+      setNotice(e instanceof ApiError ? e.message : "Signalement impossible.");
+    }
+  }
+
+  async function block() {
+    const autre = data?.interlocuteur;
+    if (!autre) return;
+    const ok = await confirmAction({
+      title: `Bloquer ${autre.nom} ?`,
+      message: "Vous ne pourrez plus vous écrire. Vous pourrez le débloquer depuis « Voyageurs ».",
+      confirmLabel: "Bloquer",
+    });
+    if (!ok) return;
+    try {
+      await blockVoyageur(autre.id);
+      router.replace("/voyageurs");
+    } catch (e: unknown) {
+      setNotice(e instanceof ApiError ? e.message : "Action impossible.");
+    }
+  }
+
+  const presence = presenceLabel(data?.interlocuteur ?? data?.presenceAgence);
 
   return (
     // Le clavier pousse toute la zone de saisie : rien de ce qu'on écrit n'est caché. La marge
@@ -108,7 +145,27 @@ function Thread() {
       keyboardVerticalOffset={-insets.bottom}
       style={styles.screen}
     >
-      <ScreenHeader kicker="Messages" title={data?.sujet ?? "Conversation"} />
+      <ScreenHeader
+        kicker={
+          data?.interlocuteur
+            ? `Voyageur${presence ? ` · ${presence}` : ""}`
+            : `Messages${presence ? ` · agence ${presence}` : ""}`
+        }
+        title={data?.sujet ?? "Conversation"}
+        right={
+          data?.interlocuteur && !data.interlocuteur.bloque ? (
+            <Pressable
+              onPress={() => void block()}
+              accessibilityRole="button"
+              accessibilityLabel={`Bloquer ${data.interlocuteur.nom}`}
+              style={styles.blockBtn}
+            >
+              <Ionicons name="ban-outline" size={16} color={theme.danger} />
+              <Text style={styles.blockText}>Bloquer</Text>
+            </Pressable>
+          ) : null
+        }
+      />
       {error ? (
         <ErrorState message={error} onRetry={reload} />
       ) : !data ? (
@@ -140,8 +197,23 @@ function Thread() {
                 </Text>
               </Pressable>
             ) : null}
+            {data.prive ? (
+              <Text style={styles.hint}>
+                {data.interlocuteur?.bloque
+                  ? "Vous ne pouvez plus vous écrire (blocage)."
+                  : "Conversation privée : l'agence ne la lit pas. Appui long sur un message reçu pour le signaler."}
+              </Text>
+            ) : null}
+            {notice ? <Text style={styles.notice}>{notice}</Text> : null}
             {data.messages.map((m) => (
-              <View key={m.id} style={[styles.line, m.deMoi && styles.lineMine]}>
+              <Pressable
+                key={m.id}
+                style={[styles.line, m.deMoi && styles.lineMine]}
+                onLongPress={data.prive && !m.deMoi ? () => void report(m.id) : undefined}
+                accessibilityHint={
+                  data.prive && !m.deMoi ? "Appui long pour signaler ce message" : undefined
+                }
+              >
                 {!m.deMoi ? <Avatar name={m.auteur} photo={m.photo} size={30} /> : null}
                 <View style={[styles.bubble, m.deMoi ? styles.mine : styles.theirs]}>
                   {!m.deMoi ? (
@@ -153,7 +225,7 @@ function Thread() {
                   <Text style={[styles.body, m.deMoi && styles.bodyMine]}>{m.contenu}</Text>
                   <Meta at={formatDateTime(m.at)} mine={m.deMoi} statut={m.statut} />
                 </View>
-              </View>
+              </Pressable>
             ))}
             {outbox.map((o) =>
               o.etat === "ECHEC" ? (
@@ -244,6 +316,30 @@ const useStyles = makeStyles((t) =>
   StyleSheet.create({
     screen: { flex: 1, backgroundColor: t.bg },
     thread: { padding: 18, gap: 10 },
+    hint: {
+      fontFamily: fonts.text,
+      fontSize: 12,
+      lineHeight: 17,
+      color: t.textMuted,
+      textAlign: "center",
+      marginBottom: 4,
+    },
+    notice: {
+      fontFamily: fonts.textMedium,
+      fontSize: 13,
+      color: t.accent,
+      textAlign: "center",
+    },
+    blockBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: radius.pill,
+      backgroundColor: t.dangerSoft,
+    },
+    blockText: { fontFamily: fonts.textSemiBold, fontSize: 13, color: t.danger },
     reservation: {
       flexDirection: "row",
       alignItems: "center",

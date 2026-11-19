@@ -6,10 +6,12 @@ import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { playSentSound } from "@/components/shell/realtime";
+import { useConfirm, useNotify } from "@/components/ui/dialogs";
 import { Avatar } from "@/components/ui/avatar";
 import { Icon } from "@/components/ui/icon";
 import type { Role } from "@/generated/prisma/client";
 import { markConversationReadAction, sendMessageAction } from "@/lib/actions/messagerie";
+import { reportMessageAction } from "@/lib/actions/voyageurs";
 import { formatDate, formatTime } from "@/lib/format";
 import { type DeliveryStatus, messagingSide, SIDE_LABELS } from "@/lib/messagerie";
 import { MESSAGE_MAX, messageSchema } from "@/lib/validators/messagerie";
@@ -39,7 +41,13 @@ export function Thread({
   viewerId,
   viewerRole,
   agenceLogo = null,
+  prive = false,
 }: {
+  /**
+   * Conversation privée entre voyageurs : « mes » messages = ceux de mon compte, et chaque
+   * message reçu peut être signalé à l'agence.
+   */
+  prive?: boolean;
   conversationId: string;
   messages: readonly ThreadMessage[];
   viewerId: string;
@@ -116,7 +124,7 @@ export function Thread({
           const day = days[index]!;
           const separator = index === 0 || day !== days[index - 1];
           const side = messagingSide(m.auteur.role);
-          const mine = side === mySide;
+          const mine = prive ? m.auteur.id === viewerId : side === mySide;
           const me = m.auteur.id === viewerId;
           return (
             <li key={m.id}>
@@ -142,6 +150,7 @@ export function Thread({
                   </p>
                   <Bubble mine={mine}>{m.contenu}</Bubble>
                   {m.statut ? <Status statut={m.statut} /> : null}
+                  {prive && !mine ? <ReportButton messageId={m.id} /> : null}
                 </div>
               </div>
             </li>
@@ -172,6 +181,34 @@ export function Thread({
       </ol>
       <Composer conversationId={conversationId} onSend={send} />
     </div>
+  );
+}
+
+/** Signaler un message reçu dans une conversation privée (l'agence le verra, lui seul). */
+function ReportButton({ messageId }: { messageId: string }) {
+  const confirm = useConfirm();
+  const notify = useNotify();
+  async function report() {
+    const ok = await confirm({
+      title: "Signaler ce message ?",
+      message:
+        "L'agence verra ce message (et lui seul) avec son auteur, et pourra intervenir. Vous pouvez aussi bloquer ce voyageur.",
+      confirmLabel: "Signaler",
+      cancelLabel: "Annuler",
+      tone: "danger",
+    });
+    if (!ok) return;
+    const result = await reportMessageAction({ messageId, motif: null });
+    notify(result.error ?? result.success ?? "", result.error ? "error" : "success");
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => void report()}
+      className="mt-1 text-xs text-gt-teal-900/60 underline hover:text-red-700"
+    >
+      Signaler
+    </button>
   );
 }
 

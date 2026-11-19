@@ -1,4 +1,5 @@
 import { SIDE_LABELS, messagingSide } from "@/lib/messagerie";
+import { type Presence, presenceOf } from "@/lib/presence";
 import { itineraireIdFromLink, reservationIdFromLink } from "@/lib/push/expo";
 import {
   type ConversationSummary,
@@ -7,6 +8,7 @@ import {
   countUnreadConversations,
   type Viewer,
 } from "@/lib/services/messagerie";
+import { nomPublic } from "@/lib/services/voyageurs";
 import type { TenantDb } from "@/lib/tenant";
 
 /**
@@ -110,11 +112,27 @@ export async function mobileActivity(db: TenantDb, viewer: Viewer, depuis: Date 
 }
 
 /** Conversation dans la liste « Messages ». */
-export function toMobileConversation(c: ConversationSummary, viewerId: string) {
+export function toMobileConversation(
+  c: ConversationSummary,
+  viewerId: string,
+  now: Date = new Date(),
+) {
   const last = c.dernierMessage;
+  // Conversation privée : l'autre voyageur (prénom, initiale, photo, présence).
+  const prive = c.type === "VOYAGEURS";
+  const autre = prive ? (c.client.id === viewerId ? c.destinataire : c.client) : null;
   return {
     id: c.id,
-    sujet: c.sujet,
+    sujet: prive && autre ? nomPublic(autre) : c.sujet,
+    prive,
+    interlocuteur: autre
+      ? {
+          id: autre.id,
+          nom: nomPublic(autre),
+          photo: autre.photoUrl,
+          ...presenceOf(autre.derniereActiviteAt, autre.presenceVisible, now),
+        }
+      : null,
     nonLue: c.nonLue,
     at: c.dernierMessageAt.toISOString(),
     reservation: c.reservation
@@ -135,10 +153,27 @@ export function toMobileThread(
   t: ConversationThread,
   viewerId: string,
   agenceLogo: string | null = null,
+  extra: { presenceAgence?: Presence; bloque?: boolean; now?: Date } = {},
 ) {
+  const now = extra.now ?? new Date();
+  const prive = t.type === "VOYAGEURS";
+  const autre = prive ? (t.client.id === viewerId ? t.destinataire : t.client) : null;
   return {
     id: t.id,
-    sujet: t.sujet,
+    sujet: prive && autre ? nomPublic(autre) : t.sujet,
+    prive,
+    /** Voyageur en face (conversation privée) : présence, et s'il y a un blocage entre vous. */
+    interlocuteur: autre
+      ? {
+          id: autre.id,
+          nom: nomPublic(autre),
+          photo: autre.photoUrl,
+          ...presenceOf(autre.derniereActiviteAt, autre.presenceVisible, now),
+          bloque: extra.bloque ?? false,
+        }
+      : null,
+    /** Présence de l'équipe de l'agence (conversation avec l'agence). */
+    presenceAgence: prive ? null : (extra.presenceAgence ?? null),
     reservation: t.reservation
       ? {
           id: t.reservation.id,

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Switch, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -8,7 +8,7 @@ import { PhotoEditor } from "@/components/photo-editor";
 import { RequireAuth } from "@/components/require-auth";
 import { ScreenHeader } from "@/components/screen-header";
 import { useAuth } from "@/context/auth";
-import { ApiError, changePassword, updateProfile } from "@/lib/api";
+import { ApiError, changePassword, updatePrivacy, updateProfile } from "@/lib/api";
 import { makeStyles } from "@/theme/theme";
 import { fonts, radius } from "@/theme/tokens";
 
@@ -36,6 +36,23 @@ function Profil() {
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [pwdMessage, setPwdMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, setPending] = useState<"profil" | "pwd" | null>(null);
+  const [privacy, setPrivacy] = useState({
+    presenceVisible: user!.presenceVisible ?? true,
+    messagesVoyageurs: user!.messagesVoyageurs ?? true,
+  });
+  const [privacyMessage, setPrivacyMessage] = useState<string | null>(null);
+
+  async function savePrivacy(next: typeof privacy) {
+    const before = privacy;
+    setPrivacy(next);
+    setPrivacyMessage(null);
+    try {
+      await updateUser(await updatePrivacy(next));
+    } catch (e: unknown) {
+      setPrivacy(before);
+      setPrivacyMessage(e instanceof ApiError ? e.message : "Enregistrement impossible.");
+    }
+  }
 
   async function saveProfile() {
     setPending("profil");
@@ -118,6 +135,38 @@ function Profil() {
           </View>
 
           <View style={styles.card}>
+            <Text style={styles.h2}>Confidentialité</Text>
+            <View style={styles.switchRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Montrer quand je suis en ligne</Text>
+                <Text style={styles.small}>
+                  Sinon, personne ne voit « en ligne » ni « vu il y a … » pour vous.
+                </Text>
+              </View>
+              <Switch
+                value={privacy.presenceVisible}
+                onValueChange={(v) => void savePrivacy({ ...privacy, presenceVisible: v })}
+                accessibilityLabel="Montrer quand je suis en ligne"
+              />
+            </View>
+            <View style={styles.switchRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Recevoir des messages des autres voyageurs</Text>
+                <Text style={styles.small}>
+                  Sinon, vous n&apos;apparaissez pas dans « Voyageurs » et personne ne peut ouvrir
+                  une nouvelle conversation avec vous.
+                </Text>
+              </View>
+              <Switch
+                value={privacy.messagesVoyageurs}
+                onValueChange={(v) => void savePrivacy({ ...privacy, messagesVoyageurs: v })}
+                accessibilityLabel="Recevoir des messages des autres voyageurs"
+              />
+            </View>
+            {privacyMessage ? <FormError message={privacyMessage} /> : null}
+          </View>
+
+          <View style={styles.card}>
             <Text style={styles.h2}>Mot de passe</Text>
             <PasswordField
               label="Mot de passe actuel"
@@ -164,5 +213,7 @@ const useStyles = makeStyles((t) =>
     h2: { fontFamily: fonts.display, fontSize: 18, color: t.text },
     small: { fontFamily: fonts.text, fontSize: 12, color: t.textMuted },
     success: { fontFamily: fonts.textMedium, fontSize: 13, color: t.accent },
+    switchRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+    label: { fontFamily: fonts.textMedium, fontSize: 14, color: t.text },
   }),
 );

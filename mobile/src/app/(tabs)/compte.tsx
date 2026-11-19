@@ -59,6 +59,12 @@ export default function CompteScreen() {
             onPress={() => router.push("/messages")}
           />
           <ListRow
+            icon="people-outline"
+            label="Voyageurs"
+            value="Échanger avec d'autres voyageurs"
+            onPress={() => router.push("/voyageurs")}
+          />
+          <ListRow
             icon="notifications-outline"
             label="Notifications"
             count={unread.notifications}

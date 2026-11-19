@@ -104,8 +104,17 @@ export const TENANT_CONFIG: Readonly<Record<ModelName, ModelConfig>> = {
   },
   Conversation: {
     scope: { kind: "tenant" },
-    references: { clientId: "Utilisateur", reservationId: "Reservation" },
+    references: {
+      clientId: "Utilisateur",
+      destinataireId: "Utilisateur",
+      reservationId: "Reservation",
+    },
   },
+  Blocage: {
+    scope: { kind: "tenant" },
+    references: { bloqueurId: "Utilisateur", bloqueId: "Utilisateur" },
+  },
+  Signalement: { scope: { kind: "tenant" }, references: { auteurId: "Utilisateur" } },
   Message: {
     scope: { kind: "child", relation: "conversation" },
     references: { conversationId: "Conversation", auteurId: "Utilisateur" },

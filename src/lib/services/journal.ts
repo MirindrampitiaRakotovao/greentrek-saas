@@ -20,6 +20,8 @@ export type ActivityInput = {
 export const ACTION_LABELS: Record<string, string> = {
   CLIENT_AJOUTE: "Client ajouté par l'agence",
   LOGO_MODIFIE: "Logo de l'agence modifié",
+  SIGNALEMENT_TRAITE: "Signalement traité",
+  CLIENT_DESACTIVE: "Compte d'un voyageur désactivé",
   ITINERAIRE_PROPOSE: "Itinéraire proposé à un client",
   ITINERAIRE_REPONDU: "Réponse à une demande d'itinéraire",
   RESERVATION_CREEE_AGENCE: "Réservation créée pour un client",

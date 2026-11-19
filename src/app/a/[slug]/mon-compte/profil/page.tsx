@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { ImageUploader } from "@/components/profile/image-uploader";
 import { PasswordForm, ProfileForm } from "@/components/team/profile-forms";
+import { PrivacyForm } from "@/components/voyageurs/privacy-form";
 import { requireClient } from "@/lib/auth/session";
 
 export const metadata: Metadata = { title: "Mon profil" };
@@ -13,7 +14,15 @@ export default async function MonProfilPage({ params }: PageProps<"/a/[slug]/mon
   const { user, db } = await requireClient(slug, `/a/${slug}/mon-compte/profil`);
   const profile = await db.utilisateur.findUniqueOrThrow({
     where: { id: user.id },
-    select: { prenom: true, nom: true, telephone: true, email: true, photoUrl: true },
+    select: {
+      prenom: true,
+      nom: true,
+      telephone: true,
+      email: true,
+      photoUrl: true,
+      presenceVisible: true,
+      messagesVoyageurs: true,
+    },
   });
   const nom = `${profile.prenom} ${profile.nom}`;
 
@@ -27,6 +36,16 @@ export default async function MonProfilPage({ params }: PageProps<"/a/[slug]/mon
           contenu: <ImageUploader kind="photo" name={nom} current={profile.photoUrl} />,
         },
         { id: "identite", titre: "Coordonnées", contenu: <ProfileForm profile={profile} /> },
+        {
+          id: "confidentialite",
+          titre: "Confidentialité",
+          contenu: (
+            <PrivacyForm
+              presenceVisible={profile.presenceVisible}
+              messagesVoyageurs={profile.messagesVoyageurs}
+            />
+          ),
+        },
         { id: "mot-de-passe", titre: "Mot de passe", contenu: <PasswordForm /> },
       ].map((section) => (
         <section

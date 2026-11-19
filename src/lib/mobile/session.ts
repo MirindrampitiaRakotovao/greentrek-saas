@@ -53,6 +53,8 @@ export async function mobileProfile(userId: string, client: PrismaClient = getAd
       email: true,
       telephone: true,
       photoUrl: true,
+      presenceVisible: true,
+      messagesVoyageurs: true,
       agence: { select: { slug: true, nom: true, logoUrl: true } },
     },
   });
@@ -66,6 +68,9 @@ export async function mobileProfile(userId: string, client: PrismaClient = getAd
     /** Photo de profil et logo de l'agence (chemins du site), ou null. */
     photoUrl: u.photoUrl,
     agenceLogoUrl: u.agence?.logoUrl ?? null,
+    /** Confidentialité (étape 5c). */
+    presenceVisible: u.presenceVisible,
+    messagesVoyageurs: u.messagesVoyageurs,
   };
 }
 

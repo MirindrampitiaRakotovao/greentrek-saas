@@ -150,6 +150,8 @@ model Agence {
   conversations       Conversation[]
   appareilsMobiles    AppareilMobile[]
   itinerairesPerso    ItinerairePersonnalise[]
+  blocages            Blocage[]
+  signalements        Signalement[]
 }
 
 // ─── 2. Utilisateur ────────────────────────────────────────────────────────────
@@ -161,22 +163,27 @@ enum OrigineClient {
 }
 
 model Utilisateur {
-  id             String        @id @default(cuid())
-  agenceId       String? // null uniquement pour SUPER_ADMIN
-  nom            String        @db.VarChar(100)
-  prenom         String        @db.VarChar(100)
-  email          String        @db.VarChar(191)
-  motDePasseHash String        @db.VarChar(255)
-  telephone      String?       @db.VarChar(30)
+  id                 String        @id @default(cuid())
+  agenceId           String? // null uniquement pour SUPER_ADMIN
+  nom                String        @db.VarChar(100)
+  prenom             String        @db.VarChar(100)
+  email              String        @db.VarChar(191)
+  motDePasseHash     String        @db.VarChar(255)
+  telephone          String?       @db.VarChar(30)
+  // Présence et confidentialité (étape 5c) : dernière activité (site ou application), et
+  // choix du voyageur : montrer qu'il est en ligne, recevoir des messages d'autres voyageurs.
+  derniereActiviteAt DateTime?
+  presenceVisible    Boolean       @default(true)
+  messagesVoyageurs  Boolean       @default(true)
   // Photo de profil (après E12) : chemin d'un fichier envoyé (« /fichiers/avatars/… »).
-  photoUrl       String?       @db.VarChar(255)
-  role           Role
-  actif          Boolean       @default(true)
+  photoUrl           String?       @db.VarChar(255)
+  role               Role
+  actif              Boolean       @default(true)
   // Voyageur (rôle CLIENT) : inscrit lui-même sur le site ou l'application, ou ajouté par
   // l'agence (qui peut alors réserver pour lui). Sans objet pour le personnel.
-  origine        OrigineClient @default(INSCRIPTION)
-  dernierLoginAt DateTime?
-  createdAt      DateTime      @default(now())
+  origine            OrigineClient @default(INSCRIPTION)
+  dernierLoginAt     DateTime?
+  createdAt          DateTime      @default(now())
 
   agence                 Agence?                  @relation(fields: [agenceId], references: [id], onDelete: Restrict)
   guide                  Guide?
@@ -185,7 +192,11 @@ model Utilisateur {
   notifications          Notification[]
   journalActivites       JournalActivite[]
   itinerairesCalcules    ItineraireCalcule[]
-  conversations          Conversation[]
+  conversations          Conversation[]           @relation("ConversationClient")
+  conversationsRecues    Conversation[]           @relation("ConversationDestinataire")
+  blocagesFaits          Blocage[]                @relation("BlocageAuteur")
+  blocagesSubis          Blocage[]                @relation("BlocageCible")
+  signalements           Signalement[]
   messages               Message[]
   lectures               LectureConversation[]
   jetonsReinitialisation JetonReinitialisation[]
@@ -584,22 +595,28 @@ model JournalActivite {
 // personnel), éventuellement liée à une réservation (au plus une conversation par
 // réservation). Le guide du départ de la réservation y participe.
 model Conversation {
-  id               String   @id @default(cuid())
+  id               String           @id @default(cuid())
   agenceId         String
+  // Avec l'agence (voyageur ↔ équipe, guide) ou entre deux voyageurs (étape 5c : `clientId`
+  // a ouvert la conversation, `destinataireId` est l'autre voyageur ; l'agence ne la lit pas).
+  type             TypeConversation @default(AGENCE)
   clientId         String
-  reservationId    String?  @unique
-  sujet            String   @db.VarChar(200)
-  dernierMessageAt DateTime @default(now())
-  createdAt        DateTime @default(now())
+  destinataireId   String?
+  reservationId    String?          @unique
+  sujet            String           @db.VarChar(200)
+  dernierMessageAt DateTime         @default(now())
+  createdAt        DateTime         @default(now())
 
-  agence      Agence                @relation(fields: [agenceId], references: [id], onDelete: Restrict)
-  client      Utilisateur           @relation(fields: [clientId], references: [id], onDelete: Restrict)
-  reservation Reservation?          @relation(fields: [reservationId], references: [id], onDelete: Restrict)
-  messages    Message[]
-  lectures    LectureConversation[]
+  agence       Agence                @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  client       Utilisateur           @relation("ConversationClient", fields: [clientId], references: [id], onDelete: Restrict)
+  destinataire Utilisateur?          @relation("ConversationDestinataire", fields: [destinataireId], references: [id], onDelete: Restrict)
+  reservation  Reservation?          @relation(fields: [reservationId], references: [id], onDelete: Restrict)
+  messages     Message[]
+  lectures     LectureConversation[]
 
   @@index([agenceId, dernierMessageAt])
   @@index([clientId])
+  @@index([destinataireId])
 }
 
 // Message d'une conversation (texte seul, pas de pièce jointe). Hérite de l'agence de la
@@ -714,4 +731,60 @@ model ItinerairePersonnalise {
   @@index([clientId])
   @@index([creeParId])
   @@index([itineraireCalculeId])
+}
+
+// ─── Voyageurs entre eux, signalements (hors cahier des charges, étape 5c) ─────────
+
+enum TypeConversation {
+  AGENCE
+  VOYAGEURS
+}
+
+// Un voyageur en bloque un autre : plus aucun message dans les deux sens.
+model Blocage {
+  id         String   @id @default(cuid())
+  agenceId   String
+  bloqueurId String
+  bloqueId   String
+  createdAt  DateTime @default(now())
+
+  agence   Agence      @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  bloqueur Utilisateur @relation("BlocageAuteur", fields: [bloqueurId], references: [id], onDelete: Cascade)
+  bloque   Utilisateur @relation("BlocageCible", fields: [bloqueId], references: [id], onDelete: Cascade)
+
+  @@unique([bloqueurId, bloqueId])
+  @@index([agenceId])
+  @@index([bloqueId])
+}
+
+/// Ce qui est signalé : un message privé (5c), une publication ou un commentaire (5d).
+enum CibleSignalement {
+  MESSAGE
+  PUBLICATION
+  COMMENTAIRE
+}
+
+enum StatutSignalement {
+  OUVERT
+  TRAITE
+}
+
+// Signalement d'un abus, traité par l'agence concernée (celle de l'auteur du contenu).
+// `cibleId` désigne la ligne signalée (pas de clé étrangère : la cible varie).
+model Signalement {
+  id        String            @id @default(cuid())
+  agenceId  String
+  auteurId  String
+  cible     CibleSignalement
+  cibleId   String            @db.VarChar(30)
+  motif     String?           @db.Text
+  statut    StatutSignalement @default(OUVERT)
+  createdAt DateTime          @default(now())
+  traiteAt  DateTime?
+
+  agence Agence      @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  auteur Utilisateur @relation(fields: [auteurId], references: [id], onDelete: Cascade)
+
+  @@unique([auteurId, cible, cibleId])
+  @@index([agenceId, statut])
 }

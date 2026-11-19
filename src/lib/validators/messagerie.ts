@@ -26,3 +26,22 @@ export const startConversationSchema = z.object({
 export type StartConversationInput = z.infer<typeof startConversationSchema>;
 
 export const conversationIdSchema = z.object({ conversationId: z.string().min(1) });
+
+/* ─── Voyageurs entre eux (étape 5c) ───────────────────────────────────────────── */
+
+export const privateMessageSchema = z.object({
+  destinataireId: z.string().min(1),
+  contenu,
+});
+
+export const reportMessageSchema = z.object({
+  messageId: z.string().min(1),
+  motif: optionalText(500),
+});
+
+export const privacySchema = z.object({
+  presenceVisible: z.boolean(),
+  messagesVoyageurs: z.boolean(),
+});
+
+export const userIdSchema = z.object({ id: z.string().min(1) });

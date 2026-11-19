@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Avatar } from "@/components/avatar";
 import { Button } from "@/components/form";
 import { RequireAuth } from "@/components/require-auth";
 import { ScreenHeader } from "@/components/screen-header";
@@ -23,7 +24,7 @@ export default function MessagesScreen() {
   );
 }
 
-/** Conversations du voyageur avec son agence (même messagerie que le site). */
+/** Conversations du voyageur : avec son agence, et avec d'autres voyageurs (étape 5c). */
 function Conversations() {
   const styles = useStyles();
   const { theme } = useTheme();
@@ -37,7 +38,7 @@ function Conversations() {
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader kicker="Votre agence" title="Messages" />
+      <ScreenHeader kicker="Votre agence et les voyageurs" title="Messages" />
       {error ? (
         <ErrorState message={error} onRetry={reload} />
       ) : !data ? (
@@ -51,7 +52,14 @@ function Conversations() {
           refreshing={loading}
           onRefresh={reload}
           ListHeaderComponent={
-            <Button label="Écrire à l'agence" onPress={() => router.push("/messages/nouveau")} />
+            <View style={{ gap: 10 }}>
+              <Button label="Écrire à l'agence" onPress={() => router.push("/messages/nouveau")} />
+              <Button
+                label="Écrire à un voyageur"
+                variant="secondary"
+                onPress={() => router.push("/voyageurs")}
+              />
+            </View>
           }
           ListHeaderComponentStyle={{ marginBottom: 14 }}
           ListEmptyComponent={
@@ -62,11 +70,22 @@ function Conversations() {
               onPress={() => router.push({ pathname: "/messages/[id]", params: { id: item.id } })}
               style={[styles.card, item.nonLue && styles.unread]}
               accessibilityRole="link"
-              accessibilityLabel={`${item.nonLue ? "Non lu. " : ""}${item.sujet}`}
+              accessibilityLabel={`${item.nonLue ? "Non lu. " : ""}${item.sujet}${
+                item.interlocuteur?.enLigne ? ", en ligne" : ""
+              }`}
             >
-              <View style={styles.icon}>
-                <Ionicons name="chatbubbles-outline" size={20} color={theme.accent} />
-              </View>
+              {item.interlocuteur ? (
+                <Avatar
+                  name={item.interlocuteur.nom}
+                  photo={item.interlocuteur.photo}
+                  size={36}
+                  online={item.interlocuteur.enLigne}
+                />
+              ) : (
+                <View style={styles.icon}>
+                  <Ionicons name="chatbubbles-outline" size={20} color={theme.accent} />
+                </View>
+              )}
               <View style={{ flex: 1, gap: 3 }}>
                 <View style={styles.between}>
                   <Text style={[styles.title, item.nonLue && styles.bold]} numberOfLines={1}>

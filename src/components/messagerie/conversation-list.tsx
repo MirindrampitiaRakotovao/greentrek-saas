@@ -3,7 +3,11 @@ import Link from "next/link";
 import type { Role } from "@/generated/prisma/client";
 import { formatMessageDate } from "@/lib/format";
 import { messagingSide, SIDE_LABELS } from "@/lib/messagerie";
+import { presenceOf } from "@/lib/presence";
 import type { ConversationSummary } from "@/lib/services/messagerie";
+import { nomPublic } from "@/lib/services/voyageurs";
+
+import { PresenceAvatar } from "@/components/ui/presence-avatar";
 
 /**
  * Liste des conversations (messagerie, après E12) : interlocuteur, sujet, dernier message et
@@ -15,19 +19,32 @@ export function ConversationList({
   viewerId,
   viewerRole,
   activeId,
+  agenceLogo = null,
 }: {
   items: readonly ConversationSummary[];
   basePath: string;
   viewerId: string;
   viewerRole: Role;
   activeId?: string;
+  agenceLogo?: string | null;
 }) {
   const client = viewerRole === "CLIENT";
+  const now = new Date();
   return (
     <ul className="divide-y divide-gt-mist/60">
       {items.map((c) => {
         const active = c.id === activeId;
-        const titre = client ? c.sujet : `${c.client.prenom} ${c.client.nom}`;
+        // Interlocuteur : l'autre voyageur (conversation privée), l'agence (pour le voyageur) ou
+        // le voyageur (pour l'équipe).
+        const prive = c.type === "VOYAGEURS";
+        const autre = prive ? (c.client.id === viewerId ? c.destinataire : c.client) : c.client;
+        const titre = prive
+          ? autre
+            ? nomPublic(autre)
+            : "Voyageur"
+          : client
+            ? c.sujet
+            : `${c.client.prenom} ${c.client.nom}`;
         const last = c.dernierMessage;
         // « Vous » pour ses propres messages ; sinon le prénom (et, pour le voyageur, le rôle).
         const auteur = last
@@ -44,12 +61,18 @@ export function ConversationList({
                 active ? "bg-gt-teal-100" : "hover:bg-gt-teal-50"
               }`}
             >
-              <span
-                aria-hidden="true"
-                className="grid size-10 shrink-0 place-items-center rounded-full bg-gt-teal-700 text-sm font-semibold text-white"
-              >
-                {client ? "?" : `${c.client.prenom[0] ?? ""}${c.client.nom[0] ?? ""}`}
-              </span>
+              {client && !prive ? (
+                <PresenceAvatar name="Agence" src={agenceLogo} size={40} />
+              ) : (
+                <PresenceAvatar
+                  name={titre}
+                  src={autre?.photoUrl}
+                  presence={
+                    autre ? presenceOf(autre.derniereActiviteAt, autre.presenceVisible, now) : null
+                  }
+                  size={40}
+                />
+              )}
               <span className="min-w-0 flex-1">
                 <span className="flex items-baseline justify-between gap-2">
                   <span
@@ -61,8 +84,10 @@ export function ConversationList({
                     {formatMessageDate(c.dernierMessageAt)}
                   </span>
                 </span>
-                {!client ? (
-                  <span className="block truncate text-xs text-gt-teal-900/75">{c.sujet}</span>
+                {!client || prive ? (
+                  <span className="block truncate text-xs text-gt-teal-900/75">
+                    {prive ? "Conversation entre voyageurs" : c.sujet}
+                  </span>
                 ) : null}
                 {last ? (
                   <span

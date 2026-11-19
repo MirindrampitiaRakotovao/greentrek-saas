@@ -9,7 +9,13 @@ import {
   validationError,
 } from "@/lib/mobile/http";
 import { mobileClientFromRequest } from "@/lib/mobile/session";
-import { getConversation, markConversationRead, sendMessage } from "@/lib/services/messagerie";
+import { presenceOfGroup } from "@/lib/presence";
+import {
+  getConversation,
+  isBlockedBetween,
+  markConversationRead,
+  sendMessage,
+} from "@/lib/services/messagerie";
 import { messageSchema } from "@/lib/validators/messagerie";
 
 /** Fil d'une conversation du voyageur ; l'ouvrir la marque comme lue. */
@@ -24,8 +30,29 @@ export async function GET(
   const thread = await getConversation(ctx.db, viewer, id);
   if (!thread) return jsonError("Conversation introuvable.", 404);
   await markConversationRead(ctx.db, viewer, id);
-  const agence = await ctx.db.agence.findFirstOrThrow({ select: { logoUrl: true } });
-  return json(toMobileThread(thread, ctx.user.id, agence.logoUrl), { private: true });
+  const autre =
+    thread.type === "VOYAGEURS"
+      ? thread.client.id === ctx.user.id
+        ? thread.destinataire
+        : thread.client
+      : null;
+  const [agence, equipe, bloque] = await Promise.all([
+    ctx.db.agence.findFirstOrThrow({ select: { logoUrl: true } }),
+    autre
+      ? Promise.resolve([])
+      : ctx.db.utilisateur.findMany({
+          where: { actif: true, role: { in: ["ADMIN_AGENCE", "STAFF"] } },
+          select: { derniereActiviteAt: true, presenceVisible: true },
+        }),
+    autre ? isBlockedBetween(ctx.db, ctx.user.id, autre.id) : Promise.resolve(false),
+  ]);
+  return json(
+    toMobileThread(thread, ctx.user.id, agence.logoUrl, {
+      presenceAgence: presenceOfGroup(equipe),
+      bloque,
+    }),
+    { private: true },
+  );
 }
 
 /** Réponse dans la conversation `{ contenu }`. */

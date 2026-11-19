@@ -38,6 +38,7 @@ export default async function MonCompteLayout({
       icon: "message",
       badge: messagesNonLus,
     },
+    { href: `/a/${slug}/mon-compte/voyageurs`, label: "Voyageurs", icon: "users" },
     { href: `/a/${slug}/circuits`, label: "Réserver un circuit", icon: "mountain" },
     { href: `/a/${slug}/mon-compte/profil`, label: "Mon profil", icon: "user" },
   ];

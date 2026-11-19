@@ -164,6 +164,9 @@ export type Profile = {
   /** Photo de profil et logo de l'agence (chemins du site, voir `imageUrl`), ou null. */
   photoUrl?: string | null;
   agenceLogoUrl?: string | null;
+  /** Confidentialité (étape 5c). */
+  presenceVisible?: boolean;
+  messagesVoyageurs?: boolean;
 };
 
 export type Session = { token: string; user: Profile };
@@ -309,9 +312,17 @@ export type Activity = {
   messages: { id: string; conversationId: string; sujet: string; auteur: string }[];
 };
 
+/** Présence : « en ligne » ou « vu il y a … » (null si masquée ou inconnue). */
+export type Presence = { enLigne: boolean; vu: string | null };
+
+/** Autre voyageur d'une conversation privée (prénom, initiale, photo). */
+export type Interlocuteur = Presence & { id: string; nom: string; photo: string | null };
+
 export type ConversationSummary = {
   id: string;
   sujet: string;
+  prive?: boolean;
+  interlocuteur?: Interlocuteur | null;
   nonLue: boolean;
   at: string;
   reservation: { id: string; reference: string } | null;
@@ -321,6 +332,9 @@ export type ConversationSummary = {
 export type Thread = {
   id: string;
   sujet: string;
+  prive?: boolean;
+  interlocuteur?: (Interlocuteur & { bloque: boolean }) | null;
+  presenceAgence?: Presence | null;
   reservation: { id: string; reference: string; circuit: string } | null;
   messages: {
     id: string;
@@ -366,6 +380,46 @@ export function startConversation(input: {
   contenu: string;
 }) {
   return request<{ conversationId: string }>("/messages", { json: input });
+}
+
+/* ─── Voyageurs entre eux (étape 5c) ──────────────────────────────────────────── */
+
+export type Voyageur = Interlocuteur;
+
+export function fetchVoyageurs(q: string) {
+  const query = q.trim() ? `?q=${encodeURIComponent(q.trim())}` : "";
+  return request<{
+    voyageurs: Voyageur[];
+    page: number;
+    pageCount: number;
+    bloques: { id: string; nom: string; photo: string | null }[];
+  }>(`/voyageurs${query}`);
+}
+
+export function startPrivateConversation(destinataireId: string, contenu: string) {
+  return request<{ conversationId: string }>("/messages/voyageur", {
+    json: { destinataireId, contenu },
+  });
+}
+
+export function blockVoyageur(id: string) {
+  return request<{ ok: true }>(`/voyageurs/${encodeURIComponent(id)}/blocage`, {
+    method: "POST",
+  });
+}
+
+export function unblockVoyageur(id: string) {
+  return request<{ ok: true }>(`/voyageurs/${encodeURIComponent(id)}/blocage`, {
+    method: "DELETE",
+  });
+}
+
+export function reportMessage(messageId: string) {
+  return request<{ ok: true }>("/signalements", { json: { messageId } });
+}
+
+export function updatePrivacy(input: { presenceVisible: boolean; messagesVoyageurs: boolean }) {
+  return request<Profile>("/moi/confidentialite", { method: "PATCH", json: input });
 }
 
 export function registerDevice(token: string, plateforme: "android" | "ios") {

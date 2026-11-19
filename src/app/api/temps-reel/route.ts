@@ -1,6 +1,8 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { subscribe } from "@/lib/realtime/bus";
 import type { RealtimeEvent } from "@/lib/realtime/events";
+import { touchPresence } from "@/lib/services/voyageurs";
+import { getTenantDb } from "@/lib/tenant";
 
 /**
  * Canal temps réel (Server-Sent Events) : notifications et messages de l'utilisateur
@@ -36,7 +38,16 @@ export async function GET(request: Request) {
         write(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
 
       const unsubscribe = subscribe(user.id, send);
-      const heartbeat = setInterval(() => write(": ping\n\n"), HEARTBEAT_MS);
+      // Présence « en ligne » (étape 5c) : tant que l'onglet est ouvert, la dernière activité
+      // est rafraîchie (au plus une écriture par minute, voir `touchPresence`).
+      const presence = () => {
+        if (user.agenceId) void touchPresence(getTenantDb(user.agenceId), user.id).catch(() => {});
+      };
+      presence();
+      const heartbeat = setInterval(() => {
+        write(": ping\n\n");
+        presence();
+      }, HEARTBEAT_MS);
       cleanup = () => {
         clearInterval(heartbeat);
         unsubscribe();

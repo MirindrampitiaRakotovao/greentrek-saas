@@ -78,6 +78,13 @@ const NAVIGATION: readonly NavEntry[] = [
     permission: ["moderer", "avis"],
   },
   {
+    href: "/dashboard/signalements",
+    label: "Signalements",
+    icon: "shield",
+    // Messages signalés par les voyageurs (étape 5c).
+    permission: ["moderer", "avis"],
+  },
+  {
     href: "/dashboard/etapes",
     label: "Carte du réseau",
     icon: "route",

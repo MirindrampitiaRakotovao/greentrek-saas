@@ -20,8 +20,10 @@ export function MessagingPanel({
   viewerRole,
   activeId,
   emptyList,
+  agenceLogo = null,
   children,
 }: {
+  agenceLogo?: string | null;
   list: Paginated<ConversationSummary>;
   basePath: string;
   viewerId: string;
@@ -47,6 +49,7 @@ export function MessagingPanel({
               viewerId={viewerId}
               viewerRole={viewerRole}
               activeId={activeId}
+              agenceLogo={agenceLogo}
             />
           )}
         </div>

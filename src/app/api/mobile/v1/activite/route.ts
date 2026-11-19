@@ -1,6 +1,7 @@
 import { mobileActivity } from "@/lib/mobile/activite";
 import { json, preflight, UNAUTHORIZED } from "@/lib/mobile/http";
 import { mobileClientFromRequest } from "@/lib/mobile/session";
+import { touchPresence } from "@/lib/services/voyageurs";
 import { activityQuerySchema } from "@/lib/validators/mobile";
 
 /**
@@ -10,6 +11,8 @@ import { activityQuerySchema } from "@/lib/validators/mobile";
 export async function GET(request: Request) {
   const ctx = await mobileClientFromRequest(request);
   if (!ctx) return UNAUTHORIZED();
+  // Application ouverte : le voyageur est « en ligne » (étape 5c).
+  await touchPresence(ctx.db, ctx.user.id);
   const { depuis } = activityQuerySchema.parse(
     Object.fromEntries(new URL(request.url).searchParams),
   );

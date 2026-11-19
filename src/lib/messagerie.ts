@@ -73,3 +73,32 @@ export function otherSideRoles(role: Role): Role[] {
   const all: Role[] = ["SUPER_ADMIN", "ADMIN_AGENCE", "STAFF", "GUIDE", "CLIENT"];
   return all.filter((r) => messagingSide(r) !== messagingSide(role) && r !== "SUPER_ADMIN");
 }
+
+/* ─── Conversations privées entre voyageurs (étape 5c) ─────────────────────────── */
+
+/**
+ * Non lu, pour toute conversation : avec l'agence, la règle des côtés ci-dessus ; entre deux
+ * voyageurs (même rôle), le dernier message est celui de l'autre et postérieur à la lecture.
+ */
+export function isUnreadIn(
+  type: "AGENCE" | "VOYAGEURS",
+  viewer: { id: string; role: Role },
+  last: { createdAt: Date; auteurId: string; auteurRole: Role } | null,
+  luJusqua: Date | null,
+): boolean {
+  if (type === "AGENCE") return isUnread(viewer.role, last, luJusqua);
+  if (!last || last.auteurId === viewer.id) return false;
+  return luJusqua === null || last.createdAt > luJusqua;
+}
+
+/** Accusé de lecture d'un de MES messages dans une conversation privée (l'autre l'a lu). */
+export function privateDeliveryStatus(
+  message: { createdAt: Date; auteurId: string },
+  viewerId: string,
+  lectures: readonly { luJusqua: Date; utilisateurId: string }[],
+): DeliveryStatus | null {
+  if (message.auteurId !== viewerId) return null;
+  return lectures.some((l) => l.utilisateurId !== viewerId && l.luJusqua >= message.createdAt)
+    ? "LU"
+    : "DISTRIBUE";
+}

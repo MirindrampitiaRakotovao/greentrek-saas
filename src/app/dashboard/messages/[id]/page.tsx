@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 
 import { MessagingPanel, ThreadHeader } from "@/components/messagerie/messaging-panel";
 import { Thread } from "@/components/messagerie/thread";
+import { presenceText } from "@/components/ui/presence-avatar";
+import { presenceOf } from "@/lib/presence";
 import { requireAgencyUser } from "@/lib/auth/session";
 import { formatDateRange } from "@/lib/format";
 import { getConversation, listConversations } from "@/lib/services/messagerie";
@@ -24,7 +26,12 @@ export default async function ConversationPage({ params }: PageProps<"/dashboard
 
   const r = thread.reservation;
   const details = [
-    `${thread.client.prenom} ${thread.client.nom}`,
+    `${thread.client.prenom} ${thread.client.nom}${(() => {
+      const etat = presenceText(
+        presenceOf(thread.client.derniereActiviteAt, thread.client.presenceVisible),
+      );
+      return etat ? ` · ${etat.toLowerCase()}` : "";
+    })()}`,
     ...(r
       ? [
           user.role === "GUIDE" ? (
