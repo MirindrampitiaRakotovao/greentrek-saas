@@ -33,7 +33,7 @@ export default async function FacturePage({
   }
   const invoice = await getInvoice(db, agence.id, id);
   if (!invoice) notFound();
-  const link = await invoiceLink(agence.slug, agence.id, id);
+  const link = await invoiceLink(invoice, agence.id);
 
   return (
     <main

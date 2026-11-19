@@ -38,10 +38,8 @@ export default async function ReservationPage({
   ]);
   if (!reservation) notFound();
   const devise = agence?.devise ?? "MGA";
-  const [invoice, link] = await Promise.all([
-    getInvoice(db, user.agenceId, reservation.id),
-    invoiceLink(slug, user.agenceId, reservation.id),
-  ]);
+  const invoice = await getInvoice(db, user.agenceId, reservation.id);
+  const link = invoice ? await invoiceLink(invoice, user.agenceId) : null;
   const justPaid = (await searchParams).paye === "1";
   const paiementEnAttente = reservation.paiements.some((p) => p.statut === "EN_ATTENTE");
 
@@ -214,7 +212,7 @@ export default async function ReservationPage({
         </Card>
       ) : null}
 
-      {invoice ? <InvoicePanel invoice={invoice} link={link} /> : null}
+      {invoice && link ? <InvoicePanel invoice={invoice} link={link} /> : null}
 
       {reservation.peutAnnuler ? (
         <Card title="Annulation">

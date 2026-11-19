@@ -59,7 +59,7 @@ export async function MobileAppSection() {
             </a>
             <div className="flex items-center gap-3">
               <div
-                className="size-24 rounded-xl bg-white p-1.5"
+                className="size-28 shrink-0 rounded-xl bg-white [&>svg]:size-full"
                 role="img"
                 aria-label="QR code du lien de téléchargement de l'application"
                 // SVG généré sur le serveur par la bibliothèque `qrcode` (aucune donnée saisie).

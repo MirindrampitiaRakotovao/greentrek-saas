@@ -59,6 +59,41 @@ export function publicBaseUrl(
   return `${proto ?? "http"}://${reachableHost(host ?? "localhost:3000", lanIp)}`;
 }
 
+/**
+ * Contenu du QR code d'une facture (étape « QR codes », après E12) : les informations
+ * essentielles en TEXTE, lisibles par n'importe quel téléphone même sans réseau (le site de
+ * démonstration n'est joignable que depuis le Wi-Fi de l'ordinateur), puis le lien vers la
+ * facture en ligne. Aucune donnée personnelle du client (nom, e-mail, téléphone) : un QR code
+ * se lit par n'importe qui. Fonction pure, testée.
+ */
+export function invoiceQrText(input: {
+  numero: string;
+  etat: string;
+  agence: string;
+  reference: string;
+  circuit: string;
+  dates: string;
+  personnes: number;
+  total: string;
+  paye: string;
+  reste: string;
+  emiseLe: string;
+  url: string;
+}): string {
+  return [
+    `FACTURE ${input.numero}`,
+    input.etat,
+    input.agence,
+    `Réservation ${input.reference}`,
+    input.circuit,
+    `Départ : ${input.dates} · ${input.personnes} pers.`,
+    `Total : ${input.total}`,
+    `Payé : ${input.paye} · Reste : ${input.reste}`,
+    `Émise le ${input.emiseLe}`,
+    `En ligne (même Wi-Fi) : ${input.url}`,
+  ].join("\n");
+}
+
 /** Numéro de facture dérivé de la référence (démonstration : pas de numérotation fiscale). */
 export function invoiceNumber(reference: string): string {
   return `F-${reference}`;

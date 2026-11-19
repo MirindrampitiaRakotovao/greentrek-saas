@@ -27,16 +27,17 @@ export function InvoicePanel({
           </div>
           <div className="absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-gt-canvas" />
         </div>
-        <div className="flex flex-col items-center gap-3 text-center md:w-48">
+        <div className="flex flex-col items-center gap-3 text-center md:w-56">
           <span
-            className="block size-40 rounded-xl bg-white p-2 ring-1 ring-gt-mist [&>svg]:size-full"
+            className="block size-56 rounded-xl bg-white ring-1 ring-gt-mist [&>svg]:size-full"
             role="img"
             aria-label="QR code de la facture"
             // SVG produit sur le serveur par la bibliothèque qrcode à partir de NOTRE adresse.
             dangerouslySetInnerHTML={{ __html: link.qr }}
           />
           <p className="text-xs text-gt-teal-900/75">
-            Scannez avec un téléphone pour ouvrir la facture.
+            Scannez avec un téléphone : les informations de la facture s&apos;affichent, même sans
+            réseau. Le lien en ligne s&apos;ouvre depuis le même Wi-Fi que l&apos;ordinateur.
           </p>
           {/* Adresse contenue dans le QR : on voit tout de suite si un téléphone peut l'ouvrir. */}
           <p className="max-w-full font-mono text-[10px] break-all text-gt-teal-900/75">

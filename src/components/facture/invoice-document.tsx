@@ -108,12 +108,12 @@ export function InvoiceDocument({ invoice, qr }: { invoice: Invoice; qr?: string
         {qr ? (
           <figure className="flex items-center gap-3">
             <span
-              className="block size-24 [&>svg]:size-full"
+              className="block size-56 shrink-0 [&>svg]:size-full"
               // SVG produit sur le serveur par la bibliothèque qrcode à partir de NOTRE adresse.
               dangerouslySetInnerHTML={{ __html: qr }}
             />
             <figcaption className="max-w-40 text-xs text-gt-teal-900/75">
-              Scannez pour consulter cette facture en ligne.
+              Scannez : les informations de cette facture s&apos;affichent, même sans connexion.
             </figcaption>
           </figure>
         ) : (

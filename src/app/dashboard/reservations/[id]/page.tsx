@@ -42,10 +42,8 @@ export default async function ReservationPage({
     getAgencySettings(db, user.agenceId),
   ]);
   if (!reservation) notFound();
-  const [invoice, link] = await Promise.all([
-    getInvoice(db, user.agenceId, id),
-    invoiceLink(settings.slug, user.agenceId, id),
-  ]);
+  const invoice = await getInvoice(db, user.agenceId, id);
+  const link = invoice ? await invoiceLink(invoice, user.agenceId) : null;
   const devise = settings.devise;
   const r = reservation;
   const canPay = can(user.role, "modifier", "paiement");
@@ -242,7 +240,7 @@ export default async function ReservationPage({
         </Card>
       </div>
 
-      {invoice ? <InvoicePanel invoice={invoice} link={link} /> : null}
+      {invoice && link ? <InvoicePanel invoice={invoice} link={link} /> : null}
     </div>
   );
 }
