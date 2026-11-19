@@ -39,6 +39,8 @@ function Notifications() {
     }
     if (n.reservationId) {
       router.push({ pathname: "/reservation/[id]", params: { id: n.reservationId } });
+    } else if (n.itineraireId) {
+      router.push({ pathname: "/itineraires/[id]", params: { id: n.itineraireId } });
     } else reload();
   }
 

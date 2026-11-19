@@ -31,6 +31,7 @@ export default async function MonCompteLayout({
   const nav: NavItem[] = [
     { href: `/a/${slug}/mon-compte`, label: "Mon espace", icon: "home" },
     { href: `/a/${slug}/mon-compte/reservations`, label: "Mes réservations", icon: "ticket" },
+    { href: `/a/${slug}/mon-compte/itineraires`, label: "Mes itinéraires", icon: "route" },
     {
       href: `/a/${slug}/mon-compte/messages`,
       label: "Messages",

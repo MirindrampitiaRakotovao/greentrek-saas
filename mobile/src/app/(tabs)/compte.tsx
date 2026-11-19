@@ -70,6 +70,15 @@ export default function CompteScreen() {
           />
         </ListGroup>
 
+        <ListGroup title="Voyages sur mesure">
+          <ListRow
+            icon="map-outline"
+            label="Mes itinéraires"
+            value="Proposés par votre agence ou demandés"
+            onPress={() => router.push("/itineraires")}
+          />
+        </ListGroup>
+
         <ListGroup title="Compte">
           <ListRow
             icon="person-outline"

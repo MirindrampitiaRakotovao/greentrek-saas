@@ -16,6 +16,7 @@ export const ANDROID_CHANNEL = "alertes";
 
 export type PushData =
   | { type: "reservation"; reservationId: string }
+  | { type: "itineraire"; itineraireId: string }
   | { type: "message"; conversationId: string }
   | { type: "notifications" };
 
@@ -41,6 +42,11 @@ export function reservationIdFromLink(lienUrl: string | null): string | null {
   return lienUrl?.match(/\/mon-compte\/reservations\/([A-Za-z0-9_-]+)$/)?.[1] ?? null;
 }
 
+/** Itinéraire sur mesure visé par le lien d'une notification (`…/mon-compte/itineraires/<id>`). */
+export function itineraireIdFromLink(lienUrl: string | null): string | null {
+  return lienUrl?.match(/\/mon-compte\/itineraires\/([A-Za-z0-9_-]+)$/)?.[1] ?? null;
+}
+
 /** Titre, texte et destination d'un événement temps réel, pour un téléphone. */
 export function pushContent(event: AlertEvent): { title: string; body: string; data: PushData } {
   if (event.type === "message") {
@@ -51,10 +57,15 @@ export function pushContent(event: AlertEvent): { title: string; body: string; d
     };
   }
   const reservationId = reservationIdFromLink(event.lienUrl);
+  const itineraireId = itineraireIdFromLink(event.lienUrl);
   return {
     title: event.titre,
     body: event.message,
-    data: reservationId ? { type: "reservation", reservationId } : { type: "notifications" },
+    data: reservationId
+      ? { type: "reservation", reservationId }
+      : itineraireId
+        ? { type: "itineraire", itineraireId }
+        : { type: "notifications" },
   };
 }
 

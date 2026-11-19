@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildPushBatches,
   isExpoPushToken,
+  itineraireIdFromLink,
   pushContent,
   reservationIdFromLink,
   sendExpoPush,
@@ -92,5 +93,15 @@ describe("notifications push", () => {
     await expect(
       sendExpoPush(batches, () => Promise.reject(new Error("hors ligne"))),
     ).resolves.toEqual([]);
+  });
+
+  it("notification d'un itinéraire sur mesure : ouvre l'itinéraire", () => {
+    const lienUrl = "/a/green-trek-mada/mon-compte/itineraires/it42";
+    expect(itineraireIdFromLink(lienUrl)).toBe("it42");
+    expect(itineraireIdFromLink(notification.lienUrl)).toBeNull();
+    expect(pushContent({ ...notification, lienUrl }).data).toEqual({
+      type: "itineraire",
+      itineraireId: "it42",
+    });
   });
 });

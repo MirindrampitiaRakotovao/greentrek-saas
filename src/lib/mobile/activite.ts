@@ -1,5 +1,5 @@
 import { SIDE_LABELS, messagingSide } from "@/lib/messagerie";
-import { reservationIdFromLink } from "@/lib/push/expo";
+import { itineraireIdFromLink, reservationIdFromLink } from "@/lib/push/expo";
 import {
   type ConversationSummary,
   type ConversationThread,
@@ -43,6 +43,7 @@ function toMobileNotification(n: NotificationRow) {
     at: n.createdAt.toISOString(),
     // Destination dans l'application (la réservation concernée), au lieu du lien du site.
     reservationId: reservationIdFromLink(n.lienUrl),
+    itineraireId: itineraireIdFromLink(n.lienUrl),
   };
 }
 

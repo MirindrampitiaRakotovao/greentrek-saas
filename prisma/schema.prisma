@@ -149,6 +149,7 @@ model Agence {
   abonnements         Abonnement[]
   conversations       Conversation[]
   appareilsMobiles    AppareilMobile[]
+  itinerairesPerso    ItinerairePersonnalise[]
 }
 
 // ─── 2. Utilisateur ────────────────────────────────────────────────────────────
@@ -175,7 +176,7 @@ model Utilisateur {
   dernierLoginAt DateTime?
   createdAt      DateTime      @default(now())
 
-  agence                 Agence?                 @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  agence                 Agence?                  @relation(fields: [agenceId], references: [id], onDelete: Restrict)
   guide                  Guide?
   reservations           Reservation[]
   avis                   Avis[]
@@ -187,6 +188,8 @@ model Utilisateur {
   lectures               LectureConversation[]
   jetonsReinitialisation JetonReinitialisation[]
   appareilsMobiles       AppareilMobile[]
+  itinerairesRecus       ItinerairePersonnalise[] @relation("ItineraireClient")
+  itinerairesCrees       ItinerairePersonnalise[] @relation("ItineraireAuteur")
 
   // RG 3. L'unicité de l'e-mail du personnel sur toute la plateforme (connexion via
   // /connexion) est vérifiée par l'application : MySQL n'a pas d'index unique partiel.
@@ -463,11 +466,12 @@ model ItineraireCalcule {
   creeParId         String?
   createdAt         DateTime          @default(now())
 
-  agence       Agence       @relation(fields: [agenceId], references: [id], onDelete: Restrict)
-  circuit      Circuit?     @relation(fields: [circuitId], references: [id], onDelete: SetNull)
-  etapeDepart  Etape?       @relation("ItineraireDepart", fields: [etapeDepartId], references: [id], onDelete: SetNull)
-  etapeArrivee Etape?       @relation("ItineraireArrivee", fields: [etapeArriveeId], references: [id], onDelete: SetNull)
-  creePar      Utilisateur? @relation(fields: [creeParId], references: [id], onDelete: SetNull)
+  agence        Agence                   @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  circuit       Circuit?                 @relation(fields: [circuitId], references: [id], onDelete: SetNull)
+  etapeDepart   Etape?                   @relation("ItineraireDepart", fields: [etapeDepartId], references: [id], onDelete: SetNull)
+  etapeArrivee  Etape?                   @relation("ItineraireArrivee", fields: [etapeArriveeId], references: [id], onDelete: SetNull)
+  creePar       Utilisateur?             @relation(fields: [creeParId], references: [id], onDelete: SetNull)
+  personnalises ItinerairePersonnalise[]
 
   @@index([agenceId, createdAt])
   @@index([circuitId])
@@ -665,4 +669,47 @@ model AppareilMobile {
 
   @@unique([agenceId, expoPushToken])
   @@index([utilisateurId])
+}
+
+// ─── Itinéraires sur mesure (hors cahier des charges, après E12) ──────────────────
+
+/// Qui a composé l'itinéraire : l'agence (proposition à un client) ou le voyageur (demande).
+enum OrigineItineraire {
+  AGENCE
+  CLIENT
+}
+
+enum StatutItineraire {
+  EN_ATTENTE
+  ACCEPTE
+  DECLINE
+}
+
+// Itinéraire sur mesure entre des villages du réseau de l'agence, pour UN client : proposé par
+// l'agence, ou demandé par le voyageur. Le tracé n'est pas recopié : il vient du calcul
+// enregistré dans l'historique (ItineraireCalcule, instantané du chemin), qui reste ainsi la
+// trace unique de chaque calcul (mémoire, §6.3).
+model ItinerairePersonnalise {
+  id                  String            @id @default(cuid())
+  agenceId            String
+  clientId            String
+  creeParId           String
+  itineraireCalculeId String
+  origine             OrigineItineraire
+  titre               String            @db.VarChar(150)
+  message             String?           @db.Text
+  statut              StatutItineraire  @default(EN_ATTENTE)
+  reponse             String?           @db.Text
+  reponduAt           DateTime?
+  createdAt           DateTime          @default(now())
+
+  agence     Agence            @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  client     Utilisateur       @relation("ItineraireClient", fields: [clientId], references: [id], onDelete: Restrict)
+  creePar    Utilisateur       @relation("ItineraireAuteur", fields: [creeParId], references: [id], onDelete: Restrict)
+  itineraire ItineraireCalcule @relation(fields: [itineraireCalculeId], references: [id], onDelete: Restrict)
+
+  @@index([agenceId, createdAt])
+  @@index([clientId])
+  @@index([creeParId])
+  @@index([itineraireCalculeId])
 }

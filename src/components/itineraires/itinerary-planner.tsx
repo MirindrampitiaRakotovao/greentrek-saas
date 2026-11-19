@@ -1,11 +1,14 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore, useTransition } from "react";
 
 import { type MapDot, type MapEdge, type MapMarker, MapView } from "@/components/map/map-view";
+import { useNotify } from "@/components/ui/dialogs";
 import { FormAlert } from "@/components/ui/form-alert";
 import { Icon } from "@/components/ui/icon";
 import { calculerItineraireAction } from "@/lib/actions/itineraires";
+import { proposeItineraireAction } from "@/lib/actions/itineraires-perso";
 import { MAX_FREE_WAYPOINTS } from "@/lib/graph/waypoints";
 import { CRITERIA_LABELS, CRITERIA_PRESETS } from "@/lib/graph/weights";
 import type { AlgorithmOutcome } from "@/lib/services/itineraires";
@@ -58,8 +61,11 @@ export function ItineraryPlanner({
   etapes,
   troncons,
   expert = false,
+  proposeTo,
 }: {
   expert?: boolean;
+  /** Composition d'un itinéraire pour un client (fiche client) : envoi après le calcul. */
+  proposeTo?: { clientId: string; nom: string };
   etapes: readonly PlannerEtape[];
   troncons: readonly PlannerTroncon[];
 }) {
@@ -443,9 +449,94 @@ export function ItineraryPlanner({
             showExplored={showExplored}
             setShowExplored={setShowExplored}
           />
+          {proposeTo && found?.historiqueId ? (
+            <ProposeForm
+              key={found.historiqueId}
+              client={proposeTo}
+              historiqueId={found.historiqueId}
+              defaultTitre={`${nom(found.path[0]?.id ?? "")} – ${nom(found.path.at(-1)?.id ?? "")}`}
+            />
+          ) : null}
         </div>
       </aside>
     </div>
+  );
+}
+
+/** Envoi au client de l'itinéraire calculé (titre et message), puis retour à sa fiche. */
+function ProposeForm({
+  client,
+  historiqueId,
+  defaultTitre,
+}: {
+  client: { clientId: string; nom: string };
+  historiqueId: string;
+  defaultTitre: string;
+}) {
+  const router = useRouter();
+  const notify = useNotify();
+  const [titre, setTitre] = useState(defaultTitre);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState<string>();
+  const [pending, startTransition] = useTransition();
+
+  function envoyer() {
+    setError(undefined);
+    startTransition(async () => {
+      const result = await proposeItineraireAction({
+        clientId: client.clientId,
+        historiqueId,
+        titre,
+        message,
+      });
+      if (result.error) {
+        setError(Object.values(result.fieldErrors ?? {})[0] ?? result.error);
+        return;
+      }
+      if (result.success) notify(result.success);
+      router.push(`/dashboard/clients/${client.clientId}`);
+    });
+  }
+
+  return (
+    <section
+      aria-labelledby="it-envoi"
+      className="space-y-3 rounded-2xl border border-gt-teal-700/30 bg-gt-teal-50 p-4"
+    >
+      <h2 id="it-envoi" className="text-sm font-semibold text-gt-teal-900">
+        Proposer cet itinéraire à {client.nom}
+      </h2>
+      <label className="block text-xs font-medium text-gt-teal-900">
+        Titre
+        <input
+          value={titre}
+          onChange={(e) => setTitre(e.target.value)}
+          maxLength={150}
+          className="mt-1 w-full rounded-xl border border-gt-mist bg-white px-3 py-2 text-sm"
+        />
+      </label>
+      <label className="block text-xs font-medium text-gt-teal-900">
+        Message (facultatif)
+        <textarea
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          rows={3}
+          maxLength={1000}
+          placeholder="Points forts, conseils, période idéale…"
+          className="mt-1 w-full rounded-xl border border-gt-mist bg-white px-3 py-2 text-sm"
+        />
+      </label>
+      <FormAlert message={error} />
+      <button
+        type="button"
+        onClick={envoyer}
+        disabled={pending}
+        className="flex w-full items-center justify-center gap-2 rounded-full bg-gt-teal-700 px-5 py-3 font-medium text-white hover:bg-gt-teal-800 disabled:opacity-50"
+      >
+        <Icon name="send" className="size-4" />
+        {pending ? "Envoi…" : `Envoyer à ${client.nom}`}
+      </button>
+    </section>
   );
 }
 

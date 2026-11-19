@@ -19,6 +19,7 @@ export type ActivityInput = {
 
 export const ACTION_LABELS: Record<string, string> = {
   CLIENT_AJOUTE: "Client ajouté par l'agence",
+  ITINERAIRE_PROPOSE: "Itinéraire proposé à un client",
   RESERVATION_CREEE_AGENCE: "Réservation créée pour un client",
   RESERVATION_CONFIRMEE: "Réservation confirmée",
   RESERVATION_ANNULEE: "Réservation annulée",

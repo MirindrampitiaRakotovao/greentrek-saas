@@ -140,7 +140,8 @@ type ReferenceReader = Record<
   | "sessionDepart"
   | "reservation"
   | "partenaire"
-  | "conversation",
+  | "conversation"
+  | "itineraireCalcule",
   Counter
 >;
 
@@ -153,6 +154,7 @@ const TARGET_DELEGATE: Record<ReferenceTarget, keyof ReferenceReader> = {
   Reservation: "reservation",
   Partenaire: "partenaire",
   Conversation: "conversation",
+  ItineraireCalcule: "itineraireCalcule",
 };
 
 /**

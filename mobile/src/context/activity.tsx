@@ -41,6 +41,8 @@ const ActivityContext = createContext<ActivityState | null>(null);
 function open(target: NotificationTarget) {
   if (target.type === "reservation") {
     router.push({ pathname: "/reservation/[id]", params: { id: target.reservationId } });
+  } else if (target.type === "itineraire") {
+    router.push({ pathname: "/itineraires/[id]", params: { id: target.itineraireId } });
   } else if (target.type === "message") {
     router.push({ pathname: "/messages/[id]", params: { id: target.conversationId } });
   } else router.push("/notifications");
@@ -82,7 +84,9 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
           n.message,
           n.reservationId
             ? { type: "reservation", reservationId: n.reservationId }
-            : { type: "notifications" },
+            : n.itineraireId
+              ? { type: "itineraire", itineraireId: n.itineraireId }
+              : { type: "notifications" },
         );
       }
       for (const m of a.messages) {

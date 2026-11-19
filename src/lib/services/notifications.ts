@@ -13,7 +13,7 @@ import type { TenantDb, TenantTx } from "@/lib/tenant";
 type Db = TenantDb | TenantTx;
 
 export type NotificationInput = {
-  type: "RESERVATION" | "PAIEMENT" | "ANNULATION" | "AVIS" | "DEPART";
+  type: "RESERVATION" | "PAIEMENT" | "ANNULATION" | "AVIS" | "DEPART" | "ITINERAIRE";
   titre: string;
   message: string;
   lienUrl?: string;
@@ -72,6 +72,27 @@ export async function notifyReservationClient(
   publish([reservation.clientId], event);
   // Téléphone du voyageur (application mobile) : notification push, après le commit.
   await pushToDevices(db, [reservation.clientId], event);
+}
+
+/**
+ * Notifie un voyageur avec un lien de son espace (ex. un itinéraire proposé par l'agence) :
+ * notification enregistrée, temps réel et téléphone (push), après le commit.
+ */
+export async function notifyClientUser(
+  db: Db,
+  utilisateurId: string,
+  input: NotificationInput & { lienUrl: string },
+): Promise<void> {
+  const agence = await currentAgency(db);
+  await db.notification.create({ data: { ...input, agenceId: agence.id, utilisateurId } });
+  const event = {
+    type: "notification" as const,
+    titre: input.titre,
+    message: input.message,
+    lienUrl: input.lienUrl,
+  };
+  publish([utilisateurId], event);
+  await pushToDevices(db, [utilisateurId], event);
 }
 
 /** Marque comme lues les notifications de l'utilisateur (toutes, ou celles données). */

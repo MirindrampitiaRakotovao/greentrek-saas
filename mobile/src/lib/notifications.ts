@@ -18,6 +18,7 @@ export const ANDROID_CHANNEL = "alertes";
 
 export type NotificationTarget =
   | { type: "reservation"; reservationId: string }
+  | { type: "itineraire"; itineraireId: string }
   | { type: "message"; conversationId: string }
   | { type: "notifications" };
 
@@ -103,6 +104,9 @@ export function targetOf(data: unknown): NotificationTarget | null {
   const d = data as Record<string, unknown>;
   if (d.type === "reservation" && typeof d.reservationId === "string") {
     return { type: "reservation", reservationId: d.reservationId };
+  }
+  if (d.type === "itineraire" && typeof d.itineraireId === "string") {
+    return { type: "itineraire", itineraireId: d.itineraireId };
   }
   if (d.type === "message" && typeof d.conversationId === "string") {
     return { type: "message", conversationId: d.conversationId };

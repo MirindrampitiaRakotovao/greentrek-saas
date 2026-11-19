@@ -12,6 +12,7 @@ import { formatDate, formatDateRange, formatDateTime, formatMoney } from "@/lib/
 import { getAgencySettings } from "@/lib/services/agency-settings";
 import { can } from "@/lib/permissions";
 import { getClientDetail, listBookableDeparts } from "@/lib/services/clients";
+import { listItinerairesAgence } from "@/lib/services/itineraires-perso";
 import { ORIGINE_LABELS } from "@/lib/validators/clients";
 
 export const metadata: Metadata = { title: "Client — Green Trek" };
@@ -21,10 +22,11 @@ export default async function ClientPage({ params }: PageProps<"/dashboard/clien
   const { user, db } = await requireAgencyUser(["ADMIN_AGENCE", "STAFF"]);
   const { id } = await params;
   const peutReserver = can(user.role, "creer", "reservation");
-  const [client, { devise }, departs] = await Promise.all([
+  const [client, { devise }, departs, itineraires] = await Promise.all([
     getClientDetail(db, id),
     getAgencySettings(db, user.agenceId),
     peutReserver ? listBookableDeparts(db) : Promise.resolve([]),
+    listItinerairesAgence(db, { clientId: id }),
   ]);
   if (!client) notFound();
   const actives = client.reservations.filter((r) => r.statut !== "ANNULEE");
@@ -81,6 +83,57 @@ export default async function ClientPage({ params }: PageProps<"/dashboard/clien
           <p className="text-sm text-gt-teal-900/75">hors réservations annulées</p>
         </Card>
       </div>
+      <Card title={`Itinéraires sur mesure (${itineraires.total})`}>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-gt-teal-900/75">
+            Itinéraires entre des villages du réseau, proposés par l&apos;agence ou demandés par le
+            client.
+          </p>
+          {peutReserver && client.actif ? (
+            <Link
+              href={`/dashboard/clients/${client.id}/itineraire`}
+              className="flex items-center gap-2 rounded-full bg-gt-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-gt-teal-800"
+            >
+              Composer un itinéraire
+            </Link>
+          ) : null}
+        </div>
+        {itineraires.total === 0 ? (
+          <EmptyState>Aucun itinéraire pour ce client.</EmptyState>
+        ) : (
+          <ul className="divide-y divide-gt-mist/60">
+            {itineraires.items.map((it) => (
+              <li key={it.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <p className="font-medium text-gt-teal-900">{it.titre}</p>
+                  <p className="text-xs text-gt-teal-900/75">
+                    {it.depart} → {it.arrivee} ·{" "}
+                    {it.distanceKm.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} km ·{" "}
+                    {Math.floor(it.dureeMinutes / 60)} h{" "}
+                    {String(it.dureeMinutes % 60).padStart(2, "0")} · {it.critere} ·{" "}
+                    {it.origine === "AGENCE" ? `proposé par ${it.auteur}` : "demandé par le client"}{" "}
+                    le {formatDateTime(it.createdAt)}
+                  </p>
+                  {it.reponse ? (
+                    <p className="mt-1 text-xs text-gt-teal-900">« {it.reponse} »</p>
+                  ) : null}
+                </div>
+                <Badge
+                  tone={
+                    it.statut === "ACCEPTE"
+                      ? "success"
+                      : it.statut === "DECLINE"
+                        ? "danger"
+                        : "sand"
+                  }
+                >
+                  {it.statutLabel}
+                </Badge>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
       <Card title="Historique">
         {client.reservations.length === 0 ? (
           <EmptyState>Aucune réservation.</EmptyState>

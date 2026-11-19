@@ -16,7 +16,8 @@ export type ReferenceTarget =
   | "SessionDepart"
   | "Reservation"
   | "Partenaire"
-  | "Conversation";
+  | "Conversation"
+  | "ItineraireCalcule";
 
 type Scope =
   /** Table portant `agenceId`. */
@@ -116,6 +117,14 @@ export const TENANT_CONFIG: Readonly<Record<ModelName, ModelConfig>> = {
     references: { utilisateurId: "Utilisateur" },
   },
   AppareilMobile: { scope: { kind: "tenant" }, references: { utilisateurId: "Utilisateur" } },
+  ItinerairePersonnalise: {
+    scope: { kind: "tenant" },
+    references: {
+      clientId: "Utilisateur",
+      creeParId: "Utilisateur",
+      itineraireCalculeId: "ItineraireCalcule",
+    },
+  },
   LectureConversation: {
     scope: { kind: "child", relation: "conversation" },
     references: { conversationId: "Conversation", utilisateurId: "Utilisateur" },

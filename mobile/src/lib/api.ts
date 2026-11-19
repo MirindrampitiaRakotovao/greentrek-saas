@@ -286,6 +286,7 @@ export type AppNotification = {
   lue: boolean;
   at: string;
   reservationId: string | null;
+  itineraireId: string | null;
 };
 
 export type Unread = { notifications: number; conversations: number };
@@ -361,4 +362,44 @@ export function registerDevice(token: string, plateforme: "android" | "ios") {
 
 export function unregisterDevice(token: string) {
   return request<{ ok: true }>("/appareils", { method: "DELETE", json: { token } });
+}
+
+/* ─── Itinéraires sur mesure (étape 4) ────────────────────────────────────────── */
+
+export type Itineraire = {
+  id: string;
+  titre: string;
+  message: string | null;
+  origine: "AGENCE" | "CLIENT";
+  statut: "EN_ATTENTE" | "ACCEPTE" | "DECLINE";
+  statutLabel: string;
+  reponse: string | null;
+  reponduAt: string | null;
+  createdAt: string;
+  auteur: string;
+  critere: string;
+  distanceKm: number;
+  dureeMinutes: number;
+  difficulteMoyenne: number | null;
+  depart: string | null;
+  arrivee: string | null;
+  etapes: { id: string; nom: string; latitude: number; longitude: number }[];
+  peutRepondre: boolean;
+};
+
+export function fetchItineraires() {
+  return request<{ itineraires: Itineraire[] }>("/itineraires");
+}
+
+export function fetchItineraire(id: string) {
+  return request<Itineraire>(`/itineraires/${encodeURIComponent(id)}`);
+}
+
+export function answerItineraire(
+  id: string,
+  input: { decision: "ACCEPTE" | "DECLINE"; reponse: string },
+) {
+  return request<{ message: string }>(`/itineraires/${encodeURIComponent(id)}/reponse`, {
+    json: input,
+  });
 }
