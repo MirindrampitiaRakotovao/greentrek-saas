@@ -6,7 +6,7 @@ import { after } from "next/server";
 
 import { authorize, journal, parseInput, toActionResult } from "@/lib/actions/helpers";
 import type { ActionResult } from "@/lib/actions/types";
-import { sendMail } from "@/lib/mail/mailer";
+import { mailConfigured, sendMail } from "@/lib/mail/mailer";
 import { clientInvitationMail } from "@/lib/mail/templates";
 import { requestBaseUrl } from "@/lib/public-url";
 import { createClientByAgency } from "@/lib/services/clients";
@@ -45,7 +45,12 @@ export async function createClientAction(input: unknown): Promise<ActionResult> 
   });
   await journal(auth, "CLIENT_AJOUTE", "Utilisateur", result.data.id);
   revalidatePath(CLIENTS_PATH);
-  return { success: "Client ajouté : un e-mail l'invite à choisir son mot de passe." };
+  // Message fidèle : sans envoi configuré, l'invitation attend dans la boîte d'envoi.
+  return {
+    success: mailConfigured()
+      ? "Client ajouté : un e-mail l'invite à choisir son mot de passe."
+      : "Client ajouté. L'envoi d'e-mails n'est pas configuré : l'invitation est dans la boîte d'envoi de la console (super admin).",
+  };
 }
 
 /** Réservation faite par l'agence pour un de ses clients, puis ouverture de sa fiche. */
