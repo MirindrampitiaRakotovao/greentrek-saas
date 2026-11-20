@@ -3,6 +3,7 @@ import { Dancing_Script, Poppins } from "next/font/google";
 import localFont from "next/font/local";
 
 import { DialogsProvider } from "@/components/ui/dialogs";
+import { THEME_SCRIPT } from "@/lib/theme";
 
 import "./globals.css";
 
@@ -42,13 +43,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    // suppressHydrationWarning : certaines extensions du navigateur ajoutent des attributs
-    // à <html> avant React (avertissement sans conséquence). Ne s'applique qu'à cette balise.
+    // suppressHydrationWarning : le script de thème (et certaines extensions du navigateur)
+    // ajoutent des attributs à <html> avant React. Ne s'applique qu'à cette balise.
     <html
       lang="fr"
       className={`${poppins.variable} ${nohemi.variable} ${dancingScript.variable} h-full antialiased`}
       suppressHydrationWarning
     >
+      <head>
+        {/* Thème clair / sombre des espaces connectés, posé avant l'affichage (src/lib/theme.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="flex min-h-full flex-col font-sans">
         {/* Lien d'évitement (accessibilité) : visible au premier appui sur Tab. */}
         <a

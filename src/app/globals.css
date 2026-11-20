@@ -1,5 +1,11 @@
 @import "tailwindcss";
 @import "../styles/tokens.css";
+@import "../styles/dark.css";
+
+/* Variante d'un élément réservée au thème sombre (ex. logo blanc), cachée sinon. */
+.gt-only-dark {
+  display: none;
+}
 
 /*
  * Exposition des tokens à Tailwind v4 : chaque `--color-gt-*` génère les utilitaires

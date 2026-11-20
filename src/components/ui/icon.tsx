@@ -73,6 +73,10 @@ const PATHS = {
   flag: "M4 22V15m0 0s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z",
   image:
     "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2m16 12-5-5L5 21M9 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4",
+  // Thème (étape 7) : écran (système), soleil (clair), lune (sombre).
+  monitor: "M4 4h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1m4 16h8m-4-4v4",
+  sun: "M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8m0-14v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4",
+  moon: "M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11",
 } as const;
 
 export type IconName = keyof typeof PATHS;

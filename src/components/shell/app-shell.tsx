@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { RealtimeBridge, SoundToggle, useSoundPreference } from "@/components/shell/realtime";
+import { ThemeSwitcher } from "@/components/shell/theme-switcher";
 import { Avatar } from "@/components/ui/avatar";
 import { Icon } from "@/components/ui/icon";
 import { Logo } from "@/components/ui/logo";
@@ -100,6 +101,13 @@ export function AppShell({
   // La zone défilante n'est pas la fenêtre : Next.js ne la remet pas en haut lors d'un
   // changement de page, on le fait ici.
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Thème sombre réservé aux espaces connectés (étape 7) : la classe `gt-app` de <html> active
+  // la couche sombre ; posée aussi par le script du <head> au premier affichage.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add("gt-app");
+    return () => root.classList.remove("gt-app");
+  }, []);
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 });
   }, [pathname]);
@@ -129,7 +137,11 @@ export function AppShell({
         <div className="flex items-center justify-between px-2">
           <Link href={brand.href} className="flex items-center gap-2">
             {brand.logoUrl === undefined ? (
-              <Logo className="h-9 w-auto" priority />
+              <>
+                {/* Logo couleur en thème clair, blanc en thème sombre (étape 7). */}
+                <Logo className="gt-only-light h-9 w-auto" priority />
+                <Logo tone="blanc" className="gt-only-dark h-9 w-auto" />
+              </>
             ) : brand.logoUrl ? (
               // Logo de l'agence (fichier local ou adresse externe saisie dans ses paramètres).
               // eslint-disable-next-line @next/next/no-img-element
@@ -237,6 +249,10 @@ export function AppShell({
           </div>
         ) : null}
 
+        {/* Sur téléphone, le choix du thème est dans le menu (l'en-tête reste sur une ligne). */}
+        <div className="mt-3 px-2 sm:hidden">
+          <ThemeSwitcher />
+        </div>
         <form action={logoutAction} className="mt-3 px-2">
           <button
             type="submit"
@@ -286,6 +302,9 @@ export function AppShell({
             ) : null}
             <h1 className="mr-auto text-xl font-semibold text-gt-teal-900 sm:text-2xl">{title}</h1>
             <PageSearch nav={nav} />
+            <div className="hidden sm:block">
+              <ThemeSwitcher />
+            </div>
             <SoundToggle on={soundOn} onToggle={toggleSound} />
             {notifications ? <Notifications {...notifications} /> : null}
             <div className="flex items-center gap-3">

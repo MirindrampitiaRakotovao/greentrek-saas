@@ -1,0 +1,244 @@
+/*
+ * Mode sombre « verre » des espaces connectés (étape 7, demande de l'étudiant, d'après une
+ * maquette de référence) : fond vert-bleu profond avec deux halos, cartes et panneaux en verre
+ * fumé translucide (flou d'arrière-plan, liseré clair), accent sable à la place du vert citron.
+ *
+ * Méthode : une COUCHE unique, sans modifier les 180 composants. En mode sombre, elle redéfinit
+ * ce que signifient les classes de l'interface (bg-white = verre, text-gt-teal-900 = texte
+ * clair, border-gt-mist = liseré clair…). Elle ne s'applique que si <html> porte la classe
+ * `gt-app` (espace connecté) et `data-theme="dark"` (src/lib/theme.ts) : le site public, la
+ * facture et les e-mails restent clairs.
+ *
+ * Ce fichier n'est dans aucune couche CSS : il passe devant les utilitaires de Tailwind.
+ * Contrastes (WCAG AA, ≥ 4,5:1) vérifiés sur le fond le plus clair (verre sur le halo).
+ */
+
+html.gt-app[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Surfaces : uniquement employées comme fonds ou bordures. */
+  --gt-canvas: transparent;
+  --gt-teal-50: rgb(255 255 255 / 0.06);
+  --gt-teal-100: rgb(255 255 255 / 0.1);
+  --gt-teal-200: rgb(255 255 255 / 0.14);
+  --gt-mist: rgb(255 255 255 / 0.13);
+  --gt-white: rgb(255 255 255 / 0.06);
+
+  /* Valeurs propres au thème sombre. */
+  --gt-dark-bg: #061b20;
+  --gt-dark-ink: #e8f2f2;
+  --gt-dark-link: #8fdbe4;
+  --gt-dark-glass: rgb(255 255 255 / 0.065);
+  --gt-dark-glass-strong: rgb(9 38 44 / 0.86);
+  --gt-dark-line: rgb(255 255 255 / 0.12);
+}
+
+/* ─── Fond : vert-bleu profond, halos teal et sable (le verre a besoin d'un fond vivant). ── */
+html.gt-app[data-theme="dark"] body {
+  color: var(--gt-dark-ink);
+  background:
+    radial-gradient(60rem 40rem at 85% -10%, rgb(13 132 149 / 0.32), transparent 60%),
+    radial-gradient(50rem 36rem at -10% 110%, rgb(250 213 148 / 0.12), transparent 60%),
+    radial-gradient(40rem 30rem at 40% 50%, rgb(16 88 91 / 0.35), transparent 70%),
+    var(--gt-dark-bg);
+  background-attachment: fixed;
+}
+
+/* ─── Verre : cartes, panneaux, champs (bg-white et ses variantes opaques). ─────────────── */
+html.gt-app[data-theme="dark"] :is(.bg-white, .bg-white\/95, .bg-white\/90, .bg-white\/80) {
+  background-color: var(--gt-dark-glass);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  backdrop-filter: blur(18px) saturate(1.25);
+}
+/* Pastilles et commandes posées sur une carte : un peu plus opaques. */
+html.gt-app[data-theme="dark"] :is(.bg-white\/95, .bg-white\/90, .bg-white\/80) {
+  background-color: rgb(9 38 44 / 0.78);
+}
+/* Panneaux flottants posés sur une carte (réseau, calcul d'itinéraire) : verre plus dense,
+   pour que les couleurs vives du satellite ne gênent pas la lecture. */
+html.gt-app[data-theme="dark"] .bg-white:is(.lg\:absolute, .lg\:shadow-xl) {
+  background-color: rgb(8 33 39 / 0.84);
+  -webkit-backdrop-filter: blur(22px) saturate(1.2);
+  backdrop-filter: blur(22px) saturate(1.2);
+}
+html.gt-app[data-theme="dark"] .bg-gt-teal-50\/60 {
+  background-color: rgb(255 255 255 / 0.04);
+}
+
+/* Grand panneau central de la coque et barre latérale sur téléphone (au-dessus du contenu). */
+html.gt-app[data-theme="dark"] #app-sidebar {
+  background-color: rgb(6 27 32 / 0.55);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+@media (width < 64rem) {
+  html.gt-app[data-theme="dark"] #app-sidebar {
+    background-color: var(--gt-dark-glass-strong);
+  }
+}
+html.gt-app[data-theme="dark"] .bg-gt-teal-50:where(.lg\:rounded-\[28px\]) {
+  border: 1px solid var(--gt-dark-line);
+  background-color: rgb(255 255 255 / 0.035);
+}
+
+/* ─── Textes. ───────────────────────────────────────────────────────────────────────── */
+html.gt-app[data-theme="dark"] .text-gt-teal-900 {
+  color: var(--gt-dark-ink);
+}
+html.gt-app[data-theme="dark"] .text-gt-teal-900\/85 {
+  color: rgb(232 242 242 / 0.88);
+}
+html.gt-app[data-theme="dark"] .text-gt-teal-900\/80 {
+  color: rgb(232 242 242 / 0.84);
+}
+html.gt-app[data-theme="dark"] :is(.text-gt-teal-900\/75, .text-gt-teal-900\/70) {
+  color: rgb(232 242 242 / 0.74);
+}
+html.gt-app[data-theme="dark"] :is(.text-gt-teal-900\/65, .text-gt-teal-900\/60) {
+  color: rgb(232 242 242 / 0.66);
+}
+html.gt-app[data-theme="dark"]
+  :is(.text-gt-teal-900\/50, .text-gt-teal-900\/45, .text-gt-teal-900\/35) {
+  color: rgb(232 242 242 / 0.56);
+}
+/* Liens et accents teal : turquoise clair, lisible sur le verre. */
+html.gt-app[data-theme="dark"] :is(.text-gt-teal-700, .text-gt-teal-800, .text-gt-teal-600) {
+  color: var(--gt-dark-link);
+}
+html.gt-app[data-theme="dark"] :is(.hover\:text-gt-teal-900:hover, .hover\:text-gt-teal-800:hover) {
+  color: #fff;
+}
+html.gt-app[data-theme="dark"] :is(.border-gt-teal-700, .border-gt-teal-600) {
+  border-color: rgb(143 219 228 / 0.55);
+}
+
+/* Surfaces claires « pleines » restées claires : le texte reste foncé dessus. */
+html.gt-app[data-theme="dark"]
+  :is(.bg-gt-sand-300, .bg-gt-sand-200, .bg-gt-cream, .gt3d-btn--accent),
+html.gt-app[data-theme="dark"]
+  :is(.bg-gt-sand-300, .bg-gt-sand-200, .bg-gt-cream, #app-sidebar a[aria-current="page"])
+  :is(.text-gt-teal-900, [class*="text-gt-teal-900/"], .text-gt-teal-700, .text-gt-teal-800) {
+  color: #0f414d;
+}
+/* Élément actif de la navigation (pilule) : sable, comme le vert citron de la maquette. */
+html.gt-app[data-theme="dark"] #app-sidebar a[aria-current="page"] {
+  background-color: var(--gt-sand-300);
+  color: #0f414d;
+}
+
+/* Fonds sable translucides (« À traiter », alertes douces) : voile sable discret. */
+html.gt-app[data-theme="dark"]
+  :is(.bg-gt-sand-200\/40, .bg-gt-sand-200\/60, .bg-gt-sand-300\/55, .bg-gt-sand-300\/80) {
+  background-color: rgb(250 213 148 / 0.12);
+}
+html.gt-app[data-theme="dark"] .border-gt-sand-200 {
+  border-color: rgb(250 213 148 / 0.35);
+}
+
+/* Logo : version blanche fournie par l'entreprise en thème sombre. */
+html.gt-app[data-theme="dark"] .gt-only-light {
+  display: none;
+}
+html.gt-app[data-theme="dark"] .gt-only-dark {
+  display: block;
+}
+
+/* ─── États (erreurs, succès, avertissements). ─────────────────────────────────────── */
+html.gt-app[data-theme="dark"] :is(.bg-red-50, .bg-red-100) {
+  background-color: rgb(248 113 113 / 0.14);
+}
+html.gt-app[data-theme="dark"] :is(.text-red-700, .text-red-800, .text-red-900, .text-red-600) {
+  color: #fca5a5;
+}
+html.gt-app[data-theme="dark"] :is(.border-red-200, .border-red-700) {
+  border-color: rgb(252 165 165 / 0.45);
+}
+html.gt-app[data-theme="dark"] .hover\:bg-red-50:hover {
+  background-color: rgb(248 113 113 / 0.16);
+}
+html.gt-app[data-theme="dark"] :is(.bg-emerald-50, .bg-emerald-100) {
+  background-color: rgb(52 211 153 / 0.14);
+}
+html.gt-app[data-theme="dark"] :is(.text-emerald-800, .text-emerald-900) {
+  color: #86efc5;
+}
+html.gt-app[data-theme="dark"] .border-emerald-200 {
+  border-color: rgb(134 239 197 / 0.4);
+}
+html.gt-app[data-theme="dark"] .text-amber-800 {
+  color: #fcd34d;
+}
+
+/* ─── Champs de formulaire. ─────────────────────────────────────────────────────────── */
+html.gt-app[data-theme="dark"] :is(input, select, textarea)::placeholder {
+  color: rgb(232 242 242 / 0.5);
+}
+html.gt-app[data-theme="dark"] select option {
+  background-color: #0b2a30;
+  color: var(--gt-dark-ink);
+}
+
+/* ─── Listes (gt-table). ────────────────────────────────────────────────────────────── */
+html.gt-app[data-theme="dark"] .gt-table-wrap {
+  border-color: var(--gt-dark-line);
+  background: var(--gt-dark-glass);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.18);
+}
+html.gt-app[data-theme="dark"] .gt-table {
+  color: var(--gt-dark-ink);
+}
+html.gt-app[data-theme="dark"] .gt-table thead th {
+  border-bottom-color: var(--gt-dark-line);
+  background: rgb(255 255 255 / 0.04);
+  color: rgb(232 242 242 / 0.62);
+}
+html.gt-app[data-theme="dark"] :is(.gt-table tbody td, .gt-table tbody th) {
+  border-bottom-color: rgb(255 255 255 / 0.07);
+}
+html.gt-app[data-theme="dark"] .gt-table tbody tr:hover {
+  background: rgb(255 255 255 / 0.05);
+}
+
+/* ─── Modales et notifications (verre plus opaque, au-dessus d'un fond assombri). ───── */
+html.gt-app[data-theme="dark"] .gt-modal {
+  border: 1px solid var(--gt-dark-line);
+  background-color: var(--gt-dark-glass-strong);
+  color: var(--gt-dark-ink);
+  -webkit-backdrop-filter: blur(24px) saturate(1.3);
+  backdrop-filter: blur(24px) saturate(1.3);
+}
+html.gt-app[data-theme="dark"] .gt-modal .bg-white {
+  background-color: rgb(255 255 255 / 0.05);
+}
+html.gt-app[data-theme="dark"] .gt-modal-header {
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.04) 1px, transparent 1px);
+}
+
+/* ─── Graphiques (Recharts) : axes, grille, fonds de jauges, infobulles. ────────────── */
+html.gt-app[data-theme="dark"] .recharts-cartesian-axis-tick-value,
+html.gt-app[data-theme="dark"] .recharts-label {
+  fill: rgb(232 242 242 / 0.7);
+}
+html.gt-app[data-theme="dark"] .recharts-cartesian-grid line {
+  stroke: rgb(255 255 255 / 0.1);
+}
+html.gt-app[data-theme="dark"] .recharts-radial-bar-background-sector {
+  fill: rgb(255 255 255 / 0.08);
+}
+html.gt-app[data-theme="dark"] .recharts-default-tooltip {
+  border-color: var(--gt-dark-line) !important;
+  background-color: var(--gt-dark-glass-strong) !important;
+}
+html.gt-app[data-theme="dark"] .recharts-tooltip-cursor {
+  stroke: rgb(232 242 242 / 0.5);
+}
+
+/* Sélecteur de thème : bouton actif en sable, comme la pilule de navigation. */
+html.gt-app[data-theme="dark"] .gt-theme-switch__on {
+  background-color: var(--gt-sand-300);
+  color: #0f414d;
+}
