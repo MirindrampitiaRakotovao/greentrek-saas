@@ -10,7 +10,7 @@ Ce document est le **guide pas à pas de la démonstration** : qui se connecte, 
 
 - **Plateforme SaaS** : accueil, tarifs, inscription d'une agence avec essai de 30 jours, console du super admin (agences, plans, journal, boîte d'envoi, modération de la communauté).
 - **Back-office de chaque agence** : tableau de bord, circuits, carte du réseau (étapes et tronçons), calcul d'itinéraire (Dijkstra et A\*, visibles en **mode expert**), départs, réservations, paiements, clients (y compris ajoutés par l'agence), itinéraires sur mesure, avis, signalements, équipe, guides, partenaires, paramètres et logo, messagerie en temps réel.
-- **Site vitrine et espace voyageur** : recherche, fiche d'un circuit avec la note, réservation et paiement, factures avec QR code lisible hors ligne, itinéraires sur mesure, messagerie avec l'agence et entre voyageurs (présence « en ligne »), communauté de photos commune à toutes les agences, photo de profil.
+- **Site vitrine et espace voyageur** : recherche, fiche d'un circuit avec la note, réservation et paiement, factures avec QR code ouvert par l'appareil photo d'un téléphone (depuis n'importe quel réseau avec `npm run tunnel`), itinéraires sur mesure, messagerie avec l'agence et entre voyageurs (présence « en ligne »), communauté de photos commune à toutes les agences, photo de profil.
 - **Application mobile des voyageurs** (Expo, Android et iOS) : les mêmes fonctions côté voyageur, notifications sur le téléphone.
 - **Isolation des données** : chaque agence ne voit que ses données (client de base de données confiné, testé).
 

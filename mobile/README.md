@@ -1,6 +1,6 @@
 # Green Trek — application mobile (voyageurs)
 
-Application React Native (Expo SDK 58, Expo Router, TypeScript) pour les voyageurs : circuits de toutes les agences de la plateforme, fiche d'un circuit, réservation. Connexion obligatoire après l'écran d'ouverture ; style « verre dépoli », thèmes clair et sombre (onglet Compte → Apparence). Elle lit les données de l'API mobile du site (`/api/mobile/v1`).
+Application React Native (Expo SDK 58, Expo Router, TypeScript) pour les voyageurs : circuits de toutes les agences de la plateforme, fiche d'un circuit, réservation et paiement, factures, messagerie avec l'agence et entre voyageurs, itinéraires sur mesure, communauté de photos. Connexion obligatoire après l'écran d'ouverture ; style « verre dépoli », thèmes clair et sombre (onglet Compte → Apparence). Elle lit les données de l'API mobile du site (`/api/mobile/v1`).
 
 ## Lancer l'application sur un téléphone
 
@@ -27,10 +27,10 @@ Aperçu dans un navigateur, sans téléphone : `npx expo start --web`.
   - `circuit/[agence]/[slug].tsx` fiche d'un circuit, `reserver/[depart].tsx` réservation, `paiement/[id].tsx` paiement, `reservation/[id].tsx` fiche d'une réservation
   - `messages/` (liste, fil, nouveau message ; conversations avec l'agence et entre voyageurs, présence, blocage, signalement par appui long) et `notifications.tsx`
   - `voyageurs/` : voyageurs de l'agence et premier message à l'un d'eux
-  - `communaute/` : fil de photos commun à toutes les agences, fiche d'une publication avec ses commentaires, « Partager mes photos » (séjour terminé)
+  - `communaute/` : fil de photos commun à toutes les agences (accès : bouton en haut de l'accueil et onglet Compte) : mon profil et mes chiffres, recherche, **destinations** (un toucher filtre le fil), onglets **Populaires / Récentes**, publications en **mosaïque** (« +N »), menu « … » (Supprimer ou Signaler), défilement infini ; fiche d'une publication (photos en entier avec leur crédit, commentaires) ; « Partager mes photos » (séjour terminé, jusqu'à 8 photos, galerie ou appareil photo)
   - `itineraires/` : itinéraires sur mesure (proposés par l'agence ou demandés par le voyageur, « Créer mon itinéraire »)
   - `connexion.tsx`, `inscription.tsx`, `mot-de-passe-oublie.tsx` : compte voyageur (propre à une agence) ; `profil.tsx` : photo, profil, confidentialité et mot de passe
-- `src/components/` : cartes, bannière, catégories, formulaires, états de chargement, `RequireAuth`
+- `src/components/` : cartes, bannière, catégories, formulaires, états de chargement, `RequireAuth`, `Avatar` (photo et pastille « en ligne »), `communaute/publication-card.tsx` (mosaïque, menu « … »)
 - `src/context/auth.tsx` : session du voyageur (jeton et profil, stockage chiffré du téléphone)
 - `src/context/activity.tsx` : nouveautés (toutes les 20 s, application ouverte), pastilles, sonnerie, enregistrement du téléphone pour le push ; `src/lib/notifications.ts` : notifications du téléphone
 - `src/lib/` : client de l'API, adresse du site (réglable dans l'onglet Compte), formats français, page de la carte (Leaflet), stockage de la session
@@ -41,12 +41,20 @@ Aperçu dans un navigateur, sans téléphone : `npx expo start --web`.
 
 Compte de démonstration : `client@green-trek-mada.test`, mot de passe `Demo2026!`, agence **Green Trek Mada**. Une carte dont le numéro se termine par `0000` est refusée ; `4242 4242 4242 4242` est acceptée. Relancer `npm run db:seed` à la racine pour retrouver la base d'origine.
 
+## Tester la communauté et les voyageurs
+
+- **Communauté** : 60 publications de départ (voyageurs des trois agences, photos libres de Wikimedia Commons créditées) sont créées par `npm run db:seed`, ou ajoutées sans rien effacer par `npm run db:seed:communaute` (à la racine). Avec Nirina (`client@green-trek-mada.test`), qui a des séjours terminés, « Partager mes photos » est disponible.
+- **Voyageurs entre eux** : onglet Compte → Voyageurs ; un autre voyageur de Green Trek Mada pour répondre : `andry.rakotondrabe@example.com` (même mot de passe).
+- **Facture** : « Voir la facture » ouvre la facture du site dans le navigateur du téléphone (même Wi-Fi que l'ordinateur, ou `npm run tunnel` à la racine pour la 4G).
+
 ## Notifications qui sonnent
 
 - **Dans Expo Go** (niveau 1) : application ouverte, chaque nouveauté (message de l'agence, confirmation, paiement, annulation) fait sonner le téléphone dans les 20 secondes. Accepter la demande d'autorisation à la connexion.
 - **Avec l'APK** (niveau 2) : le téléphone sonne même application fermée (service push d'Expo). Configuration à faire une fois, avant la fabrication (étapes 2 bis ci-dessous).
 
 ## Fabriquer l'APK Android (lien de téléchargement pour la démonstration)
+
+> **À refaire après chaque évolution de l'application** : un APK contient les écrans du jour de sa fabrication. Celui du 2026-11-11 ne contient pas les itinéraires sur mesure, les photos de profil, les voyageurs entre eux ni la communauté. Commande : `npx eas-cli@latest build -p android --profile apk` (étape 3), puis remplacer le fichier sur Google Drive (le lien de partage peut rester le même avec « Gérer les versions »).
 
 L'application n'est pas publiée sur les stores (hors périmètre, cahier des charges §2). Pour la démonstration, on fabrique un fichier **APK** installable sur Android, et on le partage par un lien (Google Drive). Sur iPhone, l'installation hors App Store n'est pas possible : utiliser Expo Go.
 
