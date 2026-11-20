@@ -46,6 +46,7 @@ export function CircuitItinerary({
   /** Dernier tracé réel calculé à travers les tronçons (étape E6), s'il existe. */
   trace?: {
     path: { latitude: number; longitude: number }[];
+    geometry?: { line: [number, number][] };
     distanceKm: number;
     dureeMinutes: number;
   } | null;
@@ -74,7 +75,9 @@ export function CircuitItinerary({
   }));
   // Tracé réel (chemin calculé à travers les tronçons) s'il existe, sinon lignes droites.
   const path = trace
-    ? trace.path.map((p) => [p.latitude, p.longitude] as [number, number])
+    ? trace.geometry && trace.geometry.line.length > 1
+      ? trace.geometry.line
+      : trace.path.map((p) => [p.latitude, p.longitude] as [number, number])
     : steps.map((s) => [s.etape.latitude, s.etape.longitude] as [number, number]);
   const [traceMessage, setTraceMessage] = useState<string>();
 

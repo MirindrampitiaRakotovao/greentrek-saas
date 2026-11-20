@@ -5,6 +5,12 @@ import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
 
 import { EtapeForm, type EtapeFormValues } from "@/components/circuits/etape-form";
 import {
+  BulkTraceButton,
+  measuredOnTrace,
+  type TraceDraft,
+  TraceSection,
+} from "@/components/circuits/trace-editor";
+import {
   suggestedTroncon,
   TronconForm,
   type TronconValues,
@@ -15,6 +21,7 @@ import { FormAlert } from "@/components/ui/form-alert";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { deleteEtapeAction, moveEtapeAction } from "@/lib/actions/circuits";
 import { haversineKm } from "@/lib/graph/haversine";
+import type { TracePoint } from "@/lib/graph/trace";
 import { satellitePreviewUrl } from "@/lib/map/tiles";
 import {
   DIFFICULTE_TRONCON_LABELS,
@@ -47,7 +54,12 @@ export type EtapeItem = {
   circuits: { id: string; titre: string }[];
 };
 
-export type TronconItem = TronconValues & { id: string };
+export type TronconItem = TronconValues & {
+  id: string;
+  /** Tracé réel [longitude, latitude] (étape 6b-2), ou null : ligne droite. */
+  trace: TracePoint[] | null;
+  traceSource: "OSM" | "MANUEL" | null;
+};
 
 type Mode =
   | { kind: "list" }
@@ -136,6 +148,7 @@ export function MapExplorer({
   const [view, setView] = useState<View>("etapes");
   const [mode, setMode] = useState<Mode>({ kind: "list" });
   const [edgeMode, setEdgeMode] = useState<EdgeMode>({ kind: "list" });
+  const [draft, setDraft] = useState<TraceDraft | null>(null);
   const [query, setQuery] = useState("");
   const [types, setTypes] = useState<ReadonlySet<TypeEtape>>(new Set());
   const [focus, setFocus] = useState<MapFocus>();
@@ -190,6 +203,8 @@ export function MapExplorer({
 
   const edges: MapEdge[] = troncons
     .filter((t) => visibleIds.has(t.etapeDepartId) && visibleIds.has(t.etapeArriveeId))
+    // Le tronçon dont on édite le tracé est remplacé par le brouillon sur la carte.
+    .filter((t) => t.id !== draft?.tronconId || view !== "troncons")
     .map((t) => {
       const a = byId.get(t.etapeDepartId)!;
       const b = byId.get(t.etapeArriveeId)!;
@@ -197,9 +212,14 @@ export function MapExplorer({
         id: t.id,
         from: [a.latitude, a.longitude],
         to: [b.latitude, b.longitude],
-        label: `${a.nom} ${t.bidirectionnel ? "↔" : "→"} ${b.nom} · ${formatKm(t.distanceKm)} · ${formatDuree(t.dureeMinutes)}${t.distanceEstimee ? " (estimé)" : ""}`,
+        label: `${a.nom} ${t.bidirectionnel ? "↔" : "→"} ${b.nom} · ${formatKm(t.distanceKm)} · ${formatDuree(t.dureeMinutes)}${measuredOnTrace(t) ? " (mesurée sur le tracé OSM)" : t.distanceEstimee ? " (estimé)" : ""}`,
         dashed: t.distanceEstimee,
         tone: view === "etapes" ? "muted" : t.id === selectedEdgeId ? "selected" : "default",
+        // Tracé réel du sentier, sinon ligne droite.
+        line:
+          t.trace && t.trace.length > 1
+            ? t.trace.map(([lng, lat]) => [lat, lng] as [number, number])
+            : undefined,
       };
     });
 
@@ -211,6 +231,7 @@ export function MapExplorer({
 
   function openTroncon(id: string) {
     const t = troncons.find((x) => x.id === id);
+    if (draft && draft.tronconId !== id) setDraft(null);
     setView("troncons");
     setEdgeMode({ kind: "edit", id });
     if (t) {
@@ -312,7 +333,16 @@ export function MapExplorer({
             }
           }}
           onMarkerDragEnd={view === "etapes" && canEdit ? onDragEnd : undefined}
-          onEdgeClick={openTroncon}
+          onEdgeClick={draft?.editable ? undefined : openTroncon}
+          draftLine={
+            draft && view === "troncons"
+              ? {
+                  points: draft.points,
+                  editable: draft.editable,
+                  onChange: (points) => setDraft({ ...draft, points }),
+                }
+              : undefined
+          }
         />
 
         {/* ── Pastilles de filtre (comme « Restaurants », « Hôtels »… sur la maquette) ── */}
@@ -431,7 +461,12 @@ export function MapExplorer({
               canDelete={canDeleteTroncons}
               onStartPick={() => setEdgeMode({ kind: "pick" })}
               onOpen={openTroncon}
-              onBack={() => setEdgeMode({ kind: "list" })}
+              onBack={() => {
+                setDraft(null);
+                setEdgeMode({ kind: "list" });
+              }}
+              draft={draft}
+              setDraft={setDraft}
             />
           ) : mode.kind === "view" && selected ? (
             <PlaceCard
@@ -502,6 +537,8 @@ function TronconPanel({
   onStartPick,
   onOpen,
   onBack,
+  draft,
+  setDraft,
 }: {
   edgeMode: EdgeMode;
   troncons: readonly TronconItem[];
@@ -513,6 +550,8 @@ function TronconPanel({
   onStartPick: () => void;
   onOpen: (id: string) => void;
   onBack: () => void;
+  draft: TraceDraft | null;
+  setDraft: (draft: TraceDraft | null) => void;
 }) {
   const back = (
     <button
@@ -580,8 +619,22 @@ function TronconPanel({
           {nom(values.etapeDepartId)} {values.bidirectionnel ? "↔" : "→"}{" "}
           {nom(values.etapeArriveeId)}
         </p>
+        {canEdit && existing ? (
+          <TraceSection
+            key={existing.id}
+            troncon={{
+              ...existing,
+              depart: etapes.find((e) => e.id === existing.etapeDepartId)!,
+              arrivee: etapes.find((e) => e.id === existing.etapeArriveeId)!,
+            }}
+            draft={draft}
+            setDraft={setDraft}
+          />
+        ) : null}
         {canEdit ? (
-          <TronconForm troncon={values} etapes={etapes} canDelete={canDelete} onDone={onBack} />
+          <div className="mt-5">
+            <TronconForm troncon={values} etapes={etapes} canDelete={canDelete} onDone={onBack} />
+          </div>
         ) : (
           <dl className="grid grid-cols-2 gap-3 text-sm">
             <div>
@@ -636,6 +689,15 @@ function TronconPanel({
             Nouveau tronçon
           </button>
         ) : null}
+        {canEdit ? (
+          <BulkTraceButton
+            troncons={troncons.map((t) => ({
+              id: t.id,
+              traceSource: t.traceSource,
+              label: `${nom(t.etapeDepartId)} – ${nom(t.etapeArriveeId)}`,
+            }))}
+          />
+        ) : null}
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gt-teal-900/75">
           <span className="flex items-center gap-1.5">
             <span aria-hidden="true" className="h-1 w-6 rounded bg-[#1a73e8]" />
@@ -670,11 +732,18 @@ function TronconPanel({
                     {t.difficulte}
                   </span>
                 </span>
-                {t.distanceEstimee ? (
-                  <span className="shrink-0 rounded-full bg-gt-sand-200 px-2 py-0.5 text-[11px] font-semibold text-gt-teal-900">
-                    estimé
-                  </span>
-                ) : null}
+                <span className="flex shrink-0 flex-col items-end gap-1">
+                  {t.traceSource ? (
+                    <span className="rounded-full bg-gt-teal-100 px-2 py-0.5 text-[11px] font-semibold text-gt-teal-900">
+                      tracé
+                    </span>
+                  ) : null}
+                  {t.distanceEstimee ? (
+                    <span className="rounded-full bg-gt-sand-200 px-2 py-0.5 text-[11px] font-semibold text-gt-teal-900">
+                      estimé
+                    </span>
+                  ) : null}
+                </span>
               </button>
             </li>
           ))}

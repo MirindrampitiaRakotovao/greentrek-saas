@@ -88,8 +88,11 @@ export default async function PublicCircuitPage({ params }: Props) {
     { icon: "users", label: "Groupe", value: `${circuit.capaciteMax} pers. max.` },
   ];
   const steps = circuit.etapes.map((s) => ({ ...s.etape, id: s.id, ordre: s.ordre }));
+  // Tracés réels des tronçons enchaînés (étape 6b-2), sinon étapes reliées en ligne droite.
   const trace = circuit.trace
-    ? circuit.trace.path.map((p) => [p.latitude, p.longitude] as [number, number])
+    ? circuit.trace.geometry.line.length > 1
+      ? circuit.trace.geometry.line
+      : circuit.trace.path.map((p) => [p.latitude, p.longitude] as [number, number])
     : null;
 
   const credit = creditFor(circuit.imagePrincipaleUrl);
@@ -194,6 +197,7 @@ export default async function PublicCircuitPage({ params }: Props) {
                       longitude: s.etape.longitude,
                     }))}
                     trace={circuit.trace?.path ?? null}
+                    line={trace}
                     fallback={
                       <div className="overflow-hidden rounded-3xl border border-gt-mist/70">
                         <CircuitMap steps={steps} trace={trace} />
@@ -202,9 +206,11 @@ export default async function PublicCircuitPage({ params }: Props) {
                   />
                 </div>
                 <p className="mt-2 text-xs text-gt-teal-900/75">
-                  {trace
-                    ? "Tracé calculé à travers les tronçons du réseau de l'agence ; les noms en petit sont les villages traversés."
-                    : "Tracé indicatif en ligne droite entre les étapes."}{" "}
+                  {circuit.trace && circuit.trace.geometry.traces > 0
+                    ? `Tracé le long des sentiers (${circuit.trace.geometry.traces} tronçon${circuit.trace.geometry.traces > 1 ? "s" : ""} sur ${circuit.trace.geometry.legs} au tracé relevé, les autres en ligne droite) ; les noms en petit sont les villages traversés.`
+                    : trace
+                      ? "Tracé calculé à travers les tronçons du réseau de l'agence ; les noms en petit sont les villages traversés."
+                      : "Tracé indicatif en ligne droite entre les étapes."}{" "}
                   Les pointillés clairs sont les sentiers connus d&apos;OpenStreetMap. Imagerie ©
                   Esri, Maxar, Earthstar Geographics · relief Mapzen (AWS) · données © contributeurs
                   OpenStreetMap, OpenFreeMap.

@@ -61,6 +61,7 @@ export const TENANT_CONFIG: Readonly<Record<ModelName, ModelConfig>> = {
   Troncon: {
     scope: { kind: "tenant" },
     references: { etapeDepartId: "Etape", etapeArriveeId: "Etape" },
+    jsonFields: ["trace"],
   },
   Partenaire: { scope: { kind: "tenant" }, references: {} },
   SessionDepart: {

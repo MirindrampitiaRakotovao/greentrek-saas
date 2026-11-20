@@ -30,7 +30,13 @@ const SatelliteMap = dynamic(() => import("@/components/map3d/satellite-map"), {
   ),
 });
 
-export type { MapDot, MapEdge, MapFocus, MapMarker } from "@/components/map/leaflet-map";
+export type {
+  MapDot,
+  MapDraftLine,
+  MapEdge,
+  MapFocus,
+  MapMarker,
+} from "@/components/map/leaflet-map";
 
 export function MapView({
   variant = "plan",

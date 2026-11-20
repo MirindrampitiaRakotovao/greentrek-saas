@@ -1,11 +1,13 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { buildGraph } from "@/lib/graph/build";
 import { pathToGeoJson } from "@/lib/graph/geojson";
+import { chainPathGeometry, type PathGeometry } from "@/lib/graph/trace";
 import { type Algorithm, type Criteria, type Graph, GraphError } from "@/lib/graph/types";
 import { shortestPathVia, type WaypointResult } from "@/lib/graph/waypoints";
 import { CRITERIA_PRESETS } from "@/lib/graph/weights";
 import { type Paginated, pageArgs, pageCount } from "@/lib/pagination";
 import { failure, type ServiceResult, success } from "@/lib/services/result";
+import { loadTraceIndex } from "@/lib/services/troncon-traces";
 import type { TenantDb } from "@/lib/tenant";
 import type { ItineraireInput } from "@/lib/validators/itineraires";
 
@@ -36,6 +38,8 @@ export type AlgorithmOutcome = {
   explored: string[];
   timeMs: number;
   historiqueId?: string;
+  /** Tracé à afficher (étape 6b-2) : tracés réels des tronçons, sinon lignes droites. */
+  geometry: PathGeometry;
 };
 
 /** Graphe de l'agence construit à partir de la base (étapes = nœuds, tronçons = arêtes). */
@@ -99,6 +103,7 @@ function toOutcome(graph: Graph, algorithme: Algorithm, result: WaypointResult):
     exploredCount: result.exploredCount,
     explored: [...new Set(result.explored)],
     timeMs: result.timeMs,
+    geometry: { line: [], traces: 0, legs: 0 },
   };
 }
 
@@ -124,6 +129,7 @@ export async function computeItineraire(
     input.algorithme === "COMPARER" ? ["DIJKSTRA", "ASTAR"] : [input.algorithme];
 
   const outcomes: AlgorithmOutcome[] = [];
+  const traces = await loadTraceIndex(db);
   for (const algorithme of algorithms) {
     let result: WaypointResult;
     try {
@@ -141,6 +147,7 @@ export async function computeItineraire(
       throw error;
     }
     const outcome = toOutcome(graph, algorithme, result);
+    outcome.geometry = chainPathGeometry(outcome.path, traces);
 
     if (outcome.found) {
       const saved = await db.itineraireCalcule.create({
@@ -216,6 +223,8 @@ export async function listHistorique(
 
 export type CircuitTrace = {
   path: PathStep[];
+  /** Tracé à afficher : tracés réels des tronçons enchaînés (étape 6b-2). */
+  geometry: PathGeometry;
   distanceKm: number;
   dureeMinutes: number;
   createdAt: Date;
@@ -283,6 +292,7 @@ export async function latestCircuitTrace(
   if (!Array.isArray(etapes)) return null;
   return {
     path: etapes,
+    geometry: chainPathGeometry(etapes, await loadTraceIndex(db)),
     distanceKm: last.distanceTotaleKm,
     dureeMinutes: last.dureeTotaleMin,
     createdAt: last.createdAt,

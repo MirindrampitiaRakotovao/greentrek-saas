@@ -96,7 +96,11 @@ export function ItineraryPlanner({
   const nom = (id: string) => byId.get(id)?.nom ?? "?";
   const sorted = [...etapes].sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
   const found = outcomes.find((o) => o.found);
-  const routePath = found?.path.map((s) => [s.latitude, s.longitude] as [number, number]) ?? [];
+  // Tracés réels des tronçons (étape 6b-2), sinon lignes droites entre les étapes.
+  const routePath =
+    found && found.geometry.line.length > 1
+      ? found.geometry.line
+      : (found?.path.map((s) => [s.latitude, s.longitude] as [number, number]) ?? []);
 
   // Carte : départ (rouge), arrivée (orange), étapes imposées (numérotées), autres en retrait.
   const markers: MapMarker[] = etapes.map((e) => {

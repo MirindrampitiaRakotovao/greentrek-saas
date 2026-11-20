@@ -47,6 +47,8 @@ export type TerrainMapProps = {
   steps: readonly Map3DStep[];
   /** Tracé à travers les tronçons (plus court chemin), ou null : lignes droites indicatives. */
   trace: readonly Map3DPoint[] | null;
+  /** Ligne à dessiner [latitude, longitude] : tracés réels des tronçons (étape 6b-2). */
+  line?: readonly [number, number][] | null;
   /** Affiché à la place si le navigateur ne sait pas dessiner en WebGL (carte 2D). */
   fallback?: ReactNode;
 };
@@ -82,7 +84,7 @@ function passageElement(point: Map3DPoint): HTMLElement {
   return el;
 }
 
-export default function TerrainMap({ title, steps, trace, fallback }: TerrainMapProps) {
+export default function TerrainMap({ title, steps, trace, line, fallback }: TerrainMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef<Marker[]>([]);
@@ -91,7 +93,15 @@ export default function TerrainMap({ title, steps, trace, fallback }: TerrainMap
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  const route = useMemo(() => (trace && trace.length > 1 ? trace : steps), [trace, steps]);
+  const route = useMemo(
+    () =>
+      line && line.length > 1
+        ? line.map(([latitude, longitude]) => ({ latitude, longitude }))
+        : trace && trace.length > 1
+          ? trace
+          : steps,
+    [line, trace, steps],
+  );
   const passages = useMemo(
     () => (trace ? passagePoints(trace, new Set(steps.map((s) => s.etapeId))) : []),
     [trace, steps],

@@ -399,4 +399,22 @@ body {
   .gt3d-popup .maplibregl-popup-tip {
     display: none;
   }
+
+  /* Points du tracé en cours d'édition (étape 6b-2). */
+  .gt3d-vertex {
+    width: 0.85rem;
+    height: 0.85rem;
+    border: 2px solid #fff;
+    border-radius: 999px;
+    background: #ffb547;
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.4);
+    cursor: grab;
+  }
+  .gt3d-vertex--fixed {
+    width: 1.05rem;
+    height: 1.05rem;
+    background: var(--gt-teal-900);
+    border-color: #ffb547;
+    cursor: default;
+  }
 }

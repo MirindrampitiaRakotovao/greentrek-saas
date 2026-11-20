@@ -46,6 +46,15 @@ export type MapEdge = {
   label: string;
   dashed?: boolean;
   tone?: "default" | "selected" | "muted";
+  /** Tracé réel du sentier [latitude, longitude] (étape 6b-2), sinon ligne droite. */
+  line?: readonly [number, number][];
+};
+
+/** Tracé en cours (proposition d'OSM ou dessin à la main), éditable sur la carte 3D. */
+export type MapDraftLine = {
+  points: readonly [number, number][];
+  editable: boolean;
+  onChange?: (points: [number, number][]) => void;
 };
 
 const EDGE_COLORS = { default: "#1a73e8", selected: "#d93025", muted: "#7aa7c7" } as const;
@@ -61,6 +70,8 @@ export type LeafletMapProps = {
   /** « indicatif » : pointillés (lignes droites) ; « route » : trait plein (chemin calculé). */
   pathStyle?: "indicatif" | "route";
   dots?: readonly MapDot[];
+  /** Tracé en cours d'édition (carte 3D ; la carte 2D l'affiche sans l'éditer). */
+  draftLine?: MapDraftLine;
   onMapClick?: (lat: number, lng: number) => void;
   onMarkerClick?: (id: string) => void;
   onMarkerDragEnd?: (id: string, lat: number, lng: number) => void;
@@ -319,6 +330,7 @@ export default function LeafletMap({
   onEdgeClick,
   pathStyle = "indicatif",
   dots,
+  draftLine,
   onMapClick,
   onMarkerClick,
   onMarkerDragEnd,
@@ -378,7 +390,8 @@ export default function LeafletMap({
       ) : null}
       {edges?.map((edge) => {
         const tone = edge.tone ?? "default";
-        const positions: [number, number][] = [edge.from, edge.to];
+        const positions: [number, number][] =
+          edge.line && edge.line.length > 1 ? [...edge.line] : [edge.from, edge.to];
         return (
           <EdgeLine
             key={`${edge.id}-${tone}`}
@@ -391,6 +404,12 @@ export default function LeafletMap({
           />
         );
       })}
+      {draftLine && draftLine.points.length > 1 ? (
+        <Polyline
+          positions={draftLine.points as [number, number][]}
+          pathOptions={{ color: "#c98a1b", weight: 5, opacity: 0.95 }}
+        />
+      ) : null}
       {dots?.map((dot) => (
         <CircleMarker
           key={dot.id}

@@ -6,7 +6,7 @@ import * as maplibregl from "maplibre-gl";
 import type { GeoJSONSource, Map as MapLibreMap, Marker, Popup } from "maplibre-gl";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
-import type { LeafletMapProps, MapMarker } from "@/components/map/leaflet-map";
+import type { LeafletMapProps, MapDraftLine, MapMarker } from "@/components/map/leaflet-map";
 import {
   MAP3D_ATTRIBUTION,
   MAP3D_LOCALE,
@@ -14,6 +14,7 @@ import {
   prefersReducedMotion,
 } from "@/components/map3d/shared";
 import { Icon } from "@/components/ui/icon";
+import { insertPoint, type TracePoint } from "@/lib/graph/trace";
 import { boundsOf, MAP3D_COLORS, satelliteStyle, TERRAIN_EXAGGERATION } from "@/lib/map3d/style";
 
 /**
@@ -55,7 +56,21 @@ function pinElement(marker: MapMarker): HTMLElement {
 type Handlers = Pick<
   LeafletMapProps,
   "onMapClick" | "onMarkerClick" | "onMarkerDragEnd" | "onEdgeClick"
->;
+> & { draftLine?: MapDraftLine };
+
+/** [latitude, longitude] → [longitude, latitude] et inversement. */
+const toLngLat = ([lat, lng]: readonly [number, number]): TracePoint => [lng, lat];
+const toLatLng = ([lng, lat]: TracePoint): [number, number] => [lat, lng];
+
+/** Point du tracé en cours : rond déplaçable (extrémités fixes, sur les étapes). */
+function vertexElement(fixed: boolean): HTMLElement {
+  const el = document.createElement("div");
+  el.className = fixed ? "gt3d-vertex gt3d-vertex--fixed" : "gt3d-vertex";
+  el.title = fixed
+    ? "Extrémité du tronçon (sur l'étape)"
+    : "Glisser pour déplacer · double-clic pour supprimer";
+  return el;
+}
 
 export default function SatelliteMap({
   markers,
@@ -64,6 +79,7 @@ export default function SatelliteMap({
   onEdgeClick,
   pathStyle = "indicatif",
   dots,
+  draftLine,
   onMapClick,
   onMarkerClick,
   onMarkerDragEnd,
@@ -78,11 +94,12 @@ export default function SatelliteMap({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef<Marker[]>([]);
+  const verticesRef = useRef<Marker[]>([]);
   const popupRef = useRef<Popup | null>(null);
   // Fonctions de la page relues à chaque événement (elles changent à chaque rendu).
   const handlers = useRef<Handlers>({});
   useEffect(() => {
-    handlers.current = { onMapClick, onMarkerClick, onMarkerDragEnd, onEdgeClick };
+    handlers.current = { onMapClick, onMarkerClick, onMarkerDragEnd, onEdgeClick, draftLine };
   });
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -145,6 +162,7 @@ export default function SatelliteMap({
       map.addSource("troncons", { type: "geojson", data: empty });
       map.addSource("trace", { type: "geojson", data: empty });
       map.addSource("explores", { type: "geojson", data: empty });
+      map.addSource("brouillon", { type: "geojson", data: empty });
       // Tronçons : liseré sombre, trait (plein si mesuré, pointillé si estimé), zone de clic.
       map.addLayer({
         id: "troncons-liseret",
@@ -204,6 +222,21 @@ export default function SatelliteMap({
           },
         });
       }
+      // Tracé en cours (proposition OSM ou dessin) : orange vif, bien distinct du réseau.
+      map.addLayer({
+        id: "brouillon-halo",
+        type: "line",
+        source: "brouillon",
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": "#FFB547", "line-width": 12, "line-blur": 6, "line-opacity": 0.5 },
+      });
+      map.addLayer({
+        id: "brouillon",
+        type: "line",
+        source: "brouillon",
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": "#FFB547", "line-width": 4 },
+      });
       map.addLayer({
         id: "explores",
         type: "circle",
@@ -238,8 +271,16 @@ export default function SatelliteMap({
         });
       }
       map.on("click", (event) => {
-        // Un clic sur une épingle n'ajoute pas d'étape (elle a son propre clic).
-        if ((event.originalEvent.target as HTMLElement | null)?.closest(".gt3d-pin")) return;
+        // Un clic sur une épingle ou un point du tracé n'ajoute rien (ils ont leur propre clic).
+        const target = event.originalEvent.target as HTMLElement | null;
+        if (target?.closest(".gt3d-pin, .gt3d-vertex")) return;
+        // Édition d'un tracé : le clic ajoute un point dans le segment le plus proche.
+        const draft = handlers.current.draftLine;
+        if (draft?.editable && draft.onChange) {
+          const point: TracePoint = [event.lngLat.lng, event.lngLat.lat];
+          draft.onChange(insertPoint(draft.points.map(toLngLat), point).map(toLatLng));
+          return;
+        }
         const hit = map.queryRenderedFeatures(event.point, { layers: ["troncons-clic"] })[0];
         const id = hit?.properties?.id as string | undefined;
         if (id && handlers.current.onEdgeClick) handlers.current.onEdgeClick(id);
@@ -250,17 +291,24 @@ export default function SatelliteMap({
     return () => {
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
+      verticesRef.current.forEach((m) => m.remove());
+      verticesRef.current = [];
       map.remove();
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- carte créée une seule fois
   }, []);
 
-  // Curseur « viseur » quand un clic ajoute une étape.
+  // Curseur « viseur » quand un clic ajoute une étape ou un point du tracé ; pas de zoom au
+  // double-clic pendant l'édition d'un tracé (il supprime un point).
+  const editing = draftLine?.editable ?? false;
   useEffect(() => {
-    const canvas = mapRef.current?.getCanvas();
-    if (canvas) canvas.style.cursor = onMapClick ? "crosshair" : "";
-  }, [onMapClick, loaded]);
+    const map = mapRef.current;
+    if (!map) return;
+    map.getCanvas().style.cursor = onMapClick || editing ? "crosshair" : "";
+    if (editing) map.doubleClickZoom.disable();
+    else map.doubleClickZoom.enable();
+  }, [onMapClick, editing, loaded]);
 
   // Tronçons.
   useEffect(() => {
@@ -281,10 +329,13 @@ export default function SatelliteMap({
           },
           geometry: {
             type: "LineString",
-            coordinates: [
-              [edge.from[1], edge.from[0]],
-              [edge.to[1], edge.to[0]],
-            ],
+            coordinates:
+              edge.line && edge.line.length > 1
+                ? edge.line.map(toLngLat)
+                : [
+                    [edge.from[1], edge.from[0]],
+                    [edge.to[1], edge.to[0]],
+                  ],
           },
         };
       }),
@@ -317,6 +368,50 @@ export default function SatelliteMap({
       })),
     });
   }, [path, pathStyle, dots, loaded]);
+
+  // Tracé en cours : ligne et, en édition, points déplaçables.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loaded) return;
+    const points = draftLine?.points ?? [];
+    (map.getSource("brouillon") as GeoJSONSource).setData({
+      type: "FeatureCollection",
+      features:
+        points.length > 1
+          ? [
+              {
+                type: "Feature",
+                properties: {},
+                geometry: { type: "LineString", coordinates: points.map(toLngLat) },
+              },
+            ]
+          : [],
+    });
+    verticesRef.current.forEach((m) => m.remove());
+    verticesRef.current = [];
+    if (!draftLine?.editable) return;
+    verticesRef.current = points.map((point, index) => {
+      const fixed = index === 0 || index === points.length - 1;
+      const element = vertexElement(fixed);
+      const vertex = new maplibregl.Marker({ element, draggable: !fixed })
+        .setLngLat(toLngLat(point))
+        .addTo(map);
+      vertex.on("dragend", () => {
+        const draft = handlers.current.draftLine;
+        if (!draft?.onChange) return;
+        const { lat, lng } = vertex.getLngLat();
+        draft.onChange(draft.points.map((p, i) => (i === index ? [lat, lng] : [p[0], p[1]])));
+      });
+      if (!fixed) {
+        element.addEventListener("dblclick", (event) => {
+          event.stopPropagation();
+          const draft = handlers.current.draftLine;
+          draft?.onChange?.(draft.points.filter((_, i) => i !== index).map((p) => [p[0], p[1]]));
+        });
+      }
+      return vertex;
+    });
+  }, [draftLine, loaded]);
 
   // Épingles (recréées quand la liste change).
   useEffect(() => {

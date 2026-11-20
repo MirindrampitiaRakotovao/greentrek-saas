@@ -30,7 +30,10 @@ export default async function EtapesPage() {
           e._count.circuitPartenaires,
         circuits: [...new Map(e.circuits.map((c) => [c.circuit.id, c.circuit])).values()],
       }))}
-      troncons={troncons}
+      troncons={troncons.map((t) => ({
+        ...t,
+        trace: Array.isArray(t.trace) ? (t.trace as [number, number][]) : null,
+      }))}
       canEdit={can(user.role, "modifier", "etape")}
       canDelete={can(user.role, "supprimer", "etape")}
       canEditTroncons={can(user.role, "modifier", "troncon")}

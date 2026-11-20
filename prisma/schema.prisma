@@ -271,6 +271,12 @@ model Etape {
 
 // ─── 5. Troncon (arête du graphe) ──────────────────────────────────────────────
 
+/// Origine du tracé d'un tronçon (étape 6b-2).
+enum SourceTrace {
+  OSM // proposé par le calcul de trajet à pied d'OpenStreetMap, validé par l'agence
+  MANUEL // dessiné ou corrigé à la main par l'agence
+}
+
 model Troncon {
   id              String  @id @default(cuid())
   agenceId        String
@@ -283,6 +289,11 @@ model Troncon {
   bidirectionnel  Boolean @default(true)
   distanceEstimee Boolean @default(false) // true = Haversine × sinuosité, sans mesure terrain
   commentaire     String? @db.Text
+  // Tracé réel du sentier (étape 6b-2) : points [longitude, latitude] du départ à l'arrivée,
+  // proposé depuis les chemins d'OpenStreetMap ou dessiné par l'agence. Sans tracé, la carte
+  // relie les deux étapes en ligne droite. N'intervient pas dans les algorithmes.
+  trace           Json?
+  traceSource     SourceTrace?
 
   agence       Agence @relation(fields: [agenceId], references: [id], onDelete: Restrict)
   // RG 8 : une étape reliée par un tronçon ne peut pas être supprimée (Restrict).

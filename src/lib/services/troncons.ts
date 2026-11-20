@@ -25,6 +25,8 @@ const tronconSelect = {
   bidirectionnel: true,
   distanceEstimee: true,
   commentaire: true,
+  trace: true,
+  traceSource: true,
 } satisfies Prisma.TronconSelect;
 
 export type TronconRow = Prisma.TronconGetPayload<{ select: typeof tronconSelect }>;

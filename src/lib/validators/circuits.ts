@@ -156,3 +156,22 @@ export const DIFFICULTE_TRONCON_LABELS: Record<number, string> = {
   4: "4 · Difficile",
   5: "5 · Très difficile",
 };
+
+/* ─── Tracé réel d'un tronçon (étape 6b-2) ─── */
+
+const tracePoint = z.tuple([z.number().min(-180).max(180), z.number().min(-90).max(90)]);
+
+/** Enregistrement d'un tracé : proposé par OSM (puis validé) ou dessiné à la main. */
+export const saveTraceSchema = z.object({
+  tronconId: z.string().min(1),
+  trace: z
+    .array(tracePoint)
+    .min(2, { error: "Un tracé compte au moins deux points." })
+    .max(5000, { error: "Tracé trop long (5 000 points au plus)." }),
+  source: z.enum(["OSM", "MANUEL"]),
+  /** Remplacer la distance du tronçon par la longueur du tracé (durée recalculée). */
+  remplacerDistance: z.boolean(),
+});
+export type SaveTraceInput = z.infer<typeof saveTraceSchema>;
+
+export const tronconIdSchema = z.object({ tronconId: z.string().min(1) });
