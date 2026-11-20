@@ -40,6 +40,8 @@ Vérifier que <http://localhost:3000/api/health> répond `"database": "connecté
 
 Pour ajouter (ou recréer) seulement les publications de départ de la communauté, **sans effacer** le reste de la base : `npm run db:seed:communaute`.
 
+**QR code des factures depuis n'importe quel réseau** (recommandé le jour J) : installer une fois `brew install cloudflared`, puis, le site lancé, ouvrir un second terminal et lancer `npm run tunnel`. Le tunnel (Cloudflare, gratuit, sans compte) donne une adresse `https://….trycloudflare.com` : les QR codes l'utilisent aussitôt, et un téléphone en 4G ou sur un autre Wi-Fi ouvre la facture. Par cette adresse, **seules les factures** sont accessibles (le reste du site répond « introuvable »). L'adresse change à chaque lancement, Ctrl+C l'arrête. Sans tunnel, le QR code s'ouvre depuis le même Wi-Fi que l'ordinateur.
+
 **Application mobile** (facultatif) : installer l'APK sur un téléphone Android, ou lancer `cd mobile && npx expo start` (voir `mobile/README.md`). Le téléphone doit être sur le **même Wi-Fi** que l'ordinateur ; l'adresse du serveur se règle dans l'application (Compte, puis Adresse du serveur).
 
 ---
@@ -187,7 +189,7 @@ Puis :
 **Qui** : Hanta. **Fenêtre A.**
 
 1. Cliquer la notification dans la **cloche** : la fiche de la réservation s'ouvre (client, participants, paiement validé).
-2. Montrer la **facture** et son **QR code** : le scanner avec un téléphone, **même sans réseau**, affiche le numéro de facture, l'agence, la réservation, le circuit, les dates et les montants. Le lien vers la facture en ligne, en dernière ligne, ne s'ouvre que sur le même Wi-Fi.
+2. Montrer la **facture** et son **QR code** : le scanner avec l'**appareil photo** d'un téléphone ouvre la facture (avec `npm run tunnel` lancé, depuis n'importe quel réseau ; sinon, depuis le même Wi-Fi). Sous le QR code, l'adresse qu'il contient.
 3. Menu **Journal d'activité** : qui a fait quoi, et quand.
 
 **À dire** : « Le paiement en ligne étant complet, la réservation est confirmée automatiquement. Un virement ou des espèces resteraient "à valider" par l'agence. Les actions sensibles sont tracées dans le journal. »
@@ -301,6 +303,7 @@ npm run db:seed   # efface l'Agence Soutenance, la réservation et les messages 
 | Erreur de connexion à la base | MySQL est-il démarré ? `/api/health` doit répondre « connectée ». |
 | L'e-mail d'invitation ou de mot de passe n'arrive pas | `SMTP_USER` / `SMTP_PASSWORD` vides ou faux dans `.env` : l'e-mail est dans la **Boîte d'envoi** du super admin. |
 | « Calcul d'itinéraire » sans choix d'algorithme, pas de menu Performances | Activer **Mode expert** en haut de la page Calcul d'itinéraire. |
+| Le QR code de la facture ne s'ouvre pas sur le téléphone | Lancer `npm run tunnel` (le site doit tourner) et rafraîchir la page de la facture : l'adresse sous le QR code doit finir par `trycloudflare.com`. Sans tunnel, le téléphone doit être sur le même Wi-Fi que l'ordinateur. |
 | Une photo est refusée | 5 Mo au plus, format JPEG, PNG ou WebP. |
 | « Partager mes photos » n'apparaît pas | Il faut un séjour **terminé** : se connecter avec Nirina (`client@green-trek-mada.test`), qui en a. |
 | L'application affiche « Impossible de joindre Green Trek » | Téléphone sur le même Wi-Fi que l'ordinateur ; corriger l'adresse dans Compte, puis Adresse du serveur (par exemple `http://192.168.1.20:3000`). |
@@ -309,12 +312,12 @@ npm run db:seed   # efface l'Agence Soutenance, la réservation et les messages 
 
 ## 7. Aide-mémoire (à imprimer)
 
-1. `npm run db:seed`, `npm run build`, `npm start`.
+1. `npm run db:seed`, `npm run build`, `npm start`, puis `npm run tunnel` dans un second terminal.
 2. A = Chrome normal (`admin@green-trek-mada.test`), B = Chrome privé (vitrine), C = Safari (accueil). Un clic dans chaque fenêtre.
 3. **C** : inscription « Agence Soutenance ».
 4. **A** : tableau de bord, Carte du réseau, Calcul d'itinéraire (**Mode expert**, Soanierana Ivongo → Antetezambaro, puis Ambodifototra), Performances, Programmer un départ (dans 3 semaines, 8 places, Tahina).
 5. **B** : recherche, Réserver, connexion de Nirina, 2 voyageurs, carte `4000…0000` (refusée), puis `4242…4242` (acceptée).
-6. **A** : cloche, fiche, facture (QR scanné hors ligne), Journal.
+6. **A** : cloche, fiche, facture (QR scanné à l'appareil photo, `npm run tunnel` lancé), Journal.
 7. **A + B** : Messages en direct. Bonus : avis, puis Publier.
 8. **C** : Tanety Trek, adresse copiée : 404.
 9. **C** : super admin, Attribuer le plan Pro, Suspendre, 404, Réactiver.

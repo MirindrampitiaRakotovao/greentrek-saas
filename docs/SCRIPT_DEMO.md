@@ -64,7 +64,7 @@ Mot de passe de tous les comptes : `Demo2026!`
 
 ### 7. Retour au back-office (1 min)
 
-- Fenêtre 2 : la cloche affiche « Nouvelle réservation » ; cliquer → fiche de la réservation, paiement validé, facture avec QR code (lisible par un téléphone même sans réseau : informations de la facture en texte).
+- Fenêtre 2 : la cloche affiche « Nouvelle réservation » ; cliquer → fiche de la réservation, paiement validé, facture avec QR code (scanné à l'appareil photo, il ouvre la facture ; depuis n'importe quel réseau si `npm run tunnel` est lancé).
 - **Avis** : dans l'espace client (fenêtre 1), ouvrir la fiche d'un circuit déjà fait : bloc « Votre note » en tête (ou « Mes réservations » → un séjour terminé → « Donner mon avis »). Dans le back-office, menu « Avis » → « Publier » : la note apparaît sur le site.
 - **À dire** : RG 17 (avis seulement après un séjour terminé, un par réservation) ; modération avant publication ; « Journal d'activité » : qui a fait quoi, et quand.
 

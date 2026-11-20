@@ -2,28 +2,17 @@ import jsQR from "jsqr";
 import QRCode from "qrcode";
 import { describe, expect, it } from "vitest";
 
-import { invoiceQrText } from "@/lib/invoice";
+import { isLocalHost, isPublicTunnelPath, isTunnelUrl } from "@/lib/network";
 import { qrSvg } from "@/lib/qr";
 
 /*
- * QR code des factures (étape « QR codes », après E12) : les informations essentielles sont
- * lisibles sans réseau ; le code se décode réellement (décodeur jsQR, comme un téléphone).
+ * QR code des factures : il ne contient QUE le lien de la facture, pour que l'appareil photo
+ * de n'importe quel téléphone l'ouvre (un QR de texte n'est pas ouvert par beaucoup
+ * d'appareils Android). Le code se décode réellement (décodeur jsQR, comme un téléphone).
  */
 
-const sample = {
-  numero: "F-GTM-2026-0159",
-  etat: "Facture acquittée",
-  agence: "Green Trek Mada",
-  reference: "GTM-2026-0159",
-  circuit: "Sentier Mahambo Doany – Ambodiforaha",
-  dates: "14 – 15 nov. 2026",
-  personnes: 2,
-  total: "360 000 Ar",
-  paye: "360 000 Ar",
-  reste: "0 Ar",
-  emiseLe: "19 nov. 2026",
-  url: "http://192.168.0.101:3000/a/green-trek-mada/facture/cmwbwuskw00b58j1aynjp6z60?s=YKuUS7SrUCwJ-80O5OQ5lv",
-};
+const TUNNEL = "https://soutenance-demo-abc.trycloudflare.com";
+const PATH = "/a/green-trek-mada/facture/cmwbwuskw00b58j1aynjp6z60?s=YKuUS7SrUCwJ-80O5OQ5lv";
 
 /** Image du QR code (4 pixels par module, marge de 4 modules) puis décodage. */
 function decode(text: string, level: "L" | "M"): string | null {
@@ -48,32 +37,67 @@ function decode(text: string, level: "L" | "M"): string | null {
 }
 
 describe("QR code des factures", () => {
-  it("contient les informations essentielles, sans donnée personnelle du client", () => {
-    const text = invoiceQrText(sample);
-    expect(text.split("\n")).toEqual([
-      "FACTURE F-GTM-2026-0159",
-      "Facture acquittée",
-      "Green Trek Mada",
-      "Réservation GTM-2026-0159",
-      "Sentier Mahambo Doany – Ambodiforaha",
-      "Départ : 14 – 15 nov. 2026 · 2 pers.",
-      "Total : 360 000 Ar",
-      "Payé : 360 000 Ar · Reste : 0 Ar",
-      "Émise le 19 nov. 2026",
-      `En ligne (même Wi-Fi) : ${sample.url}`,
-    ]);
-    expect(text).not.toMatch(/@|Randriamanana/);
-  });
-
-  it("se décode réellement en ce texte (accents et espaces compris)", () => {
-    const text = invoiceQrText(sample);
-    expect(decode(text, "L")).toBe(text);
+  it("se décode exactement en lien (Wi-Fi ou tunnel), sans donnée personnelle", () => {
+    for (const url of [`http://192.168.0.101:3000${PATH}`, `${TUNNEL}${PATH}`]) {
+      expect(decode(url, "M")).toBe(url);
+      expect(url).not.toMatch(/@|Randriamanana/);
+    }
   });
 
   it("SVG avec une zone de silence de 4 modules (norme ISO/IEC 18004)", async () => {
-    const text = invoiceQrText(sample);
-    const svg = await qrSvg(text, "L");
-    const n = QRCode.create(text, { errorCorrectionLevel: "L" }).modules.size;
+    const url = `${TUNNEL}${PATH}`;
+    const svg = await qrSvg(url, "M");
+    const n = QRCode.create(url, { errorCorrectionLevel: "M" }).modules.size;
     expect(svg).toContain(`viewBox="0 0 ${n + 8} ${n + 8}"`);
+  });
+});
+
+describe("tunnel de démonstration : seules les factures sont publiques", () => {
+  it("reconnaît les hôtes locaux (ordinateur, Wi-Fi) et ceux venus d'Internet", () => {
+    for (const host of [
+      "localhost:3000",
+      "127.0.0.1",
+      "192.168.0.101:3000",
+      "10.0.0.5",
+      "mac.local",
+      "greentrek.localhost:3000",
+      null,
+    ]) {
+      expect(isLocalHost(host), String(host)).toBe(true);
+    }
+    for (const host of ["soutenance-demo-abc.trycloudflare.com", "exemple.org", "8.8.8.8"]) {
+      expect(isLocalHost(host), host).toBe(false);
+    }
+  });
+
+  it("par le tunnel : la facture et ses fichiers, rien d'autre", () => {
+    for (const path of [
+      "/a/green-trek-mada/facture/cmwbwuskw00b58j1aynjp6z60",
+      "/_next/static/chunks/a.js",
+      "/logo/green-trek.png",
+      "/favicon.ico",
+    ]) {
+      expect(isPublicTunnelPath(path), path).toBe(true);
+    }
+    for (const path of [
+      "/",
+      "/connexion",
+      "/dashboard",
+      "/admin/agences",
+      "/api/mobile/v1/connexion",
+      "/a/green-trek-mada",
+      "/a/green-trek-mada/mon-compte",
+      "/fichiers/avatars/x.webp",
+      "/a/x/facture/../../dashboard",
+    ]) {
+      expect(isPublicTunnelPath(path), path).toBe(false);
+    }
+  });
+
+  it("adresse de tunnel valide : https et trycloudflare.com seulement", () => {
+    expect(isTunnelUrl(TUNNEL)).toBe(true);
+    expect(isTunnelUrl("http://abc.trycloudflare.com")).toBe(false);
+    expect(isTunnelUrl("https://abc.trycloudflare.com.evil.org")).toBe(false);
+    expect(isTunnelUrl("https://abc.trycloudflare.com/x")).toBe(false);
   });
 });

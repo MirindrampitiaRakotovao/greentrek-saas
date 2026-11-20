@@ -46,3 +46,6 @@ next-env.d.ts
 
 # Fichiers envoyés par les utilisateurs (photos de profil, logos, publications)
 /uploads/
+
+# Adresse du tunnel de démonstration (npm run tunnel)
+.tunnel-url

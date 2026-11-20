@@ -1,6 +1,7 @@
 import { Card } from "@/components/dashboard/widgets";
 import { InvoiceDocument } from "@/components/facture/invoice-document";
 import type { Invoice } from "@/lib/services/factures";
+import { isTunnelUrl } from "@/lib/network";
 
 /**
  * Aperçu de la facture (réduction de la page A4), QR code à scanner et lien vers la facture
@@ -36,8 +37,9 @@ export function InvoicePanel({
             dangerouslySetInnerHTML={{ __html: link.qr }}
           />
           <p className="text-xs text-gt-teal-900/75">
-            Scannez avec un téléphone : les informations de la facture s&apos;affichent, même sans
-            réseau. Le lien en ligne s&apos;ouvre depuis le même Wi-Fi que l&apos;ordinateur.
+            {isTunnelUrl(link.url.split("/a/")[0])
+              ? "Scannez avec l'appareil photo d'un téléphone : la facture s'ouvre, depuis n'importe quel réseau."
+              : "Scannez avec l'appareil photo d'un téléphone connecté au même Wi-Fi que l'ordinateur : la facture s'ouvre."}
           </p>
           {/* Adresse contenue dans le QR : on voit tout de suite si un téléphone peut l'ouvrir. */}
           <p className="max-w-full font-mono text-[10px] break-all text-gt-teal-900/75">

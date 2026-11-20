@@ -57,6 +57,7 @@ Documentation Next.js de la version installée : voir @AGENTS.md.
 ## Commandes
 - Installation initiale : `cp .env.example .env`, puis `mysql -u root -p < scripts/init-db.sql` (une seule fois), puis `npm install`
 - `npm run dev` : serveur de développement (http://localhost:3000, santé : `/api/health`)
+- `npm run tunnel` : tunnel Cloudflare de démonstration (`brew install cloudflared` une fois) ; le QR code des factures utilise son adresse ; par le tunnel, seules les factures sont servies (`src/proxy.ts`)
 - `npm run build` / `npm start` : build et serveur de production
 - `npm run typecheck` : `next typegen` + `tsc --noEmit`
 - `npm run lint` : ESLint · `npm run format` / `npm run format:check` : Prettier (hors `docs/` et `*.md`)

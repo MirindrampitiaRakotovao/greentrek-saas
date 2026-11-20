@@ -37,6 +37,42 @@ export function isLoopbackHost(host: string): boolean {
   return hostname === "localhost" || /^127\./.test(hostname) || hostname === "::1";
 }
 
+/**
+ * L'hôte est-il local (cet ordinateur ou le réseau local : localhost, *.localhost, *.local,
+ * adresse IPv4 privée) ? Sinon, la requête arrive d'Internet par le tunnel de démonstration :
+ * seules les factures y sont servies (voir `src/proxy.ts`).
+ */
+export function isLocalHost(host: string | null | undefined): boolean {
+  if (!host) return true;
+  const hostname = host
+    .trim()
+    .toLowerCase()
+    .replace(/:\d+$/, "")
+    .replace(/^\[|\]$/g, "");
+  return (
+    isLoopbackHost(hostname) ||
+    hostname.endsWith(".localhost") ||
+    hostname.endsWith(".local") ||
+    isPrivateIpv4(hostname)
+  );
+}
+
+/** Pages servies à une requête venue d'Internet (tunnel) : la facture signée et ses fichiers. */
+export function isPublicTunnelPath(pathname: string): boolean {
+  return (
+    /^\/a\/[a-z0-9-]+\/facture\/[a-z0-9]+$/.test(pathname) ||
+    /^\/_next\//.test(pathname) ||
+    /^\/(logo|fonts)\//.test(pathname) ||
+    /^\/fichiers\/logos\//.test(pathname) ||
+    /^\/(favicon\.ico|icon[^/]*|apple-icon[^/]*)$/.test(pathname)
+  );
+}
+
+/** Adresse d'un tunnel de démonstration valide (https, sous-domaine de trycloudflare.com). */
+export function isTunnelUrl(value: string | null | undefined): value is string {
+  return !!value && /^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/.test(value);
+}
+
 /** Remplace un hôte « localhost » par l'adresse du réseau local, en gardant le port. */
 export function reachableHost(host: string, lanIp: string | null): string {
   if (!lanIp || !isLoopbackHost(host)) return host;

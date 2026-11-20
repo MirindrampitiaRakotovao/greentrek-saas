@@ -29,6 +29,8 @@ const nextConfig: NextConfig = {
       .map((origin) => origin.trim())
       .filter(Boolean),
     ...(lanIp ? [lanIp] : []),
+    // Tunnel de démonstration (`npm run tunnel`) : facture ouverte depuis un téléphone.
+    "*.trycloudflare.com",
   ],
 };
 
