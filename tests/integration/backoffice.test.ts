@@ -95,10 +95,14 @@ describe("paramètres de l'agence", () => {
       ville: "Mahambo",
       pays: "Madagascar",
       devise: "EUR",
+      nif: "5019432887",
+      stat: null,
     });
     await expect(getAgencySettings(dbA, agenceA.id)).resolves.toMatchObject({
       nom: "Agence A modifiée",
       devise: "EUR",
+      nif: "5019432887",
+      stat: null,
       slug: "agence-a",
     });
   });
@@ -113,6 +117,8 @@ describe("paramètres de l'agence", () => {
       ville: null,
       pays: null,
       devise: "MGA",
+      nif: null,
+      stat: null,
     });
     expect(result.ok).toBe(false);
     await expect(

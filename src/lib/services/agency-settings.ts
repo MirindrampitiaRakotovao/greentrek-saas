@@ -21,6 +21,8 @@ export async function getAgencySettings(db: TenantDb, agenceId: string) {
       ville: true,
       pays: true,
       devise: true,
+      nif: true,
+      stat: true,
       logoUrl: true,
     },
   });

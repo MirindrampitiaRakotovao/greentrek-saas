@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE `Agence` ADD COLUMN `nif` VARCHAR(30) NULL,
+    ADD COLUMN `stat` VARCHAR(30) NULL;

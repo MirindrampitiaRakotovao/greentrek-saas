@@ -25,6 +25,8 @@ type Settings = {
   ville: string | null;
   pays: string | null;
   devise: string;
+  nif: string | null;
+  stat: string | null;
 };
 
 const FIELDS = [
@@ -36,6 +38,8 @@ const FIELDS = [
   "ville",
   "pays",
   "devise",
+  "nif",
+  "stat",
 ] as const;
 
 export function AgencySettingsForm({ settings }: { settings: Settings }) {
@@ -60,6 +64,8 @@ export function AgencySettingsForm({ settings }: { settings: Settings }) {
       devise: (DEVISES as readonly string[]).includes(settings.devise)
         ? (settings.devise as (typeof DEVISES)[number])
         : "MGA",
+      nif: settings.nif ?? "",
+      stat: settings.stat ?? "",
     },
   });
 
@@ -116,6 +122,22 @@ export function AgencySettingsForm({ settings }: { settings: Settings }) {
           options={DEVISE_OPTIONS}
           error={errors.devise?.message}
           {...register("devise")}
+        />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <TextField
+          label="NIF (facultatif)"
+          hint="Numéro d'identification fiscale, imprimé sur les factures."
+          inputMode="numeric"
+          error={errors.nif?.message}
+          {...register("nif")}
+        />
+        <TextField
+          label="STAT (facultatif)"
+          hint="Numéro statistique, imprimé sur les factures."
+          inputMode="numeric"
+          error={errors.stat?.message}
+          {...register("stat")}
         />
       </div>
       <Button type="submit" disabled={pending}>

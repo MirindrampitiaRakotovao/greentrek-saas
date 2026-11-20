@@ -142,6 +142,9 @@ type AgenceSeed = {
   description: string;
   ville: string;
   pays: string;
+  /** Identifiants légaux imprimés sur les factures (réels pour Green Trek Mada seulement). */
+  nif?: string;
+  stat?: string;
   /** Logo fourni par l'agence (fichier de `public/logo/`), sinon pictogramme neutre. */
   logoUrl?: string;
   circuits: DemoCircuit[];
@@ -168,6 +171,9 @@ const AGENCES: readonly AgenceSeed[] = [
       "Agence d'écotourisme basée à Mahambo (district de Fénérive-Est, côte Est de Madagascar).",
     ville: "Mahambo",
     pays: "Madagascar",
+    // NIF et STAT réels de Green Trek Mada, fournis par l'étudiant (2026-11-20).
+    nif: "5019432887",
+    stat: "63122212025001307",
     logoUrl: "/logo/green-trek-symbole.png",
     // TODO(données terrain) : e-mail, téléphone et adresse officiels de l'agence.
     circuits: GREEN_TREK_CIRCUITS,
@@ -283,6 +289,8 @@ async function seedAgence(
       description: spec.description,
       ville: spec.ville,
       pays: spec.pays,
+      nif: spec.nif ?? null,
+      stat: spec.stat ?? null,
       logoUrl: spec.logoUrl ?? null,
       createdAt: new Date(now.getTime() + (spec.abonnements[0]?.debut ?? 0) * DAY),
     },

@@ -131,6 +131,9 @@ model Agence {
   ville           String?      @db.VarChar(100)
   pays            String?      @db.VarChar(100)
   devise          String       @default("MGA") @db.VarChar(3)
+  // Identifiants fiscal et statistique, imprimés sur les factures (facultatifs).
+  nif             String?      @db.VarChar(30)
+  stat            String?      @db.VarChar(30)
   statut          StatutAgence @default(ACTIVE)
   createdAt       DateTime     @default(now())
 

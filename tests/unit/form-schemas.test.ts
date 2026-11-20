@@ -69,6 +69,8 @@ const cases: [string, ZodType, Record<string, unknown>][] = [
       ville: "",
       pays: "",
       devise: "MGA",
+      nif: "",
+      stat: "",
     },
   ],
   [
@@ -220,5 +222,41 @@ describe("transformations attendues", () => {
       "mg",
     ]);
     expect(guideSchema.safeParse({ ...cases[8]![2], langues: ["xx"] }).success).toBe(false);
+  });
+});
+
+describe("paramètres de l'agence : NIF et STAT", () => {
+  const base = {
+    nom: "Agence",
+    description: "",
+    email: "",
+    telephone: "",
+    adresse: "",
+    ville: "",
+    pays: "",
+    devise: "MGA",
+  };
+  it("accepte des chiffres (avec séparateurs) ou un champ vide", () => {
+    const ok = agencySettingsSchema.parse({
+      ...base,
+      nif: "5019432887",
+      stat: "63122 21 2025 0 01307",
+    });
+    expect(ok).toMatchObject({ nif: "5019432887", stat: "63122 21 2025 0 01307" });
+    expect(agencySettingsSchema.parse({ ...base, nif: "", stat: "" })).toMatchObject({
+      nif: null,
+      stat: null,
+    });
+  });
+  it("refuse les lettres, les symboles et les numéros trop longs", () => {
+    expect(agencySettingsSchema.safeParse({ ...base, nif: "NIF123", stat: "" }).success).toBe(
+      false,
+    );
+    expect(agencySettingsSchema.safeParse({ ...base, nif: "", stat: "123$22" }).success).toBe(
+      false,
+    );
+    expect(agencySettingsSchema.safeParse({ ...base, nif: "1".repeat(31), stat: "" }).success).toBe(
+      false,
+    );
   });
 });

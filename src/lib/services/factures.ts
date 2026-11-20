@@ -27,6 +27,8 @@ export async function getInvoice(db: TenantDb, agenceId: string, reservationId: 
         email: true,
         telephone: true,
         devise: true,
+        nif: true,
+        stat: true,
       },
     }),
     db.reservation.findUnique({

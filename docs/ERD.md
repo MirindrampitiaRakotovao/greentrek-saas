@@ -60,6 +60,8 @@ erDiagram
     string slug UK
     string nom
     string devise
+    string nif "facultatif, factures"
+    string stat "facultatif, factures"
     enum statut "ACTIVE, SUSPENDUE"
   }
   UTILISATEUR {

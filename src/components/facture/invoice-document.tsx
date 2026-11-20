@@ -28,8 +28,17 @@ export function InvoiceDocument({ invoice, qr }: { invoice: Invoice; qr?: string
           <p className="text-gt-teal-900/75">
             {[agence.telephone, agence.email].filter(Boolean).join(" · ") || "Coordonnées à venir"}
           </p>
-          {/* TODO(données terrain) : NIF et STAT de l'agence (identifiants fiscaux). */}
-          <p className="mt-1 text-xs text-gt-teal-900/75">NIF : à compléter · STAT : à compléter</p>
+          {/* Identifiants légaux de l'agence (Paramètres) ; ligne absente s'ils manquent. */}
+          {agence.nif || agence.stat ? (
+            <p className="mt-1 text-xs text-gt-teal-900/75">
+              {[
+                agence.nif ? `NIF : ${agence.nif}` : null,
+                agence.stat ? `STAT : ${agence.stat}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          ) : null}
         </div>
         <div className="text-right">
           <span

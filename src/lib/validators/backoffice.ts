@@ -21,6 +21,14 @@ export const DEVISE_LABELS: Record<(typeof DEVISES)[number], string> = {
   USD: "Dollar américain (USD)",
 };
 
+/** NIF ou STAT : chiffres, avec espaces, points, tirets ou barres obliques facultatifs. */
+const optionalIdentifiant = optionalText(30).refine(
+  (value) => !value || /^[0-9][0-9 ./-]*$/.test(value),
+  {
+    error: "Chiffres seulement (espaces, points, tirets ou barres obliques acceptés).",
+  },
+);
+
 export const agencySettingsSchema = z.object({
   nom: requiredText(150),
   description: optionalText(2000),
@@ -30,6 +38,9 @@ export const agencySettingsSchema = z.object({
   ville: optionalText(100),
   pays: optionalText(100),
   devise: z.enum(DEVISES, { error: "Devise invalide." }),
+  // Identifiants légaux imprimés sur les factures.
+  nif: optionalIdentifiant,
+  stat: optionalIdentifiant,
   // Le logo ne passe plus par ce formulaire : il est envoyé comme fichier (après E12,
   // `uploadAgencyLogoAction`), vérifié et nettoyé par le serveur.
 });
