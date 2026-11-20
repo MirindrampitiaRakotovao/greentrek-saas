@@ -211,3 +211,110 @@ body {
 .gt-search-no-cancel::-webkit-search-cancel-button {
   appearance: none;
 }
+
+/* ─── Carte 3D satellite (étape 6a) : verre sombre et étiquettes d'étapes ─── */
+@layer components {
+  .gt3d-glass {
+    border: 1px solid rgb(255 255 255 / 0.12);
+    border-radius: 1.25rem;
+    background: rgb(15 65 77 / 0.62);
+    box-shadow: 0 12px 40px rgb(0 0 0 / 0.25);
+    backdrop-filter: blur(14px) saturate(1.2);
+  }
+  .gt3d-btn {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.1);
+    color: #fff;
+    transition: background-color 0.15s;
+  }
+  .gt3d-btn:hover:not(:disabled) {
+    background: rgb(255 255 255 / 0.2);
+  }
+  .gt3d-btn:disabled {
+    opacity: 0.4;
+  }
+  .gt3d-btn--accent {
+    background: var(--gt-sand-300);
+    color: var(--gt-teal-900);
+  }
+  .gt3d-btn--accent:hover:not(:disabled) {
+    background: var(--gt-sand-200);
+  }
+  .gt3d-btn:focus-visible,
+  .gt3d-step:focus-visible {
+    outline: 2px solid var(--gt-sand-300);
+    outline-offset: 2px;
+  }
+  .gt3d-step {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.2rem 0.65rem 0.2rem 0.2rem;
+    border: 1px solid rgb(255 255 255 / 0.18);
+    border-radius: 999px;
+    background: rgb(15 65 77 / 0.82);
+    color: #fff;
+    font: 600 12px/1.2 var(--font-poppins, sans-serif);
+    white-space: nowrap;
+    box-shadow: 0 6px 18px rgb(0 0 0 / 0.3);
+    cursor: pointer;
+    transition:
+      transform 0.2s,
+      background-color 0.2s;
+  }
+  .gt3d-step:hover,
+  .gt3d-step--active {
+    background: var(--gt-sand-300);
+    color: var(--gt-teal-900);
+    transform: translateY(-2px);
+    z-index: 2;
+  }
+  .gt3d-step__num {
+    display: grid;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    background: var(--gt-sand-300);
+    color: var(--gt-teal-900);
+    font-weight: 700;
+  }
+  .gt3d-step:hover .gt3d-step__num,
+  .gt3d-step--active .gt3d-step__num {
+    background: var(--gt-teal-900);
+    color: var(--gt-sand-300);
+  }
+  .gt3d-passage {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    pointer-events: none;
+  }
+  .gt3d-passage__dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border: 2px solid var(--gt-sand-300);
+    border-radius: 999px;
+    background: var(--gt-teal-900);
+  }
+  .gt3d-passage__name {
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    background: rgb(15 65 77 / 0.6);
+    color: rgb(255 255 255 / 0.9);
+    font: 500 11px/1.3 var(--font-poppins, sans-serif);
+    white-space: nowrap;
+  }
+  .gt3d .maplibregl-ctrl-attrib {
+    font-size: 10px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .gt3d-step {
+      transition: none;
+    }
+  }
+}

@@ -8,6 +8,7 @@ import { Icon, type IconName } from "@/components/ui/icon";
 import { Stars } from "@/components/ui/stars";
 import { formatDuree, formatKm } from "@/components/vitrine/circuit-card";
 import { BlurBlobs } from "@/components/vitrine/blur-blobs";
+import { CircuitMap3D } from "@/components/map3d/circuit-map-3d";
 import { CircuitMap } from "@/components/vitrine/circuit-map";
 import { CircuitVisual } from "@/components/vitrine/circuit-visual";
 import { formatDateRange, formatMoney } from "@/lib/format";
@@ -181,14 +182,32 @@ export default async function PublicCircuitPage({ params }: Props) {
             </h2>
             {steps.length > 0 ? (
               <>
-                <div className="mt-4 overflow-hidden rounded-3xl border border-gt-mist/70">
-                  <CircuitMap steps={steps} trace={trace} />
+                <div className="mt-4">
+                  <CircuitMap3D
+                    title={circuit.titre}
+                    steps={circuit.etapes.map((s) => ({
+                      etapeId: s.etape.id,
+                      ordre: s.ordre,
+                      nom: s.etape.nom,
+                      type: TYPE_ETAPE_LABELS[s.etape.type],
+                      latitude: s.etape.latitude,
+                      longitude: s.etape.longitude,
+                    }))}
+                    trace={circuit.trace?.path ?? null}
+                    fallback={
+                      <div className="overflow-hidden rounded-3xl border border-gt-mist/70">
+                        <CircuitMap steps={steps} trace={trace} />
+                      </div>
+                    }
+                  />
                 </div>
                 <p className="mt-2 text-xs text-gt-teal-900/75">
                   {trace
-                    ? "Tracé calculé à travers les sentiers du réseau de l'agence."
+                    ? "Tracé calculé à travers les tronçons du réseau de l'agence ; les noms en petit sont les villages traversés."
                     : "Tracé indicatif en ligne droite entre les étapes."}{" "}
-                  Fond de carte © contributeurs OpenStreetMap.
+                  Les pointillés clairs sont les sentiers connus d&apos;OpenStreetMap. Imagerie ©
+                  Esri, Maxar, Earthstar Geographics · relief Mapzen (AWS) · données © contributeurs
+                  OpenStreetMap, OpenFreeMap.
                 </p>
               </>
             ) : null}
