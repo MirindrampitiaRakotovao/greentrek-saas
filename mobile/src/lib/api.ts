@@ -554,7 +554,7 @@ export type Publication = {
   auteur: { id: string; nom: string; photo: string | null };
   agence: { nom: string; slug: string };
   /** `slug` null : circuit plus publié (pas de lien vers sa fiche). */
-  circuit: { titre: string; slug: string | null };
+  circuit: { id: string; titre: string; slug: string | null };
   jaimes: number;
   jAime: boolean;
   commentaires: number;
@@ -569,7 +569,36 @@ export type CommentaireCommunaute = {
   deMoi: boolean;
 };
 
-export type PublicationDetail = Publication & { listeCommentaires: CommentaireCommunaute[] };
+export type PublicationDetail = Publication & {
+  listeCommentaires: CommentaireCommunaute[];
+  /** Crédit de chaque photo (photos libres livrées avec le projet), sinon null. */
+  credits: (string | null)[];
+};
+
+export type FeedFilters = {
+  tri: "recentes" | "populaires";
+  q?: string;
+  circuit?: string;
+  moi?: boolean;
+};
+
+export type Destination = {
+  id: string;
+  titre: string;
+  agence: string;
+  photo: string | null;
+  publications: number;
+};
+
+export type CommunityHome = {
+  stats: { publications: number; jaimes: number; commentaires: number };
+  destinations: Destination[];
+  activite: { publications: number; voyageurs: number; agences: number };
+};
+
+export function fetchCommunityHome() {
+  return request<CommunityHome>("/communaute/accueil");
+}
 
 export type SejourPartageable = {
   id: string;
@@ -579,9 +608,13 @@ export type SejourPartageable = {
   dateFin: string;
 };
 
-export function fetchFeed(page = 1) {
+export function fetchFeed(page = 1, filters: FeedFilters = { tri: "recentes" }) {
+  const params = new URLSearchParams({ page: String(page), tri: filters.tri });
+  if (filters.q?.trim()) params.set("q", filters.q.trim());
+  if (filters.circuit) params.set("circuit", filters.circuit);
+  if (filters.moi) params.set("moi", "1");
   return request<{ publications: Publication[]; page: number; pageCount: number }>(
-    `/communaute?page=${page}`,
+    `/communaute?${params.toString()}`,
   );
 }
 

@@ -17,7 +17,7 @@ import { formatDayRange } from "@/lib/format";
 import { makeStyles, useTheme } from "@/theme/theme";
 import { fonts, radius } from "@/theme/tokens";
 
-const PHOTOS_MAX = 4;
+const PHOTOS_MAX = 8;
 
 type Asset = { uri: string; mimeType?: string | null };
 
@@ -44,7 +44,8 @@ function NewPublication() {
 
   const options: ImagePicker.ImagePickerOptions = {
     mediaTypes: ["images"],
-    quality: 0.7,
+    // Photos compressées par le téléphone : 8 photos restent légères à envoyer.
+    quality: 0.6,
   };
 
   function add(result: ImagePicker.ImagePickerResult) {

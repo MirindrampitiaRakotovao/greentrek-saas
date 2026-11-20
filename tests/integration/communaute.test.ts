@@ -9,14 +9,21 @@ import {
   dismissReport,
   getPublication,
   hideReportedContent,
+  communityActivity,
   listCommunityReports,
+  listDestinations,
   listFeed,
+  myCommunityStats,
+  readPhotos,
   listSejoursPartageables,
   reportContent,
   restoreReportedContent,
   setJaime,
 } from "@/lib/services/communaute";
 import { getTenantDb, TenantViolationError } from "@/lib/tenant";
+
+import { COMMUNAUTE_PHOTOS } from "../../prisma/communaute-photos";
+import { seedCommunaute } from "../../prisma/seed-communaute";
 
 import { createTestClient, truncateAll } from "./test-db";
 
@@ -227,5 +234,117 @@ describe("signaler et modérer (super admin)", () => {
     const [s] = (await listCommunityReports(undefined, 1, raw)).items;
     expect(await dismissReport(s!.id, new Date(), raw)).toEqual({ ok: true, data: undefined });
     expect((await getPublication(bao, id, raw))?.listeCommentaires).toHaveLength(1);
+  });
+});
+
+describe("fil : tri, filtres, destinations, chiffres (étape 5e)", () => {
+  it("« Populaires » d'abord le plus aimé ; filtres destination, recherche, mes publications", async () => {
+    const a = await publish();
+    const lova2 = await reservation(agenceA.id, lova, "TERMINEE", "R-3");
+    const b = await createPublication(
+      lova,
+      { reservationId: lova2, legende: "Pirogue au lever du jour", photos: [PHOTO] },
+      new Date(Date.now() + 1000),
+      raw,
+    );
+    const sejourBao = await reservation(agenceB.id, bao, "TERMINEE", "B-1");
+    await createPublication(
+      bao,
+      { reservationId: sejourBao, legende: null, photos: [PHOTO] },
+      new Date(),
+      raw,
+    );
+    const idA = a.ok ? a.data.id : "";
+    const idB = b.ok ? b.data.id : "";
+    await setJaime(bao, idA, true, raw);
+
+    expect((await listFeed(bao, 1, raw, { tri: "recentes" })).items[0]?.id).toBe(idB);
+    expect((await listFeed(bao, 1, raw, { tri: "populaires" })).items[0]?.id).toBe(idA);
+    const circuitB = (await listFeed(bao, 1, raw)).items.find((p) => p.id === idB)!.circuit.id;
+    expect((await listFeed(bao, 1, raw, { circuit: circuitB })).items.map((p) => p.id)).toEqual([
+      idB,
+    ]);
+    expect((await listFeed(bao, 1, raw, { q: "pirogue" })).items.map((p) => p.id)).toEqual([idB]);
+    expect((await listFeed(bao, 1, raw, { q: "Agence B" })).total).toBe(1);
+    expect((await listFeed(lova, 1, raw, { moi: "1" })).total).toBe(2);
+
+    const destinations = await listDestinations(12, raw);
+    expect(destinations).toHaveLength(3);
+    expect(destinations.every((d) => d.photo === PHOTO && d.publications === 1)).toBe(true);
+    expect(await myCommunityStats(lova, raw)).toEqual({
+      publications: 2,
+      jaimes: 1,
+      commentaires: 0,
+    });
+    expect(await communityActivity(raw)).toEqual({ publications: 3, voyageurs: 2, agences: 2 });
+  });
+
+  it("photos acceptées : envoyées par un voyageur ou livrées avec le projet, rien d'autre", () => {
+    expect(readPhotos([PHOTO, "/images/communaute/isalo-01.jpg"])).toHaveLength(2);
+    expect(readPhotos(["https://exemple.org/x.jpg"])).toEqual([]);
+    expect(readPhotos(["/images/communaute/../../.env"])).toEqual([]);
+  });
+});
+
+describe("publications de départ (seed de la communauté)", () => {
+  it("photos du circuit, après le séjour, rejouable sans toucher aux vraies publications", async () => {
+    const lacs = await raw.circuit.create({
+      data: {
+        agenceId: agenceA.id,
+        titre: "Lacs et volcans",
+        slug: "lacs-et-volcans",
+        difficulte: "FACILE",
+        dureeJours: 1,
+        prixParPersonne: 100_000,
+        capaciteMax: 8,
+        statut: "PUBLIE",
+      },
+    });
+    const fin = new Date("2026-09-01T00:00:00.000Z");
+    const session = await raw.sessionDepart.create({
+      data: {
+        agenceId: agenceA.id,
+        circuitId: lacs.id,
+        dateDebut: fin,
+        dateFin: fin,
+        placesTotal: 8,
+      },
+    });
+    await raw.reservation.create({
+      data: {
+        agenceId: agenceA.id,
+        reference: "R-LACS",
+        clientId: lova,
+        sessionId: session.id,
+        nombrePersonnes: 1,
+        montantTotal: 100_000,
+        statut: "TERMINEE",
+      },
+    });
+    const vraie = await publish();
+    const now = new Date("2026-11-20T08:00:00.000Z");
+
+    const r1 = await seedCommunaute(raw, now);
+    expect(r1.publications).toBe(6);
+    const pool = new Set(
+      COMMUNAUTE_PHOTOS.filter((p) => p.circuits.includes("lacs-et-volcans")).map((p) => p.photo),
+    );
+    const seeded = await raw.publication.findMany({
+      where: { id: { not: vraie.ok ? vraie.data.id : "" } },
+      select: { photos: true, createdAt: true, auteurId: true },
+    });
+    for (const p of seeded) {
+      const photos = readPhotos(p.photos);
+      expect(photos.length).toBeGreaterThan(0);
+      expect(photos.every((src) => pool.has(src))).toBe(true);
+      expect(new Set(photos).size).toBe(photos.length);
+      expect(p.createdAt.getTime()).toBeGreaterThan(fin.getTime());
+      expect(p.createdAt.getTime()).toBeLessThanOrEqual(now.getTime());
+      expect(p.auteurId).toBe(lova);
+    }
+    const r2 = await seedCommunaute(raw, now);
+    expect(r2.supprimees).toBe(6);
+    expect(await raw.publication.count()).toBe(7);
+    expect(await raw.publication.count({ where: { id: vraie.ok ? vraie.data.id : "" } })).toBe(1);
   });
 });

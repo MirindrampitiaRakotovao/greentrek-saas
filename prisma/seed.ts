@@ -24,6 +24,8 @@ import type { Role } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { PHOTO_CREDITS } from "@/lib/photo-credits";
 import { referencePrefix } from "@/lib/reference";
+
+import { seedCommunaute } from "./seed-communaute";
 import { traceCircuit } from "@/lib/services/itineraires";
 import { getTenantDb } from "@/lib/tenant";
 
@@ -53,6 +55,17 @@ const DAY = 86_400_000;
 async function clearDatabase(): Promise<void> {
   // Ordre inverse des dépendances (les enfants avant les parents).
   await db.$transaction([
+    // Tables ajoutées après E12 (communauté, voyageurs entre eux, itinéraires sur mesure,
+    // téléphones, jetons) : avant leurs parents.
+    db.signalementCommunaute.deleteMany(),
+    db.jaime.deleteMany(),
+    db.commentaire.deleteMany(),
+    db.publication.deleteMany(),
+    db.signalement.deleteMany(),
+    db.blocage.deleteMany(),
+    db.itinerairePersonnalise.deleteMany(),
+    db.appareilMobile.deleteMany(),
+    db.jetonReinitialisation.deleteMany(),
     db.lectureConversation.deleteMany(),
     db.message.deleteMany(),
     db.conversation.deleteMany(),
@@ -698,6 +711,8 @@ async function main(): Promise<void> {
 
   const now = new Date();
   for (const agence of AGENCES) await seedAgence(agence, plans, motDePasseHash, now);
+  // Communauté : publications de départ, après les séjours terminés de toutes les agences.
+  const communaute = await seedCommunaute(db, now);
 
   const [agences, utilisateurs, circuits, departs, reservations, paiements, avis, messages] =
     await Promise.all([
@@ -712,7 +727,8 @@ async function main(): Promise<void> {
     ]);
   console.log(
     `Seed terminé : ${agences} agences, ${utilisateurs} utilisateurs, ${circuits} circuits, ` +
-      `${departs} départs, ${reservations} réservations, ${paiements} paiements, ${avis} avis, ${messages} messages.`,
+      `${departs} départs, ${reservations} réservations, ${paiements} paiements, ${avis} avis, ${messages} messages, ` +
+      `${communaute.publications} publications de la communauté.`,
   );
 }
 

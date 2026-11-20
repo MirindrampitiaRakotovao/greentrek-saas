@@ -11,6 +11,29 @@ import { createPublicationAction } from "@/lib/actions/communaute";
 import { LEGENDE_MAX, PHOTOS_MAX } from "@/lib/validators/communaute";
 
 const MAX = 5 * 1024 * 1024;
+/** Côté le plus long après réduction : bien assez pour l'écran (le serveur réduit à 1 600). */
+const COTE_MAX = 2048;
+
+/**
+ * Réduit une photo dans le navigateur avant l'envoi (8 photos de téléphone resteraient
+ * lourdes). Le serveur revérifie, réduit et nettoie tout ; en cas d'échec, photo d'origine.
+ */
+async function reduire(file: File): Promise<File> {
+  try {
+    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    const ratio = Math.min(1, COTE_MAX / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * ratio);
+    canvas.height = Math.round(bitmap.height * ratio);
+    canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", 0.85));
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+}
 
 /** Partager les photos d'un séjour terminé (1 à 4 photos, légende facultative). */
 export function PublicationForm({ sejours }: { sejours: { id: string; label: string }[] }) {
@@ -22,14 +45,21 @@ export function PublicationForm({ sejours }: { sejours: { id: string; label: str
   const [legende, setLegende] = useState("");
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
+  const [preparing, setPreparing] = useState(false);
 
   // Aperçus locaux, libérés quand la liste change ou que le formulaire se ferme.
   const previews = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
   useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews]);
 
-  function add(list: FileList | null) {
+  async function add(list: FileList | null) {
     setError(undefined);
-    const picked = [...(list ?? [])];
+    const raw = [...(list ?? [])];
+    if (raw.some((f) => !f.type.startsWith("image/"))) {
+      return setError("Choisissez des images (JPEG, PNG, WebP).");
+    }
+    setPreparing(true);
+    const picked = await Promise.all(raw.slice(0, PHOTOS_MAX - files.length + 1).map(reduire));
+    setPreparing(false);
     if (picked.some((f) => !f.type.startsWith("image/"))) {
       return setError("Choisissez des images (JPEG, PNG, WebP).");
     }
@@ -110,7 +140,7 @@ export function PublicationForm({ sejours }: { sejours: { id: string; label: str
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 multiple
-                onChange={(e) => add(e.target.files)}
+                onChange={(e) => void add(e.target.files)}
                 className="sr-only"
               />
             </label>
@@ -136,7 +166,7 @@ export function PublicationForm({ sejours }: { sejours: { id: string; label: str
         Visible par les voyageurs de toutes les agences de la plateforme : votre prénom, votre
         initiale et votre photo de profil.
       </p>
-      <Button type="submit" disabled={pending || files.length === 0 || !reservationId}>
+      <Button type="submit" disabled={pending || preparing || files.length === 0 || !reservationId}>
         {pending ? "Publication…" : "Publier"}
       </Button>
     </form>

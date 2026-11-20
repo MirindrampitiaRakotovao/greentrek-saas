@@ -8,6 +8,7 @@ import { getAdminDb } from "@/lib/admin-db";
 import { getClientContext, getCurrentUser } from "@/lib/auth/session";
 import { can } from "@/lib/permissions";
 import {
+  type PublicationCard,
   addCommentaire,
   createPublication,
   deleteCommentaire,
@@ -16,6 +17,7 @@ import {
   hideReportedContent,
   reportContent,
   restoreReportedContent,
+  listFeed,
   setJaime,
 } from "@/lib/services/communaute";
 import { logPlatformActivity } from "@/lib/services/journal";
@@ -23,6 +25,7 @@ import type { ServiceResult } from "@/lib/services/result";
 import { deleteImage, fileToBuffer, saveImage, UploadError } from "@/lib/uploads";
 import {
   commentaireSchema,
+  feedFiltersSchema,
   idSchema,
   jaimeSchema,
   PHOTOS_MAX,
@@ -39,6 +42,19 @@ const NOT_CLIENT: ActionResult = { error: "Connectez-vous avec votre compte voya
 
 function revalidateFeed(slug: string) {
   revalidatePath(`/a/${slug}/mon-compte/communaute`, "layout");
+}
+
+/** Page suivante du fil (défilement infini), avec les mêmes filtres que la page. */
+export async function loadFeedPageAction(
+  input: unknown,
+): Promise<{ items: PublicationCard[]; hasMore: boolean } | { error: string }> {
+  const ctx = await getClientContext();
+  if (!ctx) return { error: NOT_CLIENT.error ?? "" };
+  const raw = typeof input === "object" && input ? (input as Record<string, unknown>) : {};
+  const page = Math.max(1, Math.min(500, Number(raw.page) || 1));
+  const filters = feedFiltersSchema.parse(raw);
+  const feed = await listFeed(ctx.user.id, page, undefined, filters);
+  return { items: feed.items, hasMore: page < feed.pageCount };
 }
 
 /** Nouvelle publication (`FormData` : reservationId, legende, photos ×1 à 4). */

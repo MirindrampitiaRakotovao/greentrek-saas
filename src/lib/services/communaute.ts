@@ -3,7 +3,7 @@ import { getAdminDb } from "@/lib/admin-db";
 import { type Paginated, pageArgs, pageCount } from "@/lib/pagination";
 import { failure, type ServiceResult, success } from "@/lib/services/result";
 import { nomPublic } from "@/lib/services/voyageurs";
-import { photosJsonSchema, PHOTOS_MAX } from "@/lib/validators/communaute";
+import { type FeedFilters, photosJsonSchema, PHOTOS_MAX } from "@/lib/validators/communaute";
 
 /**
  * Communauté des voyageurs (étape 5d, choix de l'étudiant) : un fil COMMUN à toutes les
@@ -45,7 +45,9 @@ const publicationSelect = (viewerId: string) =>
     reservation: {
       select: {
         agence: { select: { nom: true, slug: true } },
-        session: { select: { circuit: { select: { titre: true, slug: true, statut: true } } } },
+        session: {
+          select: { circuit: { select: { id: true, titre: true, slug: true, statut: true } } },
+        },
       },
     },
     jaimes: { where: { utilisateurId: viewerId }, select: { utilisateurId: true } },
@@ -77,7 +79,11 @@ function toCard(row: PublicationRow, viewerId: string) {
     auteur: { id: row.auteur.id, nom: nomPublic(row.auteur), photo: row.auteur.photoUrl },
     agence: row.reservation.agence,
     // Lien vers la fiche du circuit seulement s'il est encore publié (RG 9).
-    circuit: { titre: circuit.titre, slug: circuit.statut === "PUBLIE" ? circuit.slug : null },
+    circuit: {
+      id: circuit.id,
+      titre: circuit.titre,
+      slug: circuit.statut === "PUBLIE" ? circuit.slug : null,
+    },
     jaimes: row._count.jaimes,
     jAime: row.jaimes.length > 0,
     commentaires: row._count.commentaires,
@@ -87,20 +93,46 @@ function toCard(row: PublicationRow, viewerId: string) {
 
 export type PublicationCard = ReturnType<typeof toCard>;
 
-/** Fil de la communauté, le plus récent d'abord. */
+/** Conditions du fil : contenu visible, destination (circuit), recherche. */
+function feedWhere(viewerId: string, filters: Partial<FeedFilters>): Prisma.PublicationWhereInput {
+  const and: Prisma.PublicationWhereInput[] = [publicationVisible];
+  if (filters.moi) and.push({ auteurId: viewerId });
+  if (filters.circuit) and.push({ reservation: { session: { circuitId: filters.circuit } } });
+  if (filters.q) {
+    and.push({
+      OR: [
+        { legende: { contains: filters.q } },
+        { reservation: { session: { circuit: { titre: { contains: filters.q } } } } },
+        { reservation: { agence: { nom: { contains: filters.q } } } },
+      ],
+    });
+  }
+  return { AND: and };
+}
+
+/**
+ * Fil de la communauté : « Récentes » (la plus récente d'abord) ou « Populaires » (le plus de
+ * « J'aime », puis la plus récente) ; filtrable par destination et par recherche.
+ */
 export async function listFeed(
   viewerId: string,
   page: number,
   db: Db = getAdminDb(),
+  filters: Partial<FeedFilters> = {},
 ): Promise<Paginated<PublicationCard>> {
+  const where = feedWhere(viewerId, filters);
+  const orderBy: Prisma.PublicationOrderByWithRelationInput[] =
+    filters.tri === "populaires"
+      ? [{ jaimes: { _count: "desc" } }, { createdAt: "desc" }, { id: "desc" }]
+      : [{ createdAt: "desc" }, { id: "desc" }];
   const [rows, total] = await Promise.all([
     db.publication.findMany({
-      where: publicationVisible,
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      where,
+      orderBy,
       select: publicationSelect(viewerId),
       ...pageArgs(page, FEED_PAGE_SIZE),
     }),
-    db.publication.count({ where: publicationVisible }),
+    db.publication.count({ where }),
   ]);
   return {
     items: rows.map((r) => toCard(r, viewerId)),
@@ -108,6 +140,76 @@ export async function listFeed(
     page,
     pageCount: pageCount(total, FEED_PAGE_SIZE),
   };
+}
+
+/**
+ * Destinations de la communauté (rangée de vignettes) : les circuits qui ont des
+ * publications visibles, les plus partagés d'abord, avec la première photo de la plus récente.
+ */
+export async function listDestinations(limit = 12, db: Db = getAdminDb()) {
+  const groups = await db.publication.findMany({
+    where: publicationVisible,
+    orderBy: { createdAt: "desc" },
+    select: {
+      photos: true,
+      reservation: {
+        select: {
+          agence: { select: { nom: true } },
+          session: { select: { circuit: { select: { id: true, titre: true } } } },
+        },
+      },
+    },
+    take: 500,
+  });
+  const byCircuit = new Map<
+    string,
+    { id: string; titre: string; agence: string; photo: string | null; publications: number }
+  >();
+  for (const g of groups) {
+    const c = g.reservation.session.circuit;
+    const current = byCircuit.get(c.id);
+    if (current) current.publications += 1;
+    else {
+      byCircuit.set(c.id, {
+        id: c.id,
+        titre: c.titre,
+        agence: g.reservation.agence.nom,
+        photo: readPhotos(g.photos)[0] ?? null,
+        publications: 1,
+      });
+    }
+  }
+  return [...byCircuit.values()].sort((a, b) => b.publications - a.publications).slice(0, limit);
+}
+
+export type Destination = Awaited<ReturnType<typeof listDestinations>>[number];
+
+/** Chiffres de la carte de profil : mes publications, « J'aime » et commentaires reçus. */
+export async function myCommunityStats(viewerId: string, db: Db = getAdminDb()) {
+  const mine = { auteurId: viewerId, statut: "VISIBLE" } as const;
+  const [publications, jaimes, commentaires] = await Promise.all([
+    db.publication.count({ where: mine }),
+    db.jaime.count({ where: { publication: mine } }),
+    db.commentaire.count({
+      where: { publication: mine, statut: "VISIBLE", auteurId: { not: viewerId } },
+    }),
+  ]);
+  return { publications, jaimes, commentaires };
+}
+
+/** Activité de toute la communauté (carte de la colonne de droite). */
+export async function communityActivity(db: Db = getAdminDb()) {
+  const [publications, auteurs, agences] = await Promise.all([
+    db.publication.count({ where: publicationVisible }),
+    db.publication.groupBy({ by: ["auteurId"], where: publicationVisible }),
+    db.agence.count({
+      where: {
+        statut: "ACTIVE",
+        reservations: { some: { publications: { some: publicationVisible } } },
+      },
+    }),
+  ]);
+  return { publications, voyageurs: auteurs.length, agences };
 }
 
 /** Une publication et ses commentaires visibles (null si absente ou masquée). */

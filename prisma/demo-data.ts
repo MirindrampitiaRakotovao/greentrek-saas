@@ -99,7 +99,7 @@ const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 
 /** Générateur pseudo-aléatoire à graine (mulberry32) : reproductible. */
-function createRandom(seed: number) {
+export function createRandom(seed: number) {
   let state = seed >>> 0;
   const next = () => {
     state = (state + 0x6d2b79f5) >>> 0;

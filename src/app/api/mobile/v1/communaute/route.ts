@@ -3,14 +3,25 @@ import { businessError, json, jsonError, preflight, UNAUTHORIZED } from "@/lib/m
 import { mobileClientFromRequest } from "@/lib/mobile/session";
 import { createPublication, listFeed } from "@/lib/services/communaute";
 import { deleteImage, fileToBuffer, saveImage, UploadError } from "@/lib/uploads";
-import { PHOTOS_MAX, publicationSchema } from "@/lib/validators/communaute";
+import { feedFiltersSchema, PHOTOS_MAX, publicationSchema } from "@/lib/validators/communaute";
 
-/** Fil de la communauté (toutes les agences), le plus récent d'abord ; `?page=`. */
+/**
+ * Fil de la communauté (toutes les agences) : `?page=`, `tri=recentes|populaires`, `q=`,
+ * `circuit=<id>` (destination), `moi=1` (mes publications).
+ */
 export async function GET(request: Request) {
   const ctx = await mobileClientFromRequest(request);
   if (!ctx) return UNAUTHORIZED();
-  const page = Math.max(1, Number(new URL(request.url).searchParams.get("page")) || 1);
-  const feed = await listFeed(ctx.user.id, page);
+  const params = new URL(request.url).searchParams;
+  const page = Math.max(1, Math.min(500, Number(params.get("page")) || 1));
+  // Mêmes filtres que le site : tri, recherche, destination, mes publications.
+  const filters = feedFiltersSchema.parse({
+    tri: params.get("tri") ?? undefined,
+    q: params.get("q") ?? undefined,
+    circuit: params.get("circuit") ?? undefined,
+    moi: params.get("moi") ?? undefined,
+  });
+  const feed = await listFeed(ctx.user.id, page, undefined, filters);
   return json(
     {
       publications: feed.items.map(toMobilePublication),
@@ -22,7 +33,7 @@ export async function GET(request: Request) {
 }
 
 /**
- * Nouvelle publication (multipart : `reservationId`, `legende`, `photos` ×1 à 4), pour un
+ * Nouvelle publication (multipart : `reservationId`, `legende`, `photos` ×1 à 8), pour un
  * séjour terminé du voyageur. Photos vérifiées, réduites, sans métadonnées ni position GPS.
  */
 export async function POST(request: Request) {

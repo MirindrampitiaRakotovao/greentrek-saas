@@ -17,6 +17,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev && prisma generate",
     "db:seed": "prisma db seed",
+    "db:seed:communaute": "tsx prisma/seed-communaute-cli.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {

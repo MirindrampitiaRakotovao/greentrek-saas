@@ -17,9 +17,13 @@ export type PhotoCredit = {
   source?: string;
 };
 
+import { COMMUNAUTE_PHOTO_CREDITS } from "@/lib/photo-credits-communaute";
+
 const COMMONS = "https://commons.wikimedia.org/wiki/File:";
 
 export const PHOTO_CREDITS: Record<string, PhotoCredit> = {
+  // Publications de départ de la communauté (étape 5e).
+  ...COMMUNAUTE_PHOTO_CREDITS,
   "/images/circuits/sentier-mahambo-doany-ambodiforaha.jpg": {
     sujet: "Coucher de soleil sur la plage de Mahambo",
     auteur: "NalyRATOVO",

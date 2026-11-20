@@ -29,13 +29,16 @@ Réglages facultatifs dans `.env` (détails dans `.env.example`) :
 **Avant chaque répétition et le jour J** :
 
 ```bash
-npm run db:seed     # remet la base de démonstration à zéro (3 agences, ~500 réservations, avis, messages)
+npm run db:seed     # remet la base de démonstration à zéro (3 agences, ~500 réservations, avis, messages,
+                    # 60 publications de départ dans la communauté)
                     # les images déjà envoyées restent dans uploads/ (sans effet sur la démo)
 npm run build       # version de production : plus rapide et plus stable que le mode développement
 npm start           # http://localhost:3000
 ```
 
 Vérifier que <http://localhost:3000/api/health> répond `"database": "connectée"`.
+
+Pour ajouter (ou recréer) seulement les publications de départ de la communauté, **sans effacer** le reste de la base : `npm run db:seed:communaute`.
 
 **Application mobile** (facultatif) : installer l'APK sur un téléphone Android, ou lancer `cd mobile && npx expo start` (voir `mobile/README.md`). Le téléphone doit être sur le **même Wi-Fi** que l'ordinateur ; l'adresse du serveur se règle dans l'application (Compte, puis Adresse du serveur).
 
@@ -266,7 +269,8 @@ Fenêtre B : **Mon profil**, **Photo de profil**. Fenêtre A : **Paramètres**, 
 
 ### Bonus 5 : la communauté de toutes les agences
 
-1. Fenêtre B (Nirina) : menu **Communauté**, **Partager mes photos** : choisir un séjour terminé, 1 à 4 photos, une légende, **Publier**.
+0. Fenêtre B (Nirina) : menu **Communauté**. Montrer le fil déjà rempli (voyageurs des trois agences), les **Destinations** (cliquer une vignette filtre le fil), les onglets **Populaires / Récentes**, la mosaïque « +N », le défilement infini, puis une fiche avec le crédit de chaque photo (photos libres de Wikimedia Commons).
+1. Fenêtre B (Nirina) : **Partager mes photos** : choisir un séjour terminé, 1 à 8 photos, une légende, **Publier**.
 2. Fenêtre C : se connecter comme Camille (`client@tanety-trek.test`) sur `/a/tanety-trek/connexion`, menu **Communauté** : la publication de Nirina, voyageuse d'une **autre agence**, est là. **J'aime**, commenter, puis **Signaler**.
 3. Fenêtre C : se déconnecter, se connecter en super admin, menu **Communauté** : **Masquer**. La publication disparaît du fil de toutes les agences.
 - **À dire** : « On ne publie qu'après un séjour terminé, comme pour les avis. Le fil est commun à la plateforme, donc modéré par la plateforme et non par une agence. »

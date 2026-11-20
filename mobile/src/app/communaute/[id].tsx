@@ -100,7 +100,7 @@ function PublicationDetail() {
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
           keyboardShouldPersistTaps="handled"
         >
-          <PublicationCard p={data} detail onMessage={setMessage} />
+          <PublicationCard p={data} detail credits={data.credits} onMessage={setMessage} />
           {message ? <Text style={styles.message}>{message}</Text> : null}
           <Text style={styles.h2}>Commentaires</Text>
           {data.listeCommentaires.length === 0 ? (
