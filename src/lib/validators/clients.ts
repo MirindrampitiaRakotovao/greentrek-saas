@@ -22,6 +22,18 @@ export const createClientSchema = z.object({
 });
 export type CreateClientInput = z.infer<typeof createClientSchema>;
 
+/**
+ * Modification d'un client par l'agence (décision E bis) : identité, contact et état du
+ * compte (un compte désactivé ne peut plus se connecter, ni sur le site ni dans l'application).
+ */
+export const updateClientSchema = createClientSchema.extend({
+  id: z.string().min(1),
+  actif: z.boolean(),
+});
+export type UpdateClientInput = z.infer<typeof updateClientSchema>;
+
+export const deleteClientSchema = z.object({ id: z.string().min(1) });
+
 /** Réservation faite par l'agence pour un de ses clients (mêmes règles que le site). */
 export const agencyReservationSchema = reservationSchema.extend({
   clientId: z.string().min(1),

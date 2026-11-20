@@ -3,10 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AgencyBookingForm } from "@/components/clients/agency-booking-form";
+import { ClientEditForm } from "@/components/clients/client-edit-form";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, EmptyState, StatusPill } from "@/components/dashboard/widgets";
 import { Badge } from "@/components/ui/badge";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { FormModal } from "@/components/ui/form-modal";
+import { deleteClientAction } from "@/lib/actions/clients";
 import { requireAgencyUser } from "@/lib/auth/session";
 import { formatDate, formatDateRange, formatDateTime, formatMoney } from "@/lib/format";
 import { getAgencySettings } from "@/lib/services/agency-settings";
@@ -22,6 +25,8 @@ export default async function ClientPage({ params }: PageProps<"/dashboard/clien
   const { user, db } = await requireAgencyUser(["ADMIN_AGENCE", "STAFF"]);
   const { id } = await params;
   const peutReserver = can(user.role, "creer", "reservation");
+  const peutModifier = can(user.role, "modifier", "reservation");
+  const peutSupprimer = can(user.role, "supprimer", "utilisateur");
   const [client, { devise }, departs, itineraires] = await Promise.all([
     getClientDetail(db, id),
     getAgencySettings(db, user.agenceId),
@@ -41,25 +46,47 @@ export default async function ClientPage({ params }: PageProps<"/dashboard/clien
         title={`${client.prenom} ${client.nom}`}
         description={`${client.origine === "AGENCE" ? "Ajouté par l'agence" : "Inscrit en ligne"} le ${formatDate(client.createdAt)} · dernière connexion : ${formatDateTime(client.dernierLoginAt, "jamais")}`}
         actions={
-          peutReserver && client.actif ? (
-            <FormModal
-              triggerLabel="Réserver pour ce client"
-              title={`Réserver pour ${client.prenom} ${client.nom}`}
-              description="Mêmes règles que sur le site (places, prix figé). Le client est prévenu et retrouve la réservation dans son espace et l'application."
-              icon="calendar"
-              size="lg"
-            >
-              <AgencyBookingForm
-                client={{ id: client.id, prenom: client.prenom, nom: client.nom }}
-                departs={departs.map((d) => ({
-                  id: d.id,
-                  label: `${d.circuit} · ${formatDateRange(d.dateDebut, d.dateFin)}`,
-                  placesLibres: d.placesLibres,
-                  prix: formatMoney(d.prix, devise),
-                }))}
-              />
-            </FormModal>
-          ) : null
+          <div className="flex flex-wrap items-center gap-3">
+            {peutModifier ? (
+              <FormModal
+                triggerLabel="Modifier"
+                triggerIcon="pencil"
+                variant="secondary"
+                title={`Modifier ${client.prenom} ${client.nom}`}
+                icon="pencil"
+              >
+                <ClientEditForm
+                  client={{
+                    id: client.id,
+                    prenom: client.prenom,
+                    nom: client.nom,
+                    email: client.email,
+                    telephone: client.telephone,
+                    actif: client.actif,
+                  }}
+                />
+              </FormModal>
+            ) : null}
+            {peutReserver && client.actif ? (
+              <FormModal
+                triggerLabel="Réserver pour ce client"
+                title={`Réserver pour ${client.prenom} ${client.nom}`}
+                description="Mêmes règles que sur le site (places, prix figé). Le client est prévenu et retrouve la réservation dans son espace et l'application."
+                icon="calendar"
+                size="lg"
+              >
+                <AgencyBookingForm
+                  client={{ id: client.id, prenom: client.prenom, nom: client.nom }}
+                  departs={departs.map((d) => ({
+                    id: d.id,
+                    label: `${d.circuit} · ${formatDateRange(d.dateDebut, d.dateFin)}`,
+                    placesLibres: d.placesLibres,
+                    prix: formatMoney(d.prix, devise),
+                  }))}
+                />
+              </FormModal>
+            ) : null}
+          </div>
         }
       />
       <div className="grid gap-5 md:grid-cols-3">
@@ -165,6 +192,30 @@ export default async function ClientPage({ params }: PageProps<"/dashboard/clien
           </ul>
         )}
       </Card>
+      {peutSupprimer ? (
+        <Card title="Supprimer le client">
+          {client.reservations.length === 0 ? (
+            <div className="space-y-3">
+              <p className="text-sm text-gt-teal-900/75">
+                Le compte, ses conversations et ses itinéraires sur mesure seront supprimés
+                définitivement.
+              </p>
+              <DeleteButton
+                id={client.id}
+                label="Supprimer ce client"
+                confirmMessage={`Le compte de ${client.prenom} ${client.nom} sera supprimé définitivement, avec ses conversations et ses itinéraires sur mesure.`}
+                action={deleteClientAction}
+              />
+            </div>
+          ) : (
+            <p className="text-sm text-gt-teal-900/75">
+              Ce client a des réservations : il ne peut pas être supprimé, pour garder la trace des
+              réservations, paiements et factures. Pour lui retirer l&apos;accès, désactivez son
+              compte avec le bouton « Modifier ».
+            </p>
+          )}
+        </Card>
+      ) : null}
     </div>
   );
 }

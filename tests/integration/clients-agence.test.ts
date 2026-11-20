@@ -4,9 +4,12 @@ import { authenticate } from "@/lib/auth/authenticate";
 import { parseIsoDate } from "@/lib/departs";
 import {
   CLIENT_EMAIL_TAKEN,
+  CLIENT_HAS_RESERVATIONS,
   createClientByAgency,
+  deleteClient,
   listBookableDeparts,
   listClients,
+  updateClient,
 } from "@/lib/services/clients";
 import { checkResetToken, resetPassword } from "@/lib/services/mot-de-passe";
 import { createReservation } from "@/lib/services/reservations";
@@ -251,5 +254,157 @@ describe("réservation faite par l'agence pour un client", () => {
     await createReservation(dbA, base(clientId, complet.id, 1), NOW);
     expect((await listBookableDeparts(dbA, NOW)).map((d) => d.id)).toEqual([ok.id]);
     expect(await listBookableDeparts(dbB, NOW)).toEqual([]);
+  });
+});
+
+describe("modification et suppression d'un client (décision E bis)", () => {
+  async function newClient(db = dbA, agenceId = agenceA.id, email = "voyageur@example.com") {
+    const res = await createClientByAgency(db, agenceId, client(email), NOW);
+    return res.ok ? res.data.id : "";
+  }
+  const edit = (id: string, over: Partial<{ email: string; actif: boolean }> = {}) => ({
+    id,
+    prenom: "Lova",
+    nom: "Rakoto",
+    email: "lova@example.com",
+    telephone: null,
+    actif: true,
+    ...over,
+  });
+
+  it("modifie l'identité et l'e-mail ; e-mail déjà pris dans l'agence refusé (RG 3)", async () => {
+    const id = await newClient();
+    await newClient(dbA, agenceA.id, "autre@example.com");
+    expect((await updateClient(dbA, edit(id))).ok).toBe(true);
+    const u = await raw.utilisateur.findUniqueOrThrow({ where: { id } });
+    expect([u.nom, u.email]).toEqual(["Rakoto", "lova@example.com"]);
+    // Garder sa propre adresse est permis ; prendre celle d'un autre compte, non.
+    expect((await updateClient(dbA, edit(id))).ok).toBe(true);
+    expect(await updateClient(dbA, edit(id, { email: "autre@example.com" }))).toEqual({
+      ok: false,
+      error: CLIENT_EMAIL_TAKEN,
+      field: "email",
+    });
+  });
+
+  it("un compte désactivé ne peut plus se connecter", async () => {
+    const res = await createClientByAgency(dbA, agenceA.id, client("b@example.com"), NOW);
+    const jeton = res.ok ? res.data.jeton : "";
+    await resetPassword(raw, { jeton, password: "Voyage2026", agenceSlug: agenceA.slug }, NOW);
+    const bId = res.ok ? res.data.id : "";
+    const login = () =>
+      authenticate(
+        { email: "b@example.com", password: "Voyage2026", agenceSlug: agenceA.slug },
+        raw,
+      );
+    expect(await login()).not.toBeNull();
+    expect((await updateClient(dbA, edit(bId, { email: "b@example.com", actif: false }))).ok).toBe(
+      true,
+    );
+    expect(await login()).toBeNull();
+  });
+
+  it("supprime un client sans réservation, avec ses conversations et itinéraires", async () => {
+    const id = await newClient();
+    const autre = await newClient(dbA, agenceA.id, "autre@example.com");
+    // Conversation avec l'agence, et conversation ouverte par un autre voyageur.
+    const avecAgence = await raw.conversation.create({
+      data: { agenceId: agenceA.id, clientId: id, sujet: "Question" },
+    });
+    await raw.message.create({
+      data: { conversationId: avecAgence.id, auteurId: id, contenu: "Bonjour" },
+    });
+    const entreVoyageurs = await raw.conversation.create({
+      data: {
+        agenceId: agenceA.id,
+        type: "VOYAGEURS",
+        clientId: autre,
+        destinataireId: id,
+        sujet: "Salut",
+      },
+    });
+    await raw.message.create({
+      data: { conversationId: entreVoyageurs.id, auteurId: id, contenu: "Merci" },
+    });
+    const calcul = await raw.itineraireCalcule.create({
+      data: {
+        agenceId: agenceA.id,
+        algorithme: "DIJKSTRA",
+        critere: "PLUS_COURT",
+        alpha: 1,
+        beta: 0,
+        gamma: 0,
+        cheminJson: [],
+        distanceTotaleKm: 1,
+        dureeTotaleMin: 15,
+        difficulteCumulee: 1,
+        noeudsExplores: 2,
+        tempsCalculMs: 0.1,
+      },
+    });
+    await raw.itinerairePersonnalise.create({
+      data: {
+        agenceId: agenceA.id,
+        clientId: id,
+        creeParId: id,
+        itineraireCalculeId: calcul.id,
+        origine: "CLIENT",
+        titre: "Balade",
+      },
+    });
+
+    expect(await deleteClient(dbA, id)).toEqual({ ok: true, data: { photoUrl: null } });
+    expect(await raw.utilisateur.findUnique({ where: { id } })).toBeNull();
+    expect(await raw.conversation.count()).toBe(0);
+    expect(await raw.message.count()).toBe(0);
+    expect(await raw.itinerairePersonnalise.count()).toBe(0);
+    // Le calcul d'itinéraire (historique de l'agence) et l'autre voyageur restent.
+    expect(await raw.itineraireCalcule.count()).toBe(1);
+    expect(await raw.utilisateur.findUnique({ where: { id: autre } })).not.toBeNull();
+  });
+
+  it("refuse de supprimer un client qui a une réservation, même annulée (décision D)", async () => {
+    const id = await newClient();
+    const session = await depart();
+    const r = await createReservation(
+      dbA,
+      {
+        agenceId: agenceA.id,
+        agenceSlug: agenceA.slug,
+        clientId: id,
+        sessionId: session.id,
+        participants: participants(1),
+        remarques: null,
+        parAgence: true,
+      },
+      NOW,
+    );
+    expect(r.ok).toBe(true);
+    await raw.reservation.updateMany({ data: { statut: "ANNULEE" } });
+    expect(await deleteClient(dbA, id)).toEqual({ ok: false, error: CLIENT_HAS_RESERVATIONS });
+    expect(await raw.utilisateur.findUnique({ where: { id } })).not.toBeNull();
+  });
+
+  it("isolation : une autre agence ne peut ni modifier ni supprimer le client", async () => {
+    const id = await newClient();
+    expect(await updateClient(dbB, edit(id))).toEqual({ ok: false, error: "Client introuvable." });
+    expect(await deleteClient(dbB, id)).toEqual({ ok: false, error: "Client introuvable." });
+    const u = await raw.utilisateur.findUniqueOrThrow({ where: { id } });
+    expect(u.nom).toBe("Rabe");
+  });
+
+  it("ne modifie ni ne supprime un membre de l'équipe par ce biais", async () => {
+    const staff = await raw.utilisateur.create({
+      data: {
+        agenceId: agenceA.id,
+        prenom: "S",
+        nom: "Staff",
+        email: "staff@green-trek-mada.test",
+        motDePasseHash: "x",
+        role: "STAFF",
+      },
+    });
+    expect((await updateClient(dbA, edit(staff.id))).ok).toBe(false);
+    expect((await deleteClient(dbA, staff.id)).ok).toBe(false);
   });
 });

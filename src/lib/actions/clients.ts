@@ -9,10 +9,16 @@ import type { ActionResult } from "@/lib/actions/types";
 import { mailConfigured, sendMail } from "@/lib/mail/mailer";
 import { clientInvitationMail } from "@/lib/mail/templates";
 import { requestBaseUrl } from "@/lib/public-url";
-import { createClientByAgency } from "@/lib/services/clients";
+import { createClientByAgency, deleteClient, updateClient } from "@/lib/services/clients";
 import { INVITATION_VALIDITY_DAYS } from "@/lib/services/mot-de-passe";
 import { createReservation } from "@/lib/services/reservations";
-import { agencyReservationSchema, createClientSchema } from "@/lib/validators/clients";
+import { deleteImage } from "@/lib/uploads";
+import {
+  agencyReservationSchema,
+  createClientSchema,
+  deleteClientSchema,
+  updateClientSchema,
+} from "@/lib/validators/clients";
 
 /*
  * Clients ajoutés par l'agence (après E12). Droit requis : « créer une réservation »
@@ -73,4 +79,42 @@ export async function createReservationForClientAction(input: unknown): Promise<
   });
   revalidatePath(`${CLIENTS_PATH}/${parsed.data.clientId}`);
   redirect(`/dashboard/reservations/${result.data.id}`);
+}
+
+/**
+ * Modification d'un client (décision E bis) : administrateur et personnel, comme les
+ * réservations (§3 : le personnel crée, lit et modifie).
+ */
+export async function updateClientAction(input: unknown): Promise<ActionResult> {
+  const auth = await authorize("modifier", "reservation");
+  if (!auth.ok) return auth.result;
+  const parsed = parseInput(updateClientSchema, input);
+  if (!parsed.ok) return parsed.result;
+
+  const result = await updateClient(auth.db, parsed.data);
+  if (!result.ok) return toActionResult(result);
+  await journal(auth, "CLIENT_MODIFIE", "Utilisateur", parsed.data.id, {
+    actif: parsed.data.actif,
+  });
+  revalidatePath(CLIENTS_PATH);
+  revalidatePath(`${CLIENTS_PATH}/${parsed.data.id}`);
+  return { success: "Client modifié." };
+}
+
+/**
+ * Suppression d'un client (décision E bis) : administrateur de l'agence seulement (« S » de
+ * la matrice §3), et seulement s'il n'a aucune réservation ; sinon, désactivation proposée.
+ */
+export async function deleteClientAction(input: unknown): Promise<ActionResult> {
+  const auth = await authorize("supprimer", "utilisateur");
+  if (!auth.ok) return auth.result;
+  const parsed = parseInput(deleteClientSchema, input);
+  if (!parsed.ok) return parsed.result;
+
+  const result = await deleteClient(auth.db, parsed.data.id);
+  if (!result.ok) return toActionResult(result);
+  await deleteImage(result.data.photoUrl);
+  await journal(auth, "CLIENT_SUPPRIME", "Utilisateur", parsed.data.id);
+  revalidatePath(CLIENTS_PATH);
+  redirect(CLIENTS_PATH);
 }

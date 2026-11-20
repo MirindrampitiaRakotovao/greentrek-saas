@@ -128,6 +128,11 @@ export default async function ClientsPage({ searchParams }: PageProps<"/dashboar
                     <Badge tone={c.origine === "AGENCE" ? "teal" : "neutral"}>
                       {ORIGINE_LABELS[c.origine]}
                     </Badge>
+                    {c.actif ? null : (
+                      <span className="ml-1">
+                        <Badge tone="danger">Désactivé</Badge>
+                      </span>
+                    )}
                   </td>
                   <td>{c.telephone ?? "—"}</td>
                   <td>{c.reservations}</td>

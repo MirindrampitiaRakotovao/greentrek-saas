@@ -11,7 +11,7 @@ import { newInvitationToken } from "@/lib/services/mot-de-passe";
 import { failure, type ServiceResult, success } from "@/lib/services/result";
 import type { TenantDb } from "@/lib/tenant";
 import type { ClientRegistrationInput } from "@/lib/validators/auth";
-import type { CreateClientInput, Origine } from "@/lib/validators/clients";
+import type { CreateClientInput, Origine, UpdateClientInput } from "@/lib/validators/clients";
 
 const BCRYPT_COST = 10;
 
@@ -74,6 +74,7 @@ export type ClientRow = {
   email: string;
   telephone: string | null;
   origine: Origine;
+  actif: boolean;
   createdAt: Date;
   reservations: number;
   /** Montant des réservations non annulées. */
@@ -112,6 +113,7 @@ export async function listClients(
         email: true,
         telephone: true,
         origine: true,
+        actif: true,
         createdAt: true,
       },
       ...pageArgs(page),
@@ -225,6 +227,86 @@ export async function createClientByAgency(
     // Deux ajouts simultanés de la même adresse : l'index unique (agence, e-mail) tranche.
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return failure(CLIENT_EMAIL_TAKEN, "email");
+    }
+    throw error;
+  }
+}
+
+/**
+ * Modification d'un client par l'agence (décision E bis) : prénom, nom, e-mail, téléphone et
+ * état du compte. L'e-mail reste unique dans l'agence (RG 3) ; c'est l'identifiant de
+ * connexion du voyageur, qui se connecte ensuite avec la nouvelle adresse.
+ */
+export async function updateClient(db: TenantDb, input: UpdateClientInput): Promise<ServiceResult> {
+  const client = await db.utilisateur.findFirst({
+    where: { id: input.id, role: "CLIENT" },
+    select: { id: true },
+  });
+  if (!client) return failure("Client introuvable.");
+  const taken = await db.utilisateur.findFirst({
+    where: { email: input.email, id: { not: client.id } },
+    select: { id: true },
+  });
+  if (taken) return failure(CLIENT_EMAIL_TAKEN, "email");
+  try {
+    await db.utilisateur.update({
+      where: { id: client.id },
+      data: {
+        prenom: input.prenom,
+        nom: input.nom,
+        email: input.email,
+        telephone: input.telephone,
+        actif: input.actif,
+      },
+    });
+  } catch (error: unknown) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return failure(CLIENT_EMAIL_TAKEN, "email");
+    }
+    throw error;
+  }
+  return success(undefined);
+}
+
+export const CLIENT_HAS_RESERVATIONS =
+  "Ce client a des réservations : il ne peut pas être supprimé, pour garder la trace des réservations, paiements et factures. Désactivez plutôt son compte (bouton « Modifier »).";
+
+/**
+ * Suppression d'un client (décision E bis), seulement s'il n'a AUCUNE réservation (même
+ * annulée) : réservations, paiements et factures sont des traces à conserver (décision D).
+ * Sinon, refus et proposition de désactiver le compte. Dans une même transaction, on retire
+ * ce qui n'appartient qu'à lui : itinéraires sur mesure, conversations (avec leurs messages)
+ * et signalements ; le reste suit par cascade (notifications, appareils, jetons, communauté),
+ * le journal d'activité garde l'action sans l'auteur. Renvoie la photo de profil à effacer.
+ */
+export async function deleteClient(
+  db: TenantDb,
+  id: string,
+): Promise<ServiceResult<{ photoUrl: string | null }>> {
+  try {
+    return await db.$tenantTransaction(async (tx) => {
+      const client = await tx.utilisateur.findFirst({
+        where: { id, role: "CLIENT" },
+        select: { id: true, photoUrl: true },
+      });
+      if (!client) return failure("Client introuvable.");
+      if ((await tx.reservation.count({ where: { clientId: client.id } })) > 0) {
+        return failure(CLIENT_HAS_RESERVATIONS);
+      }
+      await tx.itinerairePersonnalise.deleteMany({
+        where: { OR: [{ clientId: client.id }, { creeParId: client.id }] },
+      });
+      // Messages et accusés de lecture suivent la conversation (cascade).
+      await tx.conversation.deleteMany({
+        where: { OR: [{ clientId: client.id }, { destinataireId: client.id }] },
+      });
+      await tx.utilisateur.delete({ where: { id: client.id } });
+      return success({ photoUrl: client.photoUrl });
+    });
+  } catch (error: unknown) {
+    // Réservation créée au même instant : la clé étrangère (Restrict) refuse la suppression.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
+      return failure(CLIENT_HAS_RESERVATIONS);
     }
     throw error;
   }
