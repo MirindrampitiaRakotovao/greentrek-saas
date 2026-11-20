@@ -1,6 +1,13 @@
 # Modèle entité-association (ERD) — Green Trek SaaS
 
-Reflet fidèle de `prisma/schema.prisma` : 19 tables du cahier des charges (migration `init`, étape E1), plus 3 tables de messagerie ajoutées après E12 (migration `messagerie`), soit 22 tables. Seuls les clés et les champs structurants sont affichés ; le détail complet est dans le schéma Prisma.
+Reflet fidèle de `prisma/schema.prisma` : 19 tables du cahier des charges (migration `init`, étape E1), plus 12 tables ajoutées après E12 à la demande de l'étudiant, soit **31 tables** :
+
+- messagerie : `Conversation`, `Message`, `LectureConversation` ;
+- compte : `JetonReinitialisation` (mot de passe oublié, invitation d'un client) ;
+- application mobile : `AppareilMobile` (notifications du téléphone) ;
+- itinéraires sur mesure : `ItinerairePersonnalise` ;
+- voyageurs entre eux (étape 5c) : `Blocage`, `Signalement` ;
+- communauté (étape 5d, tables de la **plateforme**, sans `agenceId`) : `Publication`, `Commentaire`, `Jaime`, `SignalementCommunaute`. Seuls les clés et les champs structurants sont affichés ; le détail complet est dans le schéma Prisma.
 
 Notation : `PK` clé primaire, `FK` clé étrangère, `UK` unique. Les identifiants sont des `cuid` (texte).
 
@@ -54,6 +61,26 @@ erDiagram
   UTILISATEUR ||--o{ MESSAGE : "ecrit"
   CONVERSATION ||--o{ LECTURE_CONVERSATION : "lue_par"
   UTILISATEUR ||--o{ LECTURE_CONVERSATION : "lit"
+  UTILISATEUR |o--o{ CONVERSATION : "destinataire (entre voyageurs)"
+  UTILISATEUR ||--o{ JETON_REINITIALISATION : "possede"
+  AGENCE ||--o{ APPAREIL_MOBILE : "enregistre"
+  UTILISATEUR ||--o{ APPAREIL_MOBILE : "utilise"
+  AGENCE ||--o{ ITINERAIRE_PERSONNALISE : "propose"
+  UTILISATEUR ||--o{ ITINERAIRE_PERSONNALISE : "client"
+  UTILISATEUR ||--o{ ITINERAIRE_PERSONNALISE : "compose"
+  ITINERAIRE_CALCULE ||--o{ ITINERAIRE_PERSONNALISE : "tracé"
+  AGENCE ||--o{ BLOCAGE : "concerne"
+  UTILISATEUR ||--o{ BLOCAGE : "bloque"
+  UTILISATEUR ||--o{ BLOCAGE : "est bloqué"
+  AGENCE ||--o{ SIGNALEMENT : "traite"
+  UTILISATEUR ||--o{ SIGNALEMENT : "signale"
+  UTILISATEUR ||--o{ PUBLICATION : "publie"
+  RESERVATION ||--o{ PUBLICATION : "séjour"
+  PUBLICATION ||--o{ COMMENTAIRE : "reçoit"
+  UTILISATEUR ||--o{ COMMENTAIRE : "écrit"
+  PUBLICATION ||--o{ JAIME : "reçoit"
+  UTILISATEUR ||--o{ JAIME : "aime"
+  UTILISATEUR ||--o{ SIGNALEMENT_COMMUNAUTE : "signale"
 
   AGENCE {
     string id PK
@@ -71,6 +98,10 @@ erDiagram
     string motDePasseHash
     enum role
     boolean actif
+    string photoUrl "nullable"
+    datetime derniereActiviteAt "présence"
+    boolean presenceVisible
+    boolean messagesVoyageurs
   }
   PLAN {
     string id PK
@@ -212,6 +243,8 @@ erDiagram
     string agenceId FK
     string clientId FK
     string reservationId FK,UK "nullable"
+    enum type "AGENCE, VOYAGEURS"
+    string destinataireId FK "nullable, autre voyageur"
     string sujet
     datetime dernierMessageAt
   }
@@ -228,6 +261,69 @@ erDiagram
     string utilisateurId FK
     datetime luJusqua
   }
+  JETON_REINITIALISATION {
+    string id PK
+    string utilisateurId FK
+    string empreinte UK "SHA-256 du jeton"
+    datetime expireAt
+    datetime utiliseAt "nullable"
+  }
+  APPAREIL_MOBILE {
+    string id PK
+    string agenceId FK
+    string utilisateurId FK
+    string expoPushToken "UK avec agenceId"
+    string plateforme
+  }
+  ITINERAIRE_PERSONNALISE {
+    string id PK
+    string agenceId FK
+    string clientId FK
+    string creeParId FK
+    string itineraireCalculeId FK
+    enum origine "AGENCE, CLIENT"
+    enum statut "EN_ATTENTE, ACCEPTE, DECLINE"
+  }
+  BLOCAGE {
+    string id PK
+    string agenceId FK
+    string bloqueurId FK "UK avec bloqueId"
+    string bloqueId FK
+  }
+  SIGNALEMENT {
+    string id PK
+    string agenceId FK
+    string auteurId FK
+    enum cible "MESSAGE"
+    string cibleId "identifiant du message"
+    enum statut "OUVERT, TRAITE"
+  }
+  PUBLICATION {
+    string id PK
+    string auteurId FK
+    string reservationId FK "séjour terminé"
+    text legende "nullable"
+    json photos "1 à 4 adresses"
+    enum statut "VISIBLE, MASQUE"
+  }
+  COMMENTAIRE {
+    string id PK
+    string publicationId FK
+    string auteurId FK
+    text contenu
+    enum statut "VISIBLE, MASQUE"
+  }
+  JAIME {
+    string publicationId PK,FK
+    string utilisateurId PK,FK
+  }
+  SIGNALEMENT_COMMUNAUTE {
+    string id PK
+    string auteurId FK
+    enum cible "PUBLICATION, COMMENTAIRE"
+    string cibleId "UK avec auteurId et cible"
+    enum statut "OUVERT, TRAITE"
+  }
 ```
 
 ## Écarts avec le cahier des charges §5.2 (à reporter dans le mémoire)
@@ -240,6 +336,13 @@ erDiagram
 | `ItineraireCalcule.creePar` | `creePar` | `creeParId` (clé étrangère vers `Utilisateur`) | Convention de nommage des clés étrangères |
 | `CircuitPartenaire.etapeId` | nullable | nullable, suppression de l'étape refusée | Cohérence avec RG 8 |
 | `Conversation`, `Message`, `LectureConversation` | absentes | ajoutées après E12 | Messagerie en temps réel entre voyageurs, agence et guides, demandée par l'étudiant ; `Message` et `LectureConversation` héritent de l'agence de la conversation (comme `Participant`) |
+| `JetonReinitialisation` | absente | ajoutée après E12 | Mot de passe oublié et invitation d'un client ajouté par l'agence ; seule l'empreinte du jeton est stockée |
+| `AppareilMobile` | absente (application mobile hors périmètre) | ajoutée après E12 | Notifications push de l'application des voyageurs |
+| `ItinerairePersonnalise` | absente | ajoutée après E12 | Itinéraire proposé par l'agence à un client, ou demandé par un voyageur ; le tracé est un `ItineraireCalcule` |
+| `Conversation.type`, `destinataireId` ; `Utilisateur.derniereActiviteAt`, `presenceVisible`, `messagesVoyageurs`, `photoUrl` | absents | ajoutés (étapes 5a et 5c) | Photo de profil, présence « en ligne », conversations privées entre voyageurs d'une même agence et leurs réglages |
+| `Blocage`, `Signalement` | absentes | ajoutées (étape 5c) | Garde-fous des conversations entre voyageurs ; l'agence ne voit que le message signalé |
+| `Publication`, `Commentaire`, `Jaime`, `SignalementCommunaute` | absentes | ajoutées (étape 5d) | Communauté commune à toutes les agences : tables de la **plateforme** sans `agenceId`, interdites au client d'une agence (portée `platform` du helper tenant), modérées par le super admin |
+| `Agence.nif`, `Agence.stat` | absents | ajoutés (2026-11-20) | Identifiants fiscal et statistique imprimés sur les factures |
 
 ## Règles de gestion garanties par la base
 
@@ -257,5 +360,8 @@ erDiagram
 | Messagerie : une conversation par réservation | index unique `Conversation.reservationId` |
 | Messagerie : pas de message ni de sujet vide | CHECK `Message_contenu_check`, `Conversation_sujet_check` |
 | Messagerie : une lecture par utilisateur et conversation | index unique `(conversationId, utilisateurId)` |
+| Un blocage par couple de voyageurs | index unique `Blocage (bloqueurId, bloqueId)` |
+| Un signalement par auteur et contenu | index unique `(auteurId, cible, cibleId)` sur `Signalement` et `SignalementCommunaute` |
+| Un « J'aime » par voyageur et publication | clé primaire composée `Jaime (publicationId, utilisateurId)` |
 
 Les autres règles (RG 2, 5, 6 « même agence », 9, 11, 13 à 16, 17 « réservation terminée », 18 à 20) relèvent de l'application : helper tenant, transactions, validations Zod.
