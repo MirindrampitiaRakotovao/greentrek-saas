@@ -45,6 +45,12 @@ export type ShellProps = {
   promo?: { title: string; text: string; cta?: { label: string; href: string } };
   notifications?: { unread: number; items: readonly ShellNotification[] };
   footerNote: string;
+  /**
+   * Pages en plein écran (communauté, demande de l'étudiant) : sous ce préfixe d'adresse,
+   * la barre latérale est cachée sur tous les écrans et s'ouvre par le bouton « Menu », qui
+   * commence par les liens de retour (`links`).
+   */
+  immersive?: { prefix: string; links: readonly NavItem[] };
   children: ReactNode;
 };
 
@@ -68,10 +74,26 @@ export function AppShell({
   promo,
   notifications,
   footerNote,
+  immersive,
   children,
 }: ShellProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const fullScreen =
+    immersive !== undefined &&
+    (pathname === immersive.prefix || pathname.startsWith(`${immersive.prefix}/`));
+  // Classes « grand écran » de la barre latérale fixe, absentes en plein écran (panneau).
+  const lg = (classes: string) => (fullScreen ? "" : classes);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!menuOpen) return;
+    closeRef.current?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
   const [soundOn, toggleSound] = useSoundPreference();
   const current = activeHref(pathname, nav);
   const title = nav.find((item) => item.href === current)?.label ?? brand.name;
@@ -93,15 +115,16 @@ export function AppShell({
           type="button"
           aria-label="Fermer le menu"
           onClick={() => setMenuOpen(false)}
-          className="fixed inset-0 z-30 bg-gt-teal-900/40 lg:hidden"
+          className={`fixed inset-0 z-30 bg-gt-teal-900/40 ${lg("lg:hidden")}`}
         />
       ) : null}
 
       <aside
         id="app-sidebar"
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-gt-canvas px-4 py-5 transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${
-          menuOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        aria-label={fullScreen ? "Menu" : undefined}
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-gt-canvas px-4 py-5 transition-transform ${lg(
+          "lg:sticky lg:top-0 lg:h-screen lg:translate-x-0",
+        )} ${menuOpen ? "translate-x-0" : `-translate-x-full ${fullScreen ? "invisible" : ""}`}`}
       >
         <div className="flex items-center justify-between px-2">
           <Link href={brand.href} className="flex items-center gap-2">
@@ -124,16 +147,33 @@ export function AppShell({
             </span>
           </Link>
           <button
+            ref={closeRef}
             type="button"
             onClick={() => setMenuOpen(false)}
             aria-label="Fermer le menu"
-            className="rounded-lg p-1.5 text-gt-teal-900 lg:hidden"
+            className={`rounded-lg p-1.5 text-gt-teal-900 ${lg("lg:hidden")}`}
           >
             <Icon name="close" />
           </button>
         </div>
 
         <nav aria-label="Navigation principale" className="mt-8 flex-1 overflow-y-auto">
+          {fullScreen && immersive ? (
+            <ul className="mb-3 space-y-1 border-b border-gt-mist pb-3">
+              {immersive.links.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-3 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-gt-teal-900 hover:bg-gt-teal-50"
+                  >
+                    <Icon name={item.icon} className="size-[18px]" />
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <ul className="space-y-1">
             {nav.map((item) => {
               const active = item.href === current;
@@ -208,7 +248,9 @@ export function AppShell({
         </form>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col lg:h-dvh lg:py-3 lg:pr-3">
+      <div
+        className={`flex min-w-0 flex-1 flex-col lg:h-dvh lg:py-3 lg:pr-3 ${fullScreen ? "lg:pl-3" : ""}`}
+      >
         <div className="flex min-h-screen min-w-0 flex-1 flex-col bg-gt-teal-50 lg:min-h-0 lg:overflow-hidden lg:rounded-[28px]">
           <header className="flex flex-wrap items-center gap-3 px-4 pt-4 sm:px-6 lg:px-8 lg:pt-6">
             <button
@@ -216,11 +258,32 @@ export function AppShell({
               onClick={() => setMenuOpen(true)}
               aria-expanded={menuOpen}
               aria-controls="app-sidebar"
-              className="grid size-10 place-items-center rounded-full border border-gt-mist bg-white text-gt-teal-900 lg:hidden"
+              className={
+                fullScreen
+                  ? "flex h-10 items-center gap-2 rounded-full border border-gt-mist bg-white px-4 text-sm font-medium text-gt-teal-900 hover:bg-gt-teal-50"
+                  : "grid size-10 place-items-center rounded-full border border-gt-mist bg-white text-gt-teal-900 lg:hidden"
+              }
             >
               <Icon name="menu" />
-              <span className="sr-only">Menu</span>
+              <span className={fullScreen ? "hidden sm:inline" : "sr-only"}>Menu</span>
+              {fullScreen ? <span className="sr-only sm:hidden">Menu</span> : null}
             </button>
+            {fullScreen ? (
+              <Link href={brand.href} className="hidden items-center sm:flex" title={brand.name}>
+                {brand.logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={brand.logoUrl}
+                    alt={brand.name}
+                    className="h-9 w-auto max-w-16 object-contain"
+                  />
+                ) : (
+                  <span className="text-sm font-bold tracking-wide text-gt-teal-900 uppercase">
+                    {brand.name}
+                  </span>
+                )}
+              </Link>
+            ) : null}
             <h1 className="mr-auto text-xl font-semibold text-gt-teal-900 sm:text-2xl">{title}</h1>
             <PageSearch nav={nav} />
             <SoundToggle on={soundOn} onToggle={toggleSound} />

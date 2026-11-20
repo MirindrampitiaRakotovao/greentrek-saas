@@ -64,6 +64,13 @@ export default async function MonCompteLayout({
       }}
       notifications={notifications}
       footerNote="Paiement sécurisé · facture disponible pour chaque réservation"
+      immersive={{
+        prefix: `/a/${slug}/mon-compte/communaute`,
+        links: [
+          { href: `/a/${slug}/mon-compte`, label: "Retour à mon espace", icon: "home" },
+          { href: `/a/${slug}`, label: "Site de l'agence", icon: "external" },
+        ],
+      }}
     >
       {children}
     </AppShell>
