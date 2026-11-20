@@ -28,6 +28,8 @@ import { boundsOf, MAP3D_COLORS, satelliteStyle, TERRAIN_EXAGGERATION } from "@/
 
 /** Inclinaison d'édition : relief lisible sans gêner le placement d'un point. */
 const PITCH_EDIT = 40;
+/** Couleur des variantes (étape 6b-3) : corail, distinct du sable, du réseau et de l'eau. */
+export const VARIANT_COLOR = "#FF7A6B";
 const MAHAMBO: [number, number] = [49.4503963, -17.4896484];
 
 const EDGE_STYLE = {
@@ -56,7 +58,7 @@ function pinElement(marker: MapMarker): HTMLElement {
 type Handlers = Pick<
   LeafletMapProps,
   "onMapClick" | "onMarkerClick" | "onMarkerDragEnd" | "onEdgeClick"
-> & { draftLine?: MapDraftLine };
+> & { draftLine?: MapDraftLine; onAltPathClick?: (id: string) => void };
 
 /** [latitude, longitude] → [longitude, latitude] et inversement. */
 const toLngLat = ([lat, lng]: readonly [number, number]): TracePoint => [lng, lat];
@@ -80,6 +82,8 @@ export default function SatelliteMap({
   pathStyle = "indicatif",
   dots,
   draftLine,
+  altPaths,
+  onAltPathClick,
   onMapClick,
   onMarkerClick,
   onMarkerDragEnd,
@@ -99,7 +103,14 @@ export default function SatelliteMap({
   // Fonctions de la page relues à chaque événement (elles changent à chaque rendu).
   const handlers = useRef<Handlers>({});
   useEffect(() => {
-    handlers.current = { onMapClick, onMarkerClick, onMarkerDragEnd, onEdgeClick, draftLine };
+    handlers.current = {
+      onMapClick,
+      onMarkerClick,
+      onMarkerDragEnd,
+      onEdgeClick,
+      draftLine,
+      onAltPathClick,
+    };
   });
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -163,6 +174,7 @@ export default function SatelliteMap({
       map.addSource("trace", { type: "geojson", data: empty });
       map.addSource("explores", { type: "geojson", data: empty });
       map.addSource("brouillon", { type: "geojson", data: empty });
+      map.addSource("variantes", { type: "geojson", data: empty });
       // Tronçons : liseré sombre, trait (plein si mesuré, pointillé si estimé), zone de clic.
       map.addLayer({
         id: "troncons-liseret",
@@ -194,6 +206,19 @@ export default function SatelliteMap({
         type: "line",
         source: "troncons",
         paint: { "line-color": "#000", "line-width": 18, "line-opacity": 0 },
+      });
+      // Variantes (étape 6b-3), en corail : les autres en pointillés sous l'itinéraire.
+      map.addLayer({
+        id: "variantes",
+        type: "line",
+        source: "variantes",
+        filter: ["==", ["get", "selected"], false],
+        paint: {
+          "line-color": VARIANT_COLOR,
+          "line-width": 3.5,
+          "line-opacity": 0.9,
+          "line-dasharray": [1.6, 1.4],
+        },
       });
       // Itinéraire calculé : halo lumineux et trait sable (pointillés si indicatif).
       map.addLayer({
@@ -237,6 +262,29 @@ export default function SatelliteMap({
         layout: { "line-join": "round", "line-cap": "round" },
         paint: { "line-color": "#FFB547", "line-width": 4 },
       });
+      // Variante choisie : au-dessus de l'itinéraire principal, liseré sombre.
+      map.addLayer({
+        id: "variantes-choisie-liseret",
+        type: "line",
+        source: "variantes",
+        filter: ["==", ["get", "selected"], true],
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": MAP3D_COLORS.halo, "line-width": 8, "line-opacity": 0.6 },
+      });
+      map.addLayer({
+        id: "variantes-choisie",
+        type: "line",
+        source: "variantes",
+        filter: ["==", ["get", "selected"], true],
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": VARIANT_COLOR, "line-width": 5 },
+      });
+      map.addLayer({
+        id: "variantes-clic",
+        type: "line",
+        source: "variantes",
+        paint: { "line-color": "#000", "line-width": 16, "line-opacity": 0 },
+      });
       map.addLayer({
         id: "explores",
         type: "circle",
@@ -258,11 +306,11 @@ export default function SatelliteMap({
         offset: 10,
       });
       popupRef.current = popup;
-      for (const layer of ["troncons-clic", "explores"]) {
+      for (const layer of ["troncons-clic", "explores", "variantes-clic"]) {
         map.on("mousemove", layer, (event) => {
           const label = event.features?.[0]?.properties?.label as string | undefined;
           if (!label) return;
-          map.getCanvas().style.cursor = layer === "troncons-clic" ? "pointer" : "";
+          map.getCanvas().style.cursor = layer === "explores" ? "" : "pointer";
           popup.setLngLat(event.lngLat).setText(label).addTo(map);
         });
         map.on("mouseleave", layer, () => {
@@ -279,6 +327,12 @@ export default function SatelliteMap({
         if (draft?.editable && draft.onChange) {
           const point: TracePoint = [event.lngLat.lng, event.lngLat.lat];
           draft.onChange(insertPoint(draft.points.map(toLngLat), point).map(toLatLng));
+          return;
+        }
+        const variante = map.queryRenderedFeatures(event.point, { layers: ["variantes-clic"] })[0];
+        const varianteId = variante?.properties?.id as string | undefined;
+        if (varianteId && handlers.current.onAltPathClick) {
+          handlers.current.onAltPathClick(varianteId);
           return;
         }
         const hit = map.queryRenderedFeatures(event.point, { layers: ["troncons-clic"] })[0];
@@ -368,6 +422,22 @@ export default function SatelliteMap({
       })),
     });
   }, [path, pathStyle, dots, loaded]);
+
+  // Variantes de l'itinéraire.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loaded) return;
+    (map.getSource("variantes") as GeoJSONSource).setData({
+      type: "FeatureCollection",
+      features: (altPaths ?? [])
+        .filter((alt) => alt.points.length > 1)
+        .map((alt) => ({
+          type: "Feature",
+          properties: { id: alt.id, label: alt.label, selected: alt.selected },
+          geometry: { type: "LineString", coordinates: alt.points.map(toLngLat) },
+        })),
+    });
+  }, [altPaths, loaded]);
 
   // Tracé en cours : ligne et, en édition, points déplaçables.
   useEffect(() => {

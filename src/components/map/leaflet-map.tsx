@@ -50,6 +50,14 @@ export type MapEdge = {
   line?: readonly [number, number][];
 };
 
+/** Autre itinéraire (variante plus coûteuse, étape 6b-3), affiché sous l'itinéraire principal. */
+export type MapAltPath = {
+  id: string;
+  points: readonly [number, number][];
+  label: string;
+  selected: boolean;
+};
+
 /** Tracé en cours (proposition d'OSM ou dessin à la main), éditable sur la carte 3D. */
 export type MapDraftLine = {
   points: readonly [number, number][];
@@ -72,6 +80,9 @@ export type LeafletMapProps = {
   dots?: readonly MapDot[];
   /** Tracé en cours d'édition (carte 3D ; la carte 2D l'affiche sans l'éditer). */
   draftLine?: MapDraftLine;
+  /** Variantes de l'itinéraire, cliquables. */
+  altPaths?: readonly MapAltPath[];
+  onAltPathClick?: (id: string) => void;
   onMapClick?: (lat: number, lng: number) => void;
   onMarkerClick?: (id: string) => void;
   onMarkerDragEnd?: (id: string, lat: number, lng: number) => void;
@@ -331,6 +342,8 @@ export default function LeafletMap({
   pathStyle = "indicatif",
   dots,
   draftLine,
+  altPaths,
+  onAltPathClick,
   onMapClick,
   onMarkerClick,
   onMarkerDragEnd,
@@ -370,6 +383,21 @@ export default function LeafletMap({
       />
       <FlyTo focus={focus} />
       {onMapClick ? <ClickHandler onMapClick={onMapClick} /> : null}
+      {altPaths?.map((alt) => (
+        <Polyline
+          key={`${alt.id}-${alt.selected}`}
+          positions={alt.points as [number, number][]}
+          pathOptions={{
+            color: "#e8594a",
+            weight: alt.selected ? 6 : 4,
+            dashArray: alt.selected ? undefined : "6 8",
+            opacity: 0.9,
+          }}
+          eventHandlers={onAltPathClick ? { click: () => onAltPathClick(alt.id) } : undefined}
+        >
+          <Tooltip sticky>{alt.label}</Tooltip>
+        </Polyline>
+      ))}
       {path && path.length > 1 ? (
         <>
           {/* Tracé avec liseré blanc, comme un itinéraire Google Maps (pointillés : tracé indicatif). */}

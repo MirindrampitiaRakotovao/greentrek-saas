@@ -182,6 +182,42 @@ describe("computeItineraire", () => {
   });
 });
 
+describe("autres itinéraires (algorithme de Yen, étape 6b-3)", () => {
+  it("A → F « Plus court » : variantes de 12 puis 15 km (le 2e chemin à 12 km est écarté)", async () => {
+    const result = await computeItineraire(dbA, agenceA.id, userId, input());
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const variantes = result.data[0]!.variantes!;
+    expect(variantes.map((v) => [v.rang, v.cost])).toEqual([
+      [2, 12],
+      [3, 15],
+    ]);
+    expect(["ACDF", "AGF"]).toContain(variantes[0]!.path.map((s) => s.nom).join(""));
+    expect(variantes[1]!.path.map((s) => s.nom).join("")).toBe("ACEF");
+    // Chaque variante a sa géométrie (lignes droites ici : aucun tracé enregistré).
+    expect(variantes[1]!.geometry.line).toHaveLength(4);
+    // Seul le meilleur itinéraire est enregistré dans l'historique.
+    expect(await raw.itineraireCalcule.count()).toBe(1);
+  });
+
+  it("pas de variante avec des étapes imposées, ni quand aucun autre chemin n'existe", async () => {
+    const imposees = await computeItineraire(
+      dbA,
+      agenceA.id,
+      userId,
+      input({ etapesImposees: [id.G!] }),
+    );
+    expect(imposees.ok && imposees.data[0]!.variantes).toBeUndefined();
+    const seul = await computeItineraire(
+      dbA,
+      agenceA.id,
+      userId,
+      input({ etapeDepartId: id.E!, etapeArriveeId: id.C! }),
+    );
+    expect(seul.ok && seul.data[0]!.path.map((s) => s.nom)).toEqual(["E", "C"]);
+  });
+});
+
 describe("tracé réel d'un circuit", () => {
   it("suit les tronçons dans l'ordre du circuit et met à jour distanceKm", async () => {
     const circuit = await raw.circuit.create({

@@ -3,7 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore, useTransition } from "react";
 
-import { type MapDot, type MapEdge, type MapMarker, MapView } from "@/components/map/map-view";
+import {
+  type MapAltPath,
+  type MapDot,
+  type MapEdge,
+  type MapMarker,
+  MapView,
+} from "@/components/map/map-view";
 import { useNotify } from "@/components/ui/dialogs";
 import { FormAlert } from "@/components/ui/form-alert";
 import { Icon } from "@/components/ui/icon";
@@ -15,7 +21,7 @@ import {
 } from "@/lib/actions/itineraires-perso";
 import { MAX_FREE_WAYPOINTS } from "@/lib/graph/waypoints";
 import { CRITERIA_LABELS, CRITERIA_PRESETS } from "@/lib/graph/weights";
-import type { AlgorithmOutcome } from "@/lib/services/itineraires";
+import type { AlgorithmOutcome, VariantOutcome } from "@/lib/services/itineraires";
 import type { Critere, ModeAlgorithme } from "@/lib/validators/itineraires";
 
 /**
@@ -88,6 +94,8 @@ export function ItineraryPlanner({
   const [algorithme, setAlgorithme] = useState<ModeAlgorithme>("COMPARER");
   const [outcomes, setOutcomes] = useState<AlgorithmOutcome[]>([]);
   const [showExplored, setShowExplored] = useState<"DIJKSTRA" | "ASTAR" | null>(null);
+  /** Variante mise en avant (rang 2, 3…), ou null. */
+  const [variante, setVariante] = useState<number | null>(null);
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
   const isDesktop = useIsDesktop();
@@ -132,6 +140,16 @@ export function ItineraryPlanner({
         ]
       : [];
   });
+  // Variantes (étape 6b-3) : autres chemins réels, en corail sur la carte.
+  const altPaths: MapAltPath[] = (found?.variantes ?? []).map((v) => ({
+    id: String(v.rang),
+    points:
+      v.geometry.line.length > 1
+        ? v.geometry.line
+        : v.path.map((s) => [s.latitude, s.longitude] as [number, number]),
+    label: `${v.rang}e itinéraire · ${fmtDuree(v.dureeMinutes)} (${fmtKm(v.distanceKm)})`,
+    selected: variante === v.rang,
+  }));
   const exploredOutcome = outcomes.find((o) => o.algorithme === showExplored);
   const dots: MapDot[] =
     exploredOutcome?.explored.flatMap((id, index) => {
@@ -195,6 +213,7 @@ export function ItineraryPlanner({
       }
       const next = result.outcomes ?? [];
       setOutcomes(next);
+      setVariante(null);
       setShowExplored(next.length > 1 ? "ASTAR" : null);
     });
   }
@@ -215,6 +234,8 @@ export function ItineraryPlanner({
           edges={edges}
           path={routePath}
           pathStyle="route"
+          altPaths={altPaths}
+          onAltPathClick={(id) => setVariante(variante === Number(id) ? null : Number(id))}
           dots={dots}
           fitTo={routePath}
           fitKey={`${outcomes.map((o) => o.historiqueId ?? o.algorithme).join()}-${isDesktop}`}
@@ -468,6 +489,9 @@ export function ItineraryPlanner({
             nom={nom}
             showExplored={showExplored}
             setShowExplored={setShowExplored}
+            variante={variante}
+            setVariante={setVariante}
+            avecEtapesImposees={imposees.length > 0}
           />
           {proposeTo && found?.historiqueId ? (
             <ProposeForm
@@ -583,12 +607,18 @@ function Results({
   nom,
   showExplored,
   setShowExplored,
+  variante,
+  setVariante,
+  avecEtapesImposees,
 }: {
   expert: boolean;
   outcomes: readonly AlgorithmOutcome[];
   nom: (id: string) => string;
   showExplored: "DIJKSTRA" | "ASTAR" | null;
   setShowExplored: (value: "DIJKSTRA" | "ASTAR" | null) => void;
+  variante: number | null;
+  setVariante: (rang: number | null) => void;
+  avecEtapesImposees: boolean;
 }) {
   if (outcomes.length === 0) return null;
   const main = outcomes.find((o) => o.found);
@@ -727,6 +757,105 @@ function Results({
           ))}
         </ol>
       </div>
+
+      <Variantes
+        main={main}
+        expert={expert}
+        variante={variante}
+        setVariante={setVariante}
+        avecEtapesImposees={avecEtapesImposees}
+      />
     </div>
+  );
+}
+
+const ecart = (value: number, format: (v: number) => string) =>
+  value > 0 ? `+${format(value)}` : value < 0 ? `−${format(-value)}` : "identique";
+
+/**
+ * Autres itinéraires (étape 6b-3) : les 2e et 3e meilleurs chemins pour le critère choisi
+ * (algorithme de Yen), avec l'écart au meilleur. Un clic les met en avant sur la carte.
+ */
+function Variantes({
+  main,
+  expert,
+  variante,
+  setVariante,
+  avecEtapesImposees,
+}: {
+  main: AlgorithmOutcome;
+  expert: boolean;
+  variante: number | null;
+  setVariante: (rang: number | null) => void;
+  avecEtapesImposees: boolean;
+}) {
+  if (avecEtapesImposees) {
+    return (
+      <p className="text-xs text-gt-teal-900/75">
+        Autres itinéraires : proposés seulement sans étape imposée.
+      </p>
+    );
+  }
+  const variantes: readonly VariantOutcome[] = main.variantes ?? [];
+  return (
+    <section aria-labelledby="it-variantes" className="space-y-2">
+      <h2 id="it-variantes" className="text-sm font-semibold text-gt-teal-900">
+        Autres itinéraires, moins avantageux
+      </h2>
+      {variantes.length === 0 ? (
+        <p className="text-xs text-gt-teal-900/75">
+          Aucun autre chemin : le réseau ne relie ces deux étapes que par cet itinéraire.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {variantes.map((v) => {
+            const active = variante === v.rang;
+            return (
+              <li key={v.rang}>
+                <button
+                  type="button"
+                  onClick={() => setVariante(active ? null : v.rang)}
+                  aria-pressed={active}
+                  className={`w-full rounded-xl border px-3 py-2.5 text-left transition ${
+                    active
+                      ? "border-[#e8594a] bg-[#fff1ef]"
+                      : "border-gt-mist hover:border-[#ff9f94] hover:bg-[#fff7f6]"
+                  }`}
+                >
+                  <span className="flex items-baseline justify-between gap-2">
+                    <span className="flex items-center gap-2 text-sm font-semibold text-gt-teal-900">
+                      <span
+                        aria-hidden="true"
+                        className={`h-0 w-5 border-t-[3px] border-[#e8594a] ${active ? "" : "border-dashed"}`}
+                      />
+                      {v.rang}e itinéraire · {fmtDuree(v.dureeMinutes)}
+                    </span>
+                    <span className="text-xs text-gt-teal-900/75">{fmtKm(v.distanceKm)}</span>
+                  </span>
+                  <span className="mt-0.5 block text-xs text-gt-teal-900/75">
+                    {ecart(v.dureeMinutes - main.dureeMinutes, fmtDuree)} de marche ·{" "}
+                    {ecart(Math.round((v.distanceKm - main.distanceKm) * 100) / 100, fmtKm)} ·
+                    difficulté{" "}
+                    {v.difficulteMoyenne.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} / 5
+                    {expert ? ` · coût ${fmtCost(v.cost)}` : ""}
+                  </span>
+                  <span
+                    className={`mt-1 block text-xs text-gt-teal-900 ${active ? "" : "line-clamp-1"}`}
+                  >
+                    {v.path.map((p) => p.nom).join(" → ")}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {expert ? (
+        <p className="text-xs text-gt-teal-900/75">
+          Calculés par l&apos;algorithme de Yen (k plus courts chemins sans boucle) : chaque
+          variante est un vrai chemin du réseau, de coût supérieur ou égal au meilleur.
+        </p>
+      ) : null}
+    </section>
   );
 }

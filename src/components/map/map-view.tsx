@@ -31,6 +31,7 @@ const SatelliteMap = dynamic(() => import("@/components/map3d/satellite-map"), {
 });
 
 export type {
+  MapAltPath,
   MapDot,
   MapDraftLine,
   MapEdge,

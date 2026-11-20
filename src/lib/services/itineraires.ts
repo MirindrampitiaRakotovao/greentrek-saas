@@ -5,6 +5,7 @@ import { chainPathGeometry, type PathGeometry } from "@/lib/graph/trace";
 import { type Algorithm, type Criteria, type Graph, GraphError } from "@/lib/graph/types";
 import { shortestPathVia, type WaypointResult } from "@/lib/graph/waypoints";
 import { CRITERIA_PRESETS } from "@/lib/graph/weights";
+import { kShortestPaths } from "@/lib/graph/yen";
 import { type Paginated, pageArgs, pageCount } from "@/lib/pagination";
 import { failure, type ServiceResult, success } from "@/lib/services/result";
 import { loadTraceIndex } from "@/lib/services/troncon-traces";
@@ -40,7 +41,53 @@ export type AlgorithmOutcome = {
   historiqueId?: string;
   /** Tracé à afficher (étape 6b-2) : tracés réels des tronçons, sinon lignes droites. */
   geometry: PathGeometry;
+  /**
+   * Autres itinéraires, plus coûteux selon le critère (étape 6b-3, algorithme de Yen) :
+   * seulement sans étape imposée, sur le premier résultat trouvé.
+   */
+  variantes?: VariantOutcome[];
 };
+
+/** Variante : un autre chemin réel du réseau, moins bon que l'optimum pour le critère. */
+export type VariantOutcome = {
+  /** 2 pour le 2e meilleur itinéraire, 3 pour le 3e… */
+  rang: number;
+  path: PathStep[];
+  cost: number;
+  distanceKm: number;
+  dureeMinutes: number;
+  difficulteMoyenne: number;
+  geometry: PathGeometry;
+};
+
+/** Nombre de variantes montrées en plus du meilleur itinéraire. */
+export const NOMBRE_VARIANTES = 2;
+/** Chemins examinés par l'algorithme de Yen pour trouver des variantes bien distinctes. */
+const CHEMINS_EXAMINES = 20;
+/**
+ * Écart minimal entre deux itinéraires montrés (3 % du coût du meilleur) : un chemin qui ne
+ * fait qu'un petit crochet par un village voisin (+1 min) n'apporte rien au visiteur.
+ */
+export const ECART_MIN_VARIANTE = 0.03;
+
+/** Choisit, dans l'ordre des coûts, les chemins qui s'écartent assez du précédent montré. */
+export function pickDistinct<T extends { cost: number }>(
+  bestCost: number,
+  candidates: readonly T[],
+  count: number,
+  minGap: number = ECART_MIN_VARIANTE,
+): T[] {
+  const picked: T[] = [];
+  let last = bestCost;
+  for (const c of candidates) {
+    if (picked.length >= count) break;
+    if (c.cost >= last + minGap * bestCost) {
+      picked.push(c);
+      last = c.cost;
+    }
+  }
+  return picked;
+}
 
 /** Graphe de l'agence construit à partir de la base (étapes = nœuds, tronçons = arêtes). */
 export async function loadAgencyGraph(db: TenantDb): Promise<Graph> {
@@ -181,6 +228,38 @@ export async function computeItineraire(
       outcome.historiqueId = saved.id;
     }
     outcomes.push(outcome);
+  }
+
+  // Variantes (algorithme de Yen) : sans étape imposée, pour le premier résultat trouvé.
+  const best = outcomes.find((o) => o.found);
+  if (best && input.etapesImposees.length === 0) {
+    const shown = best.path.map((p) => p.id).join(">");
+    const { paths } = kShortestPaths(
+      graph,
+      input.etapeDepartId,
+      input.etapeArriveeId,
+      criteria,
+      CHEMINS_EXAMINES,
+    );
+    best.variantes = pickDistinct(
+      best.cost ?? 0,
+      paths.filter((p) => p.path.join(">") !== shown),
+      NOMBRE_VARIANTES,
+    ).map((p, index) => {
+      const path = p.path.map((id) => {
+        const node = graph.nodes.get(id)!;
+        return { id, nom: node.nom ?? id, latitude: node.latitude, longitude: node.longitude };
+      });
+      return {
+        rang: index + 2,
+        path,
+        cost: p.cost,
+        distanceKm: p.distanceKm,
+        dureeMinutes: p.dureeMinutes,
+        difficulteMoyenne: p.difficulteMoyenne,
+        geometry: chainPathGeometry(path, traces),
+      };
+    });
   }
   return success(outcomes);
 }
