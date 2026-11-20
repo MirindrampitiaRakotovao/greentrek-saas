@@ -43,9 +43,10 @@ Mot de passe de tous les comptes : `Demo2026!`
 
 ### 4. Calcul d'itinéraire : Dijkstra contre A* (2 min, cœur du mémoire)
 
-- « Calcul d'itinéraire » : choisir un départ et une arrivée éloignés, critère « Plus court ».
+- « Calcul d'itinéraire » : par défaut, aucun terme technique (critère et « Calculer le meilleur itinéraire »). Activer **Mode expert** en haut de la page : le choix de l'algorithme et le menu « Performances » apparaissent.
+- Choisir un départ et une arrivée éloignés, critère « Plus court », algorithme « Comparer ».
 - Cliquer « Comparer Dijkstra et A* » : même coût, **moins de nœuds explorés** pour A*.
-- « Performances » : graphiques sur des graphes de 50 à 5 000 nœuds.
+- « Performances » (mode expert) : graphiques sur des graphes de 50 à 5 000 nœuds.
 - **À dire** : A* reste exact car son heuristique (distance de Haversine) est admissible, elle ne surestime jamais le coût restant ; les deux algorithmes sont testés sur des graphes aléatoires (coûts identiques).
 
 ### 5. Création d'un départ (45 s)
@@ -63,8 +64,8 @@ Mot de passe de tous les comptes : `Demo2026!`
 
 ### 7. Retour au back-office (1 min)
 
-- Fenêtre 2 : la cloche affiche « Nouvelle réservation » ; cliquer → fiche de la réservation, paiement validé, facture avec QR code.
-- **Avis** : dans l'espace client (fenêtre 1), « Mes réservations » → un séjour terminé → « Donner mon avis » (note et commentaire). Dans le back-office, menu « Avis » → « Publier » : la note apparaît sur le site.
+- Fenêtre 2 : la cloche affiche « Nouvelle réservation » ; cliquer → fiche de la réservation, paiement validé, facture avec QR code (lisible par un téléphone même sans réseau : informations de la facture en texte).
+- **Avis** : dans l'espace client (fenêtre 1), ouvrir la fiche d'un circuit déjà fait : bloc « Votre note » en tête (ou « Mes réservations » → un séjour terminé → « Donner mon avis »). Dans le back-office, menu « Avis » → « Publier » : la note apparaît sur le site.
 - **À dire** : RG 17 (avis seulement après un séjour terminé, un par réservation) ; modération avant publication ; « Journal d'activité » : qui a fait quoi, et quand.
 
 ### 7 bis. Messagerie en temps réel (1 min)
@@ -86,6 +87,10 @@ Mot de passe de tous les comptes : `Demo2026!`
 - Fenêtre 3 : se déconnecter, puis `superadmin@greentrek-saas.test`. Liste des agences, fiche de « Agence Soutenance ».
 - Attribuer le plan Pro ; **suspendre** l'agence → son site renvoie 404 et son équipe est déconnectée (RG 19) ; la réactiver.
 - **À dire** : la suspension prend effet immédiatement, car la session est relue en base à chaque requête.
+
+## Bonus selon le temps
+
+Client ajouté par l'agence, itinéraires sur mesure, voyageurs entre eux (présence, signalement), communauté de toutes les agences (modérée par le super admin), application mobile : déroulé détaillé dans le `README.md` (partie 4 bis).
 
 ## Après la démonstration
 

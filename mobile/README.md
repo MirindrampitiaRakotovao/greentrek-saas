@@ -25,8 +25,11 @@ Aperçu dans un navigateur, sans téléphone : `npx expo start --web`.
 - `src/app/` : écrans (Expo Router)
   - onglets : `(tabs)/index.tsx` accueil, `(tabs)/explorer.tsx` recherche, `(tabs)/favoris.tsx` favoris (gardés sur le téléphone), `(tabs)/reservations.tsx` mes réservations, `(tabs)/compte.tsx` compte
   - `circuit/[agence]/[slug].tsx` fiche d'un circuit, `reserver/[depart].tsx` réservation, `paiement/[id].tsx` paiement, `reservation/[id].tsx` fiche d'une réservation
-  - `messages/` (liste, fil, nouveau message) et `notifications.tsx`
-  - `connexion.tsx`, `inscription.tsx`, `mot-de-passe-oublie.tsx` : compte voyageur (propre à une agence) ; `profil.tsx` : profil et mot de passe
+  - `messages/` (liste, fil, nouveau message ; conversations avec l'agence et entre voyageurs, présence, blocage, signalement par appui long) et `notifications.tsx`
+  - `voyageurs/` : voyageurs de l'agence et premier message à l'un d'eux
+  - `communaute/` : fil de photos commun à toutes les agences, fiche d'une publication avec ses commentaires, « Partager mes photos » (séjour terminé)
+  - `itineraires/` : itinéraires sur mesure (proposés par l'agence ou demandés par le voyageur, « Créer mon itinéraire »)
+  - `connexion.tsx`, `inscription.tsx`, `mot-de-passe-oublie.tsx` : compte voyageur (propre à une agence) ; `profil.tsx` : photo, profil, confidentialité et mot de passe
 - `src/components/` : cartes, bannière, catégories, formulaires, états de chargement, `RequireAuth`
 - `src/context/auth.tsx` : session du voyageur (jeton et profil, stockage chiffré du téléphone)
 - `src/context/activity.tsx` : nouveautés (toutes les 20 s, application ouverte), pastilles, sonnerie, enregistrement du téléphone pour le push ; `src/lib/notifications.ts` : notifications du téléphone
