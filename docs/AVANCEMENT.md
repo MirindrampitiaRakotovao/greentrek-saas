@@ -29,7 +29,8 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
 | QR code des factures : lien seul et tunnel (hors plan) | Terminé | 2026-11-20 | Corrige le QR non ouvert par l'appareil photo Android ; tunnel réel testé (seules les factures accessibles par Internet) ; **en attente d'essai sur le téléphone Android de l'étudiant** |
 | Modifier et supprimer un client (hors plan, décision E bis) | Terminé | 2026-11-20 | Tests d'intégration (modification, e-mail en double, désactivation, suppression, refus avec réservations, isolation) et parcours vérifié dans le navigateur ; en attente de validation |
 | Communauté en plein écran sur le site (hors plan) | Terminé | 2026-11-20 | Barre latérale cachée sur la communauté, bouton « Menu » avec retour à l'espace voyageur et au site de l'agence ; vérifié dans le navigateur (grand écran, téléphone, clavier) ; en attente de validation |
-| Carte 3D satellite, étape 6a (hors plan) | Terminé | 2026-11-20 | Fiche circuit publique : satellite incliné avec relief, eaux et sentiers OSM visibles, étapes nommées, navigation par étape ; vérifié dans le navigateur (grand écran, téléphone) et en production ; en attente de validation. Suivent 6b (tracés réels des tronçons) et 6c (application) |
+| Carte 3D satellite, étape 6a (hors plan) | Terminé | 2026-11-20 | Fiche circuit publique : satellite incliné avec relief, eaux et sentiers OSM visibles, étapes nommées, navigation par étape ; vérifié dans le navigateur (grand écran, téléphone) et en production ; en attente de validation. 6c (application) abandonnée : l'étudiant garde la carte actuelle de l'APK |
+| Carte 3D dans le back-office, étape 6b-1 (hors plan) | Terminé | 2026-11-20 | Carte du réseau et calcul d'itinéraire sur la même carte satellite 3D, toutes les fonctions conservées ; vérifié dans le navigateur ; en attente de validation |
 
 ## Décisions et justifications
 
@@ -622,9 +623,15 @@ Fichier tenu à jour par Claude Code à chaque étape. Il alimente le mémoire :
   - **Accessibilité et repli** : boutons nommés, étape annoncée (`aria-live`), animations remplacées par des sauts si `prefers-reduced-motion` ; si le navigateur ne sait pas dessiner en WebGL, l'ancienne carte 2D (Leaflet) s'affiche. Sources citées en bas de la carte et sous la carte.
   - **Limite honnête** : entre deux étapes, le trait suit encore les tronçons du graphe en ligne droite ; les vrais virages des sentiers arrivent en 6b (tracé enregistré par tronçon, proposé depuis OSM et validé par l'agence). Internet indispensable (§12).
   - **Vérifications** : 4 tests unitaires (sources citées et sans clé, couches des eaux et des sentiers, GeoJSON, emprise, lieux de passage) ; navigateur : carte rendue, étapes nommées, survol d'une étape, grand écran et téléphone sans débordement ; serveur de production : worker servi (200), fiche 200. Prettier, lint, typecheck, 724 tests, build.
+- **Carte 3D dans le back-office (étape 6b-1, 2026-11-20, demande de l'étudiant : « le même design » pour la carte du réseau et le calcul d'itinéraire ; l'APK n'est pas modifié, l'étape 6c est abandonnée)**.
+  - `MapView` accepte `variant="satellite3d"` : même interface que la carte Leaflet (`LeafletMapProps`), rendue par `src/components/map3d/satellite-map.tsx` (MapLibre, même fond que 6a). Les deux pages n'ont changé que d'une ligne ; les autres cartes (fiche circuit du back-office, itinéraires sur mesure) restent sur Leaflet. Repli automatique sur Leaflet sans WebGL.
+  - Fonctions conservées : ajout d'une étape par clic (sur le relief), étapes déplaçables, tronçons cliquables avec infobulle (pointillés si estimés), tracé calculé (halo sable), nœuds explorés (mode expert), recadrage et survol d'un point. Épingles en verre sombre avec le nom ; noms cachés en vue éloignée (sauf départ, arrivée, sélection) pour rester lisible, visibles au survol et au clavier. Carte inclinée de 40° pour éditer, bouton « Vue 2D » pour la mettre à plat.
+  - Les panneaux de formulaires restent sur fond clair (lisibilité, contrastes) ; commandes de la carte en verre sombre.
+  - **Vérifications** : navigateur : réseau (27 épingles), clic sur une épingle → sa fiche, clic sur la carte → « Nouvelle étape », calcul Antsikafoka → Namahoaka (4 h 55, 19,63 km) tracé sur la carte, cas « aucun chemin » vers Sainte-Marie ; aucune erreur. Prettier, lint, typecheck, 724 tests, build.
 
 ## Captures d'écran à prendre
 
+- Back-office en 3D : carte du réseau (satellite, épingles nommées) et calcul d'itinéraire tracé sur le relief.
 - Carte 3D satellite d'un circuit : vue d'ensemble inclinée (mer visible), puis survol d'une étape ; version téléphone.
 - Communauté en plein écran (sans barre latérale), puis le menu ouvert avec « Retour à mon espace ».
 - 5e : communauté en trois colonnes (grand écran) et sur téléphone ; mosaïque « +N » ; filtre par destination ; fiche avec crédits ; même écran dans l'application.

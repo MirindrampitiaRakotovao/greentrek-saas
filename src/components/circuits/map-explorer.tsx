@@ -290,6 +290,7 @@ export function MapExplorer({
       {/* ── Carte plein cadre ── */}
       <div className="relative h-[62vh] lg:absolute lg:inset-0 lg:h-auto">
         <MapView
+          variant="satellite3d"
           markers={markers}
           edges={edges}
           fitKey={`${etapes.length}-${[...types].join()}-${isDesktop}`}

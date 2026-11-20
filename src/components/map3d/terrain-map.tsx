@@ -8,6 +8,14 @@ import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } fro
 
 import { Icon } from "@/components/ui/icon";
 import {
+  BEARING_3D,
+  MAP3D_ATTRIBUTION,
+  MAP3D_LOCALE,
+  MAPLIBRE_WORKER_URL,
+  PITCH_3D,
+  prefersReducedMotion,
+} from "@/components/map3d/shared";
+import {
   boundsOf,
   MAP3D_COLORS,
   passagePoints,
@@ -42,20 +50,6 @@ export type TerrainMapProps = {
   /** Affiché à la place si le navigateur ne sait pas dessiner en WebGL (carte 2D). */
   fallback?: ReactNode;
 };
-
-const PITCH_3D = 58;
-const BEARING_3D = -18;
-
-const LOCALE = {
-  "CooperativeGesturesHandler.WindowsHelpText": "Ctrl + molette pour zoomer la carte",
-  "CooperativeGesturesHandler.MacHelpText": "⌘ + molette pour zoomer la carte",
-  "CooperativeGesturesHandler.MobileHelpText": "Deux doigts pour déplacer la carte",
-  "AttributionControl.ToggleAttribution": "Sources de la carte",
-};
-
-function prefersReducedMotion() {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
 
 /** Étiquette d'une étape : pastille numérotée et nom (HTML, posé sur le relief). */
 function stepElement(step: Map3DStep, onClick: () => void): HTMLElement {
@@ -151,7 +145,7 @@ export default function TerrainMap({ title, steps, trace, fallback }: TerrainMap
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    maplibregl.setWorkerUrl("/vendor/maplibre-worker");
+    maplibregl.setWorkerUrl(MAPLIBRE_WORKER_URL);
     let map: MapLibreMap;
     try {
       map = new maplibregl.Map({
@@ -166,7 +160,7 @@ export default function TerrainMap({ title, steps, trace, fallback }: TerrainMap
         // Sources affichées par une ligne discrète du composant (le bandeau de MapLibre
         // masquait les boutons du bas).
         attributionControl: false,
-        locale: LOCALE,
+        locale: MAP3D_LOCALE,
       });
     } catch {
       // Navigateur sans WebGL : la page affiche la carte 2D à la place.
@@ -437,8 +431,7 @@ export default function TerrainMap({ title, steps, trace, fallback }: TerrainMap
         </div>
       </div>
       <p className="absolute inset-x-0 bottom-0 truncate bg-gt-teal-900/55 px-3 py-0.5 text-center text-[10px] text-white/75">
-        Imagerie © Esri, Maxar, Earthstar Geographics · relief Mapzen (AWS) · © OpenFreeMap ©
-        OpenMapTiles © contributeurs OpenStreetMap
+        {MAP3D_ATTRIBUTION}
       </p>
     </div>
   );

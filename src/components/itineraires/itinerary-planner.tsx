@@ -206,6 +206,7 @@ export function ItineraryPlanner({
     <div className="relative flex flex-col overflow-hidden rounded-3xl border border-gt-mist/70 bg-white lg:block lg:h-[calc(100dvh-9.5rem)] lg:min-h-[640px]">
       <div className="relative h-[55vh] lg:absolute lg:inset-0 lg:h-auto">
         <MapView
+          variant="satellite3d"
           markers={markers}
           edges={edges}
           path={routePath}

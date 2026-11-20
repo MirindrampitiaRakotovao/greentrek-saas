@@ -317,4 +317,86 @@ body {
       transition: none;
     }
   }
+
+  /* Épingles du back-office (carte satellite du réseau, étape 6b-1). */
+  .gt3d-pin {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    cursor: pointer;
+  }
+  .gt3d-pin__dot {
+    display: grid;
+    place-items: center;
+    min-width: 1.4rem;
+    height: 1.4rem;
+    padding: 0 0.25rem;
+    border: 2px solid var(--gt-sand-300);
+    border-radius: 999px;
+    background: var(--gt-teal-900);
+    color: var(--gt-sand-300);
+    font: 700 11px/1 var(--font-poppins, sans-serif);
+    box-shadow: 0 3px 10px rgb(0 0 0 / 0.35);
+  }
+  .gt3d-pin__dot:empty {
+    min-width: 0.95rem;
+    height: 0.95rem;
+  }
+  .gt3d-pin__name {
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    background: rgb(15 65 77 / 0.78);
+    color: #fff;
+    font: 500 11.5px/1.35 var(--font-poppins, sans-serif);
+    white-space: nowrap;
+    box-shadow: 0 3px 10px rgb(0 0 0 / 0.25);
+  }
+  .gt3d-far .gt3d-pin--default .gt3d-pin__name,
+  .gt3d-far .gt3d-pin--muted .gt3d-pin__name {
+    display: none;
+  }
+  .gt3d-pin:hover .gt3d-pin__name,
+  .gt3d-pin:focus-visible .gt3d-pin__name {
+    display: block;
+  }
+  .gt3d-pin:focus-visible {
+    outline: 2px solid var(--gt-sand-300);
+    outline-offset: 3px;
+    border-radius: 999px;
+  }
+  .gt3d-pin--muted {
+    opacity: 0.6;
+  }
+  .gt3d-pin--selected,
+  .gt3d-pin--new {
+    z-index: 3;
+  }
+  .gt3d-pin--selected .gt3d-pin__dot {
+    min-width: 1.7rem;
+    height: 1.7rem;
+    background: var(--gt-sand-300);
+    color: var(--gt-teal-900);
+    border-color: #fff;
+  }
+  .gt3d-pin--selected .gt3d-pin__name {
+    background: var(--gt-sand-300);
+    color: var(--gt-teal-900);
+    font-weight: 600;
+  }
+  .gt3d-pin--new .gt3d-pin__dot {
+    min-width: 1.7rem;
+    height: 1.7rem;
+    background: #c98a1b;
+    border-color: #fff;
+  }
+  .gt3d-popup .maplibregl-popup-content {
+    padding: 0.35rem 0.65rem;
+    border-radius: 0.75rem;
+    background: rgb(15 65 77 / 0.92);
+    color: #fff;
+    font: 500 12px/1.4 var(--font-poppins, sans-serif);
+  }
+  .gt3d-popup .maplibregl-popup-tip {
+    display: none;
+  }
 }
