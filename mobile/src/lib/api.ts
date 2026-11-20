@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 
 import { apiBaseUrl } from "./config";
+import { rediscover } from "./discovery";
 import { absoluteUrl } from "./format";
 
 /*
@@ -93,9 +94,8 @@ export function setAuthToken(token: string | null) {
 /** Requête JSON ; `json` envoie un corps (POST par défaut). Erreur : `ApiError`. */
 async function request<T>(path: string, init: RequestInit & { json?: unknown } = {}): Promise<T> {
   const { json, ...rest } = init;
-  let response: Response;
-  try {
-    response = await fetch(`${apiBaseUrl()}/api/mobile/v1${path}`, {
+  const send = () =>
+    fetch(`${apiBaseUrl()}/api/mobile/v1${path}`, {
       ...rest,
       ...(json !== undefined ? { method: rest.method ?? "POST", body: JSON.stringify(json) } : {}),
       headers: {
@@ -105,11 +105,22 @@ async function request<T>(path: string, init: RequestInit & { json?: unknown } =
         ...rest.headers,
       },
     });
+  let response: Response;
+  try {
+    response = await send();
   } catch {
-    throw new ApiError(
-      `Impossible de joindre Green Trek (${apiBaseUrl()}). Vérifiez que le site est démarré, que le téléphone est sur le même Wi-Fi, et l’adresse du serveur (onglet Compte).`,
-      0,
-    );
+    // Site injoignable : l'ordinateur a peut-être changé d'adresse (autre Wi-Fi, partage de
+    // connexion). Recherche sur le réseau local, puis un seul nouvel essai.
+    const found = await rediscover().catch(() => null);
+    try {
+      if (!found) throw new Error("introuvable");
+      response = await send();
+    } catch {
+      throw new ApiError(
+        `Impossible de joindre Green Trek (${apiBaseUrl()}). Vérifiez que le site est démarré et que le téléphone est sur le même réseau que l’ordinateur (même Wi-Fi, ou ordinateur connecté au partage de connexion du téléphone).`,
+        0,
+      );
+    }
   }
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok) {

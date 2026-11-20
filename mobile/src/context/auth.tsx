@@ -11,6 +11,7 @@ import {
   unregisterDevice,
 } from "@/lib/api";
 import { loadApiBaseUrl } from "@/lib/config";
+import { ensureServer } from "@/lib/discovery";
 import { registeredPushToken } from "@/lib/notifications";
 import { readSession, writeSession } from "@/lib/session-store";
 
@@ -44,6 +45,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void (async () => {
       // Adresse du serveur choisie (onglet Compte), puis session : relues avant le 1er écran.
       await loadApiBaseUrl();
+      // Adresse vérifiée en arrière-plan ; si l'ordinateur a changé d'adresse (autre Wi-Fi,
+      // partage de connexion), recherche sur le réseau local avant de relire le profil.
+      const server = ensureServer().catch(() => null);
       const saved = await readSession();
       if (!active) return;
       if (saved) {
@@ -53,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setReady(true);
       if (!saved) return;
+      await server;
       try {
         const profile = await fetchProfile();
         if (!active) return;

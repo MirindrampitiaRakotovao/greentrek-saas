@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { ApiError, fetchCatalogue } from "@/lib/api";
 import { apiBaseUrl, DEFAULT_API_BASE_URL, normalizeServerUrl, setApiBaseUrl } from "@/lib/config";
+import { rediscover } from "@/lib/discovery";
 import { makeStyles, useTheme } from "@/theme/theme";
 import { fonts, radius } from "@/theme/tokens";
 
@@ -52,6 +53,22 @@ export function ServerSettings() {
     }
   }
 
+  async function search() {
+    setPending(true);
+    setStatus(null);
+    const found = await rediscover().catch(() => null);
+    setPending(false);
+    if (found) {
+      setValue(found);
+      setStatus({ ok: true, text: `Serveur trouvé : ${found}.` });
+    } else {
+      setStatus({
+        ok: false,
+        text: "Aucun serveur Green Trek trouvé sur ce réseau. Le site est-il démarré, et l'ordinateur sur le même Wi-Fi (ou connecté au partage de connexion de ce téléphone) ?",
+      });
+    }
+  }
+
   return (
     <View style={s.card}>
       <View style={s.head}>
@@ -61,7 +78,9 @@ export function ServerSettings() {
         <Text style={s.title}>Adresse du serveur</Text>
       </View>
       <Text style={s.small}>
-        Ordinateur qui fait tourner le site Green Trek, sur le même Wi-Fi que ce téléphone.
+        Ordinateur qui fait tourner le site Green Trek, sur le même Wi-Fi que ce téléphone ou
+        connecté à son partage de connexion. L&apos;application la retrouve toute seule quand elle
+        change ; ce réglage ne sert qu&apos;en dernier recours.
       </Text>
       <Field
         label="Adresse"
@@ -81,7 +100,13 @@ export function ServerSettings() {
         </Text>
       ) : null}
       <Button
+        label={pending ? "Recherche…" : "Rechercher automatiquement"}
+        pending={pending}
+        onPress={() => void search()}
+      />
+      <Button
         label={pending ? "Test…" : "Tester et enregistrer"}
+        variant="secondary"
         pending={pending}
         onPress={() => void save(value)}
       />

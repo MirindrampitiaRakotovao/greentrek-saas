@@ -10,9 +10,19 @@ Application React Native (Expo SDK 58, Expo Router, TypeScript) pour les voyageu
 4. Dans un second terminal : `cd mobile`, puis `npm install` (la première fois), puis `npx expo start`.
 5. Scanner le QR code affiché : avec l'appareil photo (iPhone) ou avec Expo Go (Android).
 
-L'application trouve le site toute seule : même ordinateur que le serveur Expo, port 3000. Si elle affiche « Impossible de joindre Green Trek », copier `.env.example` en `.env`, y mettre l'adresse de l'ordinateur sur le Wi-Fi (par exemple `http://192.168.1.20:3000`), puis relancer `npx expo start`.
+L'application trouve le site toute seule : dans Expo Go, même ordinateur que le serveur Expo, port 3000 ; dans l'APK, **recherche automatique** (voir « Adresse du serveur automatique » ci-dessous). Si elle affiche « Impossible de joindre Green Trek », copier `.env.example` en `.env`, y mettre l'adresse de l'ordinateur sur le Wi-Fi (par exemple `http://192.168.1.20:3000`), puis relancer `npx expo start`.
 
 Aperçu dans un navigateur, sans téléphone : `npx expo start --web`.
+
+## Adresse du serveur automatique (APK)
+
+L'adresse de l'ordinateur change d'un réseau à l'autre. L'application la retrouve **sans réglage** :
+
+- **Quand** : au lancement (l'adresse mémorisée est essayée d'abord), au retour dans l'application, à chaque changement de réseau, et quand le site ne répond plus (recherche puis nouvel essai de la requête). Bandeau « Recherche du serveur Green Trek… » pendant la recherche (quelques secondes).
+- **Comment** : le téléphone lit ses adresses IPv4 sur toutes ses interfaces (module natif local `modules/network-addresses`, Android : Wi-Fi **et point d'accès**, que les API ordinaires ne donnent pas ; complété par `expo-network`), puis interroge les adresses voisines du même réseau sur le port 3000 (`/api/mobile/v1/decouverte`, qui répond `{"service":"greentrek"}`), 48 à la fois avec un délai court ; la première qui répond est mémorisée. Seules les adresses privées du réseau local sont parcourues.
+- **Cas couverts** : téléphone et ordinateur sur le même Wi-Fi ; **ordinateur connecté au partage de connexion du téléphone** (le téléphone est le point d'accès) ; partage de connexion d'un iPhone (réseau `172.20.10.x`).
+- **Secours** : Compte → Adresse du serveur → « Rechercher automatiquement », ou saisie manuelle.
+- Le module natif n'existe que dans l'APK (Expo Go ne le contient pas, et n'en a pas besoin). Fonctions pures testées par la suite du site (`tests/unit/mobile-discovery.test.ts`).
 
 ## Vérifications
 
@@ -35,7 +45,8 @@ Aperçu dans un navigateur, sans téléphone : `npx expo start --web`.
 - `src/context/activity.tsx` : nouveautés (toutes les 20 s, application ouverte), pastilles, sonnerie, enregistrement du téléphone pour le push ; `src/lib/notifications.ts` : notifications du téléphone
 - `src/lib/` : client de l'API, adresse du site (réglable dans l'onglet Compte), formats français, page de la carte (Leaflet), stockage de la session
 - `src/theme/tokens.ts` : palette, thèmes clair et sombre (jetons sémantiques), polices du site ; `src/theme/theme.tsx` : thème courant et `makeStyles` ; `src/components/glass.tsx` : verre dépoli, boutons ronds, sélecteur à segments
-- `src/app/serveur.tsx` : adresse du serveur (accessible avant la connexion)
+- `src/app/serveur.tsx` : adresse du serveur (accessible avant la connexion), avec « Rechercher automatiquement »
+- `src/lib/discovery.ts` et `discovery-core.ts` : recherche automatique du site sur le réseau local ; `src/components/server-watcher.tsx` : vérification au retour et au changement de réseau, bandeau de recherche ; `modules/network-addresses/` : module natif Android (adresses de toutes les interfaces)
 
 ## Tester une réservation
 
@@ -67,6 +78,6 @@ L'application n'est pas publiée sur les stores (hors périmètre, cahier des ch
 3. `npx eas-cli@latest build -p android --profile apk` : la fabrication se fait sur les serveurs d'Expo (une dizaine de minutes) ; un lien de téléchargement du fichier `.apk` s'affiche à la fin.
 4. Déposer le fichier `.apk` sur Google Drive, puis « Partager » → « Tous les utilisateurs disposant du lien ».
 5. Dans le `.env` du site : `MOBILE_APP_URL="<lien de partage Drive>"`, puis redémarrer le site. L'encart « Téléchargez l'application » apparaît sur l'accueil de la plateforme et des sites vitrines, avec un QR code.
-6. Sur le téléphone : installer l'APK (autoriser l'installation depuis cette source), puis, sur l'écran de connexion, la **roue dentée** (« Adresse du serveur ») : saisir l'adresse de l'ordinateur sur le Wi-Fi du jour (affichée par `ipconfig getifaddr en0` sur macOS), puis « Tester et enregistrer ».
+6. Sur le téléphone : installer l'APK (autoriser l'installation depuis cette source). L'application trouve le site toute seule (même Wi-Fi, ou ordinateur connecté au partage de connexion du téléphone). En dernier recours : **roue dentée** de l'écran de connexion (« Adresse du serveur »), « Rechercher automatiquement » ou saisie de l'adresse (affichée par `ipconfig getifaddr en0` sur macOS).
 
 Réglages déjà prévus pour l'APK (`app.json`) : identifiant `mg.greentrek.voyageurs`, et connexions `http://` autorisées (`expo-build-properties`, `usesCleartextTraffic`), car le site de démonstration tourne sans HTTPS sur le réseau local. Pour une vraie mise en production : site en HTTPS et ce réglage retiré.

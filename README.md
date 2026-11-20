@@ -42,7 +42,7 @@ Pour ajouter (ou recréer) seulement les publications de départ de la communaut
 
 **QR code des factures depuis n'importe quel réseau** (recommandé le jour J) : installer une fois `brew install cloudflared`, puis, le site lancé, ouvrir un second terminal et lancer `npm run tunnel`. Le tunnel (Cloudflare, gratuit, sans compte) donne une adresse `https://….trycloudflare.com` : les QR codes l'utilisent aussitôt, et un téléphone en 4G ou sur un autre Wi-Fi ouvre la facture. Par cette adresse, **seules les factures** sont accessibles (le reste du site répond « introuvable »). L'adresse change à chaque lancement, Ctrl+C l'arrête. Sans tunnel, le QR code s'ouvre depuis le même Wi-Fi que l'ordinateur.
 
-**Application mobile** (facultatif) : installer l'APK sur un téléphone Android, ou lancer `cd mobile && npx expo start` (voir `mobile/README.md`). Le téléphone doit être sur le **même Wi-Fi** que l'ordinateur ; l'adresse du serveur se règle dans l'application (Compte, puis Adresse du serveur).
+**Application mobile** (facultatif) : installer l'APK sur un téléphone Android, ou lancer `cd mobile && npx expo start` (voir `mobile/README.md`). Le téléphone doit être sur le **même Wi-Fi** que l'ordinateur, **ou l'ordinateur connecté au partage de connexion du téléphone** : l'application retrouve l'adresse du site toute seule (bandeau « Recherche du serveur… » quelques secondes). En dernier recours : Compte, puis Adresse du serveur.
 
 ---
 
@@ -306,7 +306,7 @@ npm run db:seed   # efface l'Agence Soutenance, la réservation et les messages 
 | Le QR code de la facture ne s'ouvre pas sur le téléphone | Lancer `npm run tunnel` (le site doit tourner) et rafraîchir la page de la facture : l'adresse sous le QR code doit finir par `trycloudflare.com`. Sans tunnel, le téléphone doit être sur le même Wi-Fi que l'ordinateur. |
 | Une photo est refusée | 5 Mo au plus, format JPEG, PNG ou WebP. |
 | « Partager mes photos » n'apparaît pas | Il faut un séjour **terminé** : se connecter avec Nirina (`client@green-trek-mada.test`), qui en a. |
-| L'application affiche « Impossible de joindre Green Trek » | Téléphone sur le même Wi-Fi que l'ordinateur ; corriger l'adresse dans Compte, puis Adresse du serveur (par exemple `http://192.168.1.20:3000`). |
+| L'application affiche « Impossible de joindre Green Trek » | Site démarré ? Téléphone et ordinateur sur le même réseau (même Wi-Fi, ou ordinateur connecté au partage de connexion du téléphone) ? Puis Compte → Adresse du serveur → « Rechercher automatiquement ». Pare-feu du Mac : autoriser Node.js (port 3000). |
 
 ---
 

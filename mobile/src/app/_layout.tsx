@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState } from "react";
 import { View } from "react-native";
 
 import { AnimatedSplash } from "@/components/animated-splash";
+import { ServerWatcher } from "@/components/server-watcher";
 import { ActivityProvider } from "@/context/activity";
 import { AuthProvider, useAuth } from "@/context/auth";
 import { FavoritesProvider } from "@/context/favorites";
@@ -67,6 +68,7 @@ function App() {
           <FavoritesProvider>
             <StatusBar style={theme.dark ? "light" : "dark"} />
             <Navigation />
+            <ServerWatcher />
           </FavoritesProvider>
         </ActivityProvider>
       </AuthProvider>
