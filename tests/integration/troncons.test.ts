@@ -41,6 +41,7 @@ const troncon = (
   bidirectionnel: true,
   distanceEstimee: true,
   commentaire: null,
+  mode: "MARCHE",
   ...overrides,
 });
 

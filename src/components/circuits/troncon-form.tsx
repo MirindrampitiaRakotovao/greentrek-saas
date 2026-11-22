@@ -20,7 +20,13 @@ import { applyFieldErrors } from "@/lib/forms";
 import { COEFFICIENT_SINUOSITE, VITESSE_MARCHE_KMH } from "@/lib/graph/config";
 import { estimateDistanceKm, estimateDurationMinutes } from "@/lib/graph/estimation";
 import { haversineKm } from "@/lib/graph/haversine";
-import { DIFFICULTE_TRONCON_LABELS, tronconSchema } from "@/lib/validators/circuits";
+import {
+  DIFFICULTE_TRONCON_LABELS,
+  MODE_TRONCON_LABELS,
+  type ModeTroncon,
+  MODES_TRONCON,
+  tronconSchema,
+} from "@/lib/validators/circuits";
 
 export type TronconValues = {
   id?: string;
@@ -33,6 +39,8 @@ export type TronconValues = {
   bidirectionnel: boolean;
   distanceEstimee: boolean;
   commentaire: string | null;
+  /** Étape 8b : à pied ou en pirogue (visite virtuelle). */
+  mode: ModeTroncon;
 };
 
 type EtapeOption = { id: string; nom: string; latitude: number; longitude: number };
@@ -47,6 +55,7 @@ const FIELDS = [
   "bidirectionnel",
   "distanceEstimee",
   "commentaire",
+  "mode",
 ] as const;
 
 const DIFFICULTE_OPTIONS = [1, 2, 3, 4, 5].map((d) => ({
@@ -67,6 +76,7 @@ export function suggestedTroncon(depart: EtapeOption, arrivee: EtapeOption): Tro
     bidirectionnel: true,
     distanceEstimee: true,
     commentaire: null,
+    mode: "MARCHE",
   };
 }
 
@@ -107,6 +117,7 @@ export function TronconForm({
       bidirectionnel: troncon.bidirectionnel,
       distanceEstimee: troncon.distanceEstimee,
       commentaire: troncon.commentaire ?? "",
+      mode: troncon.mode,
     },
   });
 
@@ -166,6 +177,12 @@ export function TronconForm({
           options={etapeOptions}
           error={errors.etapeArriveeId?.message}
           {...register("etapeArriveeId")}
+        />
+        <SelectField
+          label="Déplacement"
+          options={MODES_TRONCON.map((m) => ({ value: m, label: MODE_TRONCON_LABELS[m] }))}
+          error={errors.mode?.message}
+          {...register("mode")}
         />
         {volOiseau !== null ? (
           <p className="rounded-lg bg-gt-teal-50 px-3 py-2 text-xs text-gt-teal-900/75">

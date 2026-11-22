@@ -271,6 +271,12 @@ model Etape {
 
 // ─── 5. Troncon (arête du graphe) ──────────────────────────────────────────────
 
+/// Mode de déplacement sur un tronçon (étape 8b).
+enum ModeTroncon {
+  MARCHE
+  PIROGUE
+}
+
 /// Origine du tracé d'un tronçon (étape 6b-2).
 enum SourceTrace {
   OSM // proposé par le calcul de trajet à pied d'OpenStreetMap, validé par l'agence
@@ -294,6 +300,9 @@ model Troncon {
   // relie les deux étapes en ligne droite. N'intervient pas dans les algorithmes.
   trace           Json?
   traceSource     SourceTrace?
+  // Mode de déplacement sur ce tronçon (étape 8b) : à pied, ou en pirogue (rivière, mer) ;
+  // utilisé par la visite virtuelle. N'intervient pas dans les algorithmes.
+  mode            ModeTroncon  @default(MARCHE)
 
   agence       Agence @relation(fields: [agenceId], references: [id], onDelete: Restrict)
   // RG 8 : une étape reliée par un tronçon ne peut pas être supprimée (Restrict).

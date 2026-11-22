@@ -27,6 +27,7 @@ const tronconSelect = {
   commentaire: true,
   trace: true,
   traceSource: true,
+  mode: true,
 } satisfies Prisma.TronconSelect;
 
 export type TronconRow = Prisma.TronconGetPayload<{ select: typeof tronconSelect }>;

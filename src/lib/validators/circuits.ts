@@ -130,6 +130,13 @@ export type CircuitPartenaireInput = z.infer<typeof circuitPartenaireSchema>;
 
 /* ─── Tronçons (arêtes du graphe, §5.2 table 5) ──────────────────────────────── */
 
+export const MODES_TRONCON = ["MARCHE", "PIROGUE"] as const;
+export type ModeTroncon = (typeof MODES_TRONCON)[number];
+export const MODE_TRONCON_LABELS: Record<ModeTroncon, string> = {
+  MARCHE: "À pied",
+  PIROGUE: "En pirogue",
+};
+
 export const tronconSchema = z
   .object({
     etapeDepartId: z.string().min(1, { error: "Choisissez l'étape de départ." }),
@@ -141,6 +148,8 @@ export const tronconSchema = z
     bidirectionnel: checkbox,
     distanceEstimee: checkbox,
     commentaire: optionalText(500),
+    // Étape 8b : à pied ou en pirogue (visite virtuelle) ; à pied par défaut.
+    mode: z.enum(MODES_TRONCON).default("MARCHE"),
   })
   // RG 6 : un tronçon relie deux étapes DISTINCTES.
   .refine((data) => data.etapeDepartId !== data.etapeArriveeId, {

@@ -88,7 +88,7 @@ export default async function MesReservationsPage({
               </Link>
               {r.session.circuit.statut === "PUBLIE" ? (
                 <Link
-                  href={`/a/${slug}/visite/${r.session.circuit.slug}?retour=${encodeURIComponent(`/a/${slug}/mon-compte/reservations`)}`}
+                  href={`/a/${slug}/visite/${r.session.circuit.slug}?reservation=${r.id}&retour=${encodeURIComponent(`/a/${slug}/mon-compte/reservations`)}`}
                   className="mt-2 ml-3 inline-flex items-center gap-1.5 text-sm font-medium text-gt-teal-700 underline"
                 >
                   <Icon name="play" className="size-3.5" />

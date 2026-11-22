@@ -86,7 +86,7 @@ export default async function ReservationPage({
           </p>
           {reservation.session.circuit.statut === "PUBLIE" ? (
             <Link
-              href={`/a/${slug}/visite/${reservation.session.circuit.slug}?retour=${encodeURIComponent(`/a/${slug}/mon-compte/reservations/${reservation.id}`)}`}
+              href={`/a/${slug}/visite/${reservation.session.circuit.slug}?reservation=${reservation.id}&retour=${encodeURIComponent(`/a/${slug}/mon-compte/reservations/${reservation.id}`)}`}
               className="mt-3 inline-flex items-center gap-2 rounded-full bg-gt-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-gt-teal-800"
             >
               <Icon name="play" className="size-4" />

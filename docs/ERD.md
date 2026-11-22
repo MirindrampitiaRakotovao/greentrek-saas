@@ -155,6 +155,7 @@ erDiagram
     boolean distanceEstimee
     json trace "points du sentier, nullable"
     enum traceSource "OSM ou MANUEL, nullable"
+    enum mode "MARCHE ou PIROGUE"
   }
   CIRCUIT_ETAPE {
     string id PK
@@ -346,6 +347,7 @@ erDiagram
 | `Publication`, `Commentaire`, `Jaime`, `SignalementCommunaute` | absentes | ajoutées (étape 5d) | Communauté commune à toutes les agences : tables de la **plateforme** sans `agenceId`, interdites au client d'une agence (portée `platform` du helper tenant), modérées par le super admin |
 | `Agence.nif`, `Agence.stat` | absents | ajoutés (2026-11-20) | Identifiants fiscal et statistique imprimés sur les factures |
 | `Troncon.trace`, `Troncon.traceSource` (enum `SourceTrace`) | absents | ajoutés (étape 6b-2) | Tracé réel du sentier (points [longitude, latitude]) proposé depuis OpenStreetMap ou dessiné par l'agence, pour l'affichage ; peut fixer `distanceKm` (longueur du tracé) mais n'est jamais lu par les algorithmes |
+| `Troncon.mode` (enum `ModeTroncon` : `MARCHE`, `PIROGUE`) | absent | ajouté (étape 8b) | Mode de déplacement déclaré par l'agence, utilisé par la visite virtuelle (montée en pirogue) ; jamais lu par les algorithmes |
 
 ## Règles de gestion garanties par la base
 
