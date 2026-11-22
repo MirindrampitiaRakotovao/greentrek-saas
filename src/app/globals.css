@@ -423,4 +423,123 @@ body {
     border-color: #ffb547;
     cursor: default;
   }
+
+  /* ─── Visite virtuelle (étape 8a) : randonneur vu de dos, ambiances. ─── */
+  .gt-hiker {
+    position: relative;
+    pointer-events: none;
+    filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.45));
+  }
+  .gt-hiker__glow {
+    position: absolute;
+    left: 50%;
+    bottom: 2px;
+    width: 120px;
+    height: 120px;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgb(250 213 148 / 0.35), transparent 65%);
+    transform: translate(-50%, 50%);
+    opacity: 0.55;
+  }
+  .gt-tour[data-ambiance="nuit"] .gt-hiker__glow,
+  .gt-tour[data-ambiance="crepuscule"] .gt-hiker__glow {
+    width: 220px;
+    height: 220px;
+    opacity: 1;
+    background: radial-gradient(circle, rgb(255 214 140 / 0.55), transparent 62%);
+  }
+  .gt-hiker svg {
+    position: relative;
+    overflow: visible;
+  }
+  .gt-hiker__shadow {
+    fill: rgb(0 0 0 / 0.35);
+  }
+  .gt-hiker__pack {
+    fill: #10585b;
+    stroke: #fad594;
+    stroke-width: 2;
+  }
+  .gt-hiker__packlid {
+    fill: #0f414d;
+    stroke: #fad594;
+    stroke-width: 1.5;
+  }
+  .gt-hiker__strap {
+    stroke: #fad594;
+    stroke-width: 1.5;
+    opacity: 0.7;
+  }
+  .gt-hiker__head {
+    fill: #8a5a3c;
+  }
+  .gt-hiker__hat {
+    fill: #fad594;
+  }
+  .gt-hiker__leg {
+    stroke: #0f414d;
+    stroke-width: 6;
+    stroke-linecap: round;
+    transform-box: fill-box;
+    transform-origin: top center;
+  }
+  .gt-hiker__pole {
+    stroke: #e8f2f2;
+    stroke-width: 2;
+    stroke-linecap: round;
+    transform-box: fill-box;
+    transform-origin: top center;
+  }
+  .gt-hiker.is-walking .gt-hiker__body {
+    animation: gt-hiker-bob 0.5s ease-in-out infinite;
+  }
+  .gt-hiker.is-walking .gt-hiker__leg--l {
+    animation: gt-hiker-step 0.5s ease-in-out infinite;
+  }
+  .gt-hiker.is-walking .gt-hiker__leg--r {
+    animation: gt-hiker-step 0.5s ease-in-out infinite reverse;
+  }
+  .gt-hiker.is-walking .gt-hiker__pole {
+    animation: gt-hiker-step 1s ease-in-out infinite;
+  }
+  @keyframes gt-hiker-bob {
+    50% {
+      transform: translateY(-2px);
+    }
+  }
+  @keyframes gt-hiker-step {
+    0%,
+    100% {
+      transform: rotate(-12deg);
+    }
+    50% {
+      transform: rotate(12deg);
+    }
+  }
+  .gt-tour-vignette {
+    background: radial-gradient(ellipse at center, transparent 55%, rgb(3 14 17 / 0.55) 100%);
+  }
+  .gt-tour[data-ambiance="nuit"] .gt-tour-vignette {
+    background: radial-gradient(ellipse at 50% 70%, transparent 35%, rgb(2 6 16 / 0.75) 100%);
+  }
+  .gt-tour-step {
+    cursor: default;
+  }
+  .gt-tour-card {
+    animation: gt-modal-in 220ms ease-out;
+  }
+  .gt-kbd {
+    display: inline-block;
+    min-width: 1.6rem;
+    padding: 0.05rem 0.4rem;
+    border: 1px solid rgb(255 255 255 / 0.35);
+    border-bottom-width: 3px;
+    border-radius: 0.4rem;
+    font: 600 12px/1.4 var(--font-poppins, sans-serif);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .gt-hiker.is-walking :is(.gt-hiker__body, .gt-hiker__leg, .gt-hiker__pole) {
+      animation: none;
+    }
+  }
 }

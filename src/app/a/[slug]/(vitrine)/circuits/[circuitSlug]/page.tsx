@@ -136,6 +136,16 @@ export default async function PublicCircuitPage({ params }: Props) {
               </div>
             ))}
           </dl>
+          {/* Visite virtuelle 3D (étape 8a) : balade sur le vrai tracé du circuit. */}
+          {steps.length > 1 ? (
+            <Link
+              href={`${base}/visite/${circuit.slug}`}
+              className="mt-6 mr-3 inline-flex items-center gap-2 rounded-full bg-gt-sand-300 px-5 py-2.5 text-sm font-semibold text-gt-teal-900 shadow-lg hover:bg-gt-sand-200"
+            >
+              <Icon name="play" className="size-4" />
+              Visite virtuelle 3D
+            </Link>
+          ) : null}
           {/* Sur mobile, les départs sont en bas de page : accès direct. */}
           <a
             href="#departs"
@@ -180,9 +190,20 @@ export default async function PublicCircuitPage({ params }: Props) {
           ) : null}
 
           <section aria-labelledby="titre-itineraire">
-            <h2 id="titre-itineraire" className="text-xl font-semibold text-gt-teal-900">
-              Itinéraire
-            </h2>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 id="titre-itineraire" className="text-xl font-semibold text-gt-teal-900">
+                Itinéraire
+              </h2>
+              {steps.length > 1 ? (
+                <Link
+                  href={`${base}/visite/${circuit.slug}`}
+                  className="inline-flex items-center gap-2 rounded-full bg-gt-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-gt-teal-800"
+                >
+                  <Icon name="play" className="size-4" />
+                  Parcourir le sentier en 3D
+                </Link>
+              ) : null}
+            </div>
             {steps.length > 0 ? (
               <>
                 <div className="mt-4">

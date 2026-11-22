@@ -47,7 +47,9 @@ export function satelliteStyle(): StyleSpecification {
         type: "raster",
         tiles: [SATELLITE_TILES],
         tileSize: 256,
-        maxzoom: 19,
+        // Au-delà du zoom 17, Esri n'a pas d'image dans les zones rurales de Madagascar (tuile
+        // grise « Map data not yet available ») : MapLibre agrandit les tuiles du zoom 17.
+        maxzoom: 17,
         attribution: "Imagerie © Esri, Maxar, Earthstar Geographics",
       },
       relief: {

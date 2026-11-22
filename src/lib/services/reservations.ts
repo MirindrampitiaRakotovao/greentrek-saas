@@ -319,7 +319,7 @@ const reservationSelect = {
       dateDebut: true,
       dateFin: true,
       guideId: true,
-      circuit: { select: { titre: true, slug: true, imagePrincipaleUrl: true } },
+      circuit: { select: { titre: true, slug: true, imagePrincipaleUrl: true, statut: true } },
     },
   },
   participants: {

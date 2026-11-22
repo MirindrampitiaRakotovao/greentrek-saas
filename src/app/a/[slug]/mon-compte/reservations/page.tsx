@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { Icon } from "@/components/ui/icon";
+
 import { PageHeader } from "@/components/dashboard/page-header";
 import { EmptyState, StatusPill } from "@/components/dashboard/widgets";
 import { CircuitVisual } from "@/components/vitrine/circuit-visual";
@@ -84,6 +86,15 @@ export default async function MesReservationsPage({
                   </p>
                 </div>
               </Link>
+              {r.session.circuit.statut === "PUBLIE" ? (
+                <Link
+                  href={`/a/${slug}/visite/${r.session.circuit.slug}?retour=${encodeURIComponent(`/a/${slug}/mon-compte/reservations`)}`}
+                  className="mt-2 ml-3 inline-flex items-center gap-1.5 text-sm font-medium text-gt-teal-700 underline"
+                >
+                  <Icon name="play" className="size-3.5" />
+                  Visite virtuelle 3D du circuit
+                </Link>
+              ) : null}
             </li>
           ))}
         </ul>
