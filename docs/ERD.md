@@ -17,6 +17,8 @@ Notation : `PK` clé primaire, `FK` clé étrangère, `UK` unique. Les identifia
 
 ```mermaid
 erDiagram
+  ITINERAIRE_PERSONNALISE ||--o{ DEPART_SUR_MESURE : "programme"
+  GUIDE ||--o{ DEPART_SUR_MESURE : "encadre"
   AGENCE ||--o{ UTILISATEUR : "compte"
   AGENCE ||--o{ ABONNEMENT : "souscrit"
   PLAN ||--o{ ABONNEMENT : "definit"
@@ -348,6 +350,7 @@ erDiagram
 | `Agence.nif`, `Agence.stat` | absents | ajoutés (2026-11-20) | Identifiants fiscal et statistique imprimés sur les factures |
 | `Troncon.trace`, `Troncon.traceSource` (enum `SourceTrace`) | absents | ajoutés (étape 6b-2) | Tracé réel du sentier (points [longitude, latitude]) proposé depuis OpenStreetMap ou dessiné par l'agence, pour l'affichage ; peut fixer `distanceKm` (longueur du tracé) mais n'est jamais lu par les algorithmes |
 | `Troncon.mode` (enum `ModeTroncon` : `MARCHE`, `PIROGUE`) | absent | ajouté (étape 8b) | Mode de déplacement déclaré par l'agence, utilisé par la visite virtuelle (montée en pirogue) ; jamais lu par les algorithmes |
+| `DepartSurMesure` (enum `StatutDepartSurMesure` : `DEMANDE`, `CONFIRME`, `REFUSE`, `ANNULE`) | absente | ajoutée (étape 9) | Départ d'un itinéraire sur mesure accepté : dates et nombre de personnes choisis par le voyageur, confirmation de l'agence (tarif, guide, message) ; CHECK fin ≥ début, personnes > 0, tarif ≥ 0 ; portée `tenant` du helper (itinéraire et guide de la même agence) |
 
 ## Règles de gestion garanties par la base
 

@@ -21,6 +21,8 @@ export const ACTION_LABELS: Record<string, string> = {
   CLIENT_AJOUTE: "Client ajouté par l'agence",
   CLIENT_MODIFIE: "Client modifié",
   CLIENT_SUPPRIME: "Client supprimé",
+  DEPART_SUR_MESURE_CONFIRME: "Départ sur mesure confirmé",
+  DEPART_SUR_MESURE_REFUSE: "Départ sur mesure refusé",
   LOGO_MODIFIE: "Logo de l'agence modifié",
   SIGNALEMENT_TRAITE: "Signalement traité",
   CLIENT_DESACTIVE: "Compte d'un voyageur désactivé",

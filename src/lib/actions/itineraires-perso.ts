@@ -5,6 +5,11 @@ import { revalidatePath } from "next/cache";
 import { authorize, journal, parseInput, toActionResult } from "@/lib/actions/helpers";
 import type { ActionResult } from "@/lib/actions/types";
 import { getClientContext } from "@/lib/auth/session";
+import {
+  answerDepartSurMesure,
+  cancelDepartSurMesure,
+  programDepart,
+} from "@/lib/services/departs-sur-mesure";
 import type { AlgorithmOutcome } from "@/lib/services/itineraires";
 import {
   answerDemande,
@@ -14,7 +19,10 @@ import {
   requestItineraire,
 } from "@/lib/services/itineraires-perso";
 import {
+  answerDepartSchema,
   answerItineraireSchema,
+  departIdSchema,
+  programDepartSchema,
   clientCalculSchema,
   proposeItineraireSchema,
   requestItineraireSchema,
@@ -122,5 +130,69 @@ export async function answerDemandeAction(input: unknown): Promise<ActionResult>
     parsed.data.decision === "ACCEPTE"
       ? "Demande acceptée : le voyageur est prévenu."
       : "Demande déclinée : le voyageur est prévenu.",
+  );
+}
+
+/* ─── Étape 9 : départ d'un itinéraire sur mesure ─── */
+
+/** Le voyageur programme (ou modifie) le départ de son itinéraire accepté. */
+export async function programDepartAction(input: unknown): Promise<ActionResult> {
+  const ctx = await getClientContext();
+  if (!ctx) return NOT_CLIENT;
+  const parsed = parseInput(programDepartSchema, input);
+  if (!parsed.ok) return parsed.result;
+  const result = await programDepart(ctx.db, {
+    ...parsed.data,
+    agenceId: ctx.user.agenceId,
+    clientId: ctx.user.id,
+  });
+  if (!result.ok) return toActionResult(result);
+  revalidatePath(`/a/${ctx.user.agenceSlug}/mon-compte`, "layout");
+  revalidatePath("/dashboard", "layout");
+  return {
+    success: result.data.modifie
+      ? "Départ modifié : l'agence est prévenue."
+      : "Départ programmé : l'agence va le confirmer.",
+  };
+}
+
+/** Le voyageur annule son départ, avant le jour du début. */
+export async function cancelDepartSurMesureAction(input: unknown): Promise<ActionResult> {
+  const ctx = await getClientContext();
+  if (!ctx) return NOT_CLIENT;
+  const parsed = parseInput(departIdSchema, input);
+  if (!parsed.ok) return parsed.result;
+  const result = await cancelDepartSurMesure(ctx.db, { id: parsed.data.id, clientId: ctx.user.id });
+  if (result.ok) {
+    revalidatePath(`/a/${ctx.user.agenceSlug}/mon-compte`, "layout");
+    revalidatePath("/dashboard", "layout");
+  }
+  return toActionResult(result, "Départ annulé : l'agence est prévenue.");
+}
+
+/** L'agence confirme (tarif, guide, message) ou refuse le départ demandé. */
+export async function answerDepartSurMesureAction(input: unknown): Promise<ActionResult> {
+  const auth = await authorize("creer", "reservation");
+  if (!auth.ok) return auth.result;
+  const parsed = parseInput(answerDepartSchema, input);
+  if (!parsed.ok) return parsed.result;
+  const agence = await auth.db.agence.findFirstOrThrow({ select: { slug: true } });
+  const result = await answerDepartSurMesure(auth.db, { ...parsed.data, agenceSlug: agence.slug });
+  if (result.ok) {
+    await journal(
+      auth,
+      parsed.data.decision === "CONFIRME"
+        ? "DEPART_SUR_MESURE_CONFIRME"
+        : "DEPART_SUR_MESURE_REFUSE",
+      "DepartSurMesure",
+      parsed.data.id,
+    );
+    revalidatePath("/dashboard/itineraires-sur-mesure", "layout");
+  }
+  return toActionResult(
+    result,
+    parsed.data.decision === "CONFIRME"
+      ? "Départ confirmé : le voyageur est prévenu."
+      : "Départ refusé : le voyageur est prévenu.",
   );
 }

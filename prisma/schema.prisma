@@ -153,6 +153,7 @@ model Agence {
   conversations       Conversation[]
   appareilsMobiles    AppareilMobile[]
   itinerairesPerso    ItinerairePersonnalise[]
+  departsSurMesure    DepartSurMesure[]
   blocages            Blocage[]
   signalements        Signalement[]
 }
@@ -403,6 +404,7 @@ model Guide {
   agence         Agence          @relation(fields: [agenceId], references: [id], onDelete: Restrict)
   utilisateur    Utilisateur?    @relation(fields: [utilisateurId], references: [id], onDelete: SetNull)
   sessionsDepart SessionDepart[]
+  departsSurMesure DepartSurMesure[]
 
   @@index([agenceId])
 }
@@ -754,6 +756,7 @@ model ItinerairePersonnalise {
   client     Utilisateur       @relation("ItineraireClient", fields: [clientId], references: [id], onDelete: Restrict)
   creePar    Utilisateur       @relation("ItineraireAuteur", fields: [creeParId], references: [id], onDelete: Restrict)
   itineraire ItineraireCalcule @relation(fields: [itineraireCalculeId], references: [id], onDelete: Restrict)
+  departs    DepartSurMesure[]
 
   @@index([agenceId, createdAt])
   @@index([clientId])
@@ -893,4 +896,41 @@ model SignalementCommunaute {
 
   @@unique([auteurId, cible, cibleId])
   @@index([statut, createdAt])
+}
+
+// Départ d'un itinéraire sur mesure (étape 9, demande de l'étudiant) : une fois l'itinéraire
+// accepté, le voyageur programme ses dates et le nombre de personnes ; l'agence confirme
+// (tarif, guide, message) ou refuse. Un seul départ actif (DEMANDE ou CONFIRME) par itinéraire ;
+// les départs refusés ou annulés restent en historique. Le paiement se règle avec l'agence.
+model DepartSurMesure {
+  id              String                @id @default(cuid())
+  agenceId        String
+  itineraireId    String
+  guideId         String?
+  dateDebut       DateTime              @db.Date
+  dateFin         DateTime              @db.Date
+  nombrePersonnes Int
+  remarques       String?               @db.Text
+  statut          StatutDepartSurMesure @default(DEMANDE)
+  /// Tarif total indiqué par l'agence à la confirmation (devise de l'agence), facultatif.
+  tarif           Int?
+  reponse         String?               @db.Text
+  reponduAt       DateTime?
+  annuleAt        DateTime?
+  createdAt       DateTime              @default(now())
+
+  agence     Agence                 @relation(fields: [agenceId], references: [id], onDelete: Restrict)
+  itineraire ItinerairePersonnalise @relation(fields: [itineraireId], references: [id], onDelete: Cascade)
+  guide      Guide?                 @relation(fields: [guideId], references: [id], onDelete: SetNull)
+
+  @@index([agenceId, dateDebut])
+  @@index([itineraireId])
+  @@index([guideId])
+}
+
+enum StatutDepartSurMesure {
+  DEMANDE
+  CONFIRME
+  REFUSE
+  ANNULE
 }

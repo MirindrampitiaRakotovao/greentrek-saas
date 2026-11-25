@@ -63,6 +63,7 @@ async function clearDatabase(): Promise<void> {
     db.publication.deleteMany(),
     db.signalement.deleteMany(),
     db.blocage.deleteMany(),
+    db.departSurMesure.deleteMany(),
     db.itinerairePersonnalise.deleteMany(),
     db.appareilMobile.deleteMany(),
     db.jetonReinitialisation.deleteMany(),

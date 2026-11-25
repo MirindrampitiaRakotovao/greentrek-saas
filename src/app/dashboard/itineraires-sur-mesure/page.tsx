@@ -7,7 +7,8 @@ import { EmptyState } from "@/components/dashboard/widgets";
 import { Badge } from "@/components/ui/badge";
 import type { StatutItineraire } from "@/generated/prisma/client";
 import { requireAgencyUser } from "@/lib/auth/session";
-import { formatDateTime } from "@/lib/format";
+import { formatDateRange, formatDateTime } from "@/lib/format";
+import { listUpcomingDepartsSurMesure } from "@/lib/services/departs-sur-mesure";
 import { parsePage } from "@/lib/pagination";
 import { listItinerairesAgence, STATUT_ITINERAIRE_LABELS } from "@/lib/services/itineraires-perso";
 
@@ -28,7 +29,10 @@ export default async function ItinerairesSurMesurePage({
   const statutParam = first(params.statut);
   const statut = STATUTS.find((s) => s === statutParam) as StatutItineraire | undefined;
   const page = parsePage(params.page);
-  const list = await listItinerairesAgence(db, { origine, statut }, page);
+  const [list, departs] = await Promise.all([
+    listItinerairesAgence(db, { origine, statut }, page),
+    listUpcomingDepartsSurMesure(db),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -36,6 +40,36 @@ export default async function ItinerairesSurMesurePage({
         title="Itinéraires sur mesure"
         description="Demandes envoyées par les voyageurs et itinéraires proposés par l'agence à ses clients."
       />
+      {departs.length > 0 ? (
+        <section aria-labelledby="titre-departs-sur-mesure" className="gt-table-wrap">
+          <h2
+            id="titre-departs-sur-mesure"
+            className="px-5 pt-4 text-base font-semibold text-gt-teal-900"
+          >
+            Départs sur mesure à venir
+          </h2>
+          <ul className="divide-y divide-gt-mist/60 px-5 pb-2">
+            {departs.map((d) => (
+              <li key={d.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <Link
+                    href={`/dashboard/itineraires-sur-mesure/${d.itineraireId}`}
+                    className="font-medium text-gt-teal-700 underline"
+                  >
+                    {d.itineraire.titre}
+                  </Link>
+                  <p className="text-xs text-gt-teal-900/75">
+                    {d.itineraire.client.prenom} {d.itineraire.client.nom} ·{" "}
+                    {formatDateRange(d.dateDebut, d.dateFin)} · {d.nombrePersonnes} pers.
+                    {d.guide ? ` · guide : ${d.guide.prenom} ${d.guide.nom}` : ""}
+                  </p>
+                </div>
+                <Badge tone={d.statut === "CONFIRME" ? "success" : "sand"}>{d.statutLabel}</Badge>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       <form method="get" className="flex flex-wrap gap-2">
         <label htmlFor="it-origine" className="sr-only">
           Origine

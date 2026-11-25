@@ -17,7 +17,8 @@ export type ReferenceTarget =
   | "Reservation"
   | "Partenaire"
   | "Conversation"
-  | "ItineraireCalcule";
+  | "ItineraireCalcule"
+  | "ItinerairePersonnalise";
 
 type Scope =
   /** Table portant `agenceId`. */
@@ -145,6 +146,11 @@ export const TENANT_CONFIG: Readonly<Record<ModelName, ModelConfig>> = {
       creeParId: "Utilisateur",
       itineraireCalculeId: "ItineraireCalcule",
     },
+  },
+  // Étape 9 : départ d'un itinéraire sur mesure (guide de la même agence).
+  DepartSurMesure: {
+    scope: { kind: "tenant" },
+    references: { itineraireId: "ItinerairePersonnalise", guideId: "Guide" },
   },
   LectureConversation: {
     scope: { kind: "child", relation: "conversation" },

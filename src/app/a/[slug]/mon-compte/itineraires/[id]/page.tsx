@@ -5,10 +5,15 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card } from "@/components/dashboard/widgets";
 import { AnswerItineraire } from "@/components/itineraires-perso/answer-itineraire";
+import { DepartActions, ProgramDepartForm } from "@/components/itineraires-perso/depart-sur-mesure";
 import { ItineraireMap } from "@/components/itineraires-perso/itineraire-map";
 import { Badge } from "@/components/ui/badge";
 import { requireClient } from "@/lib/auth/session";
-import { formatDateTime } from "@/lib/format";
+import { calendarDate } from "@/lib/dates";
+import { firstBookableDate, toIsoDate } from "@/lib/departs";
+import { formatDateRange, formatDateTime, formatMoney } from "@/lib/format";
+import { getVitrineAgency } from "@/lib/public-agency";
+import { listDepartsOfItineraire } from "@/lib/services/departs-sur-mesure";
 import { getItineraireClient } from "@/lib/services/itineraires-perso";
 
 export const metadata: Metadata = { title: "Itinéraire" };
@@ -22,6 +27,16 @@ export default async function ItinerairePage({
   const it = await getItineraireClient(db, id, user.id);
   if (!it) notFound();
   const peutRepondre = it.origine === "AGENCE" && it.statut === "EN_ATTENTE";
+  // Étape 9 : départ programmé (le courant est le plus récent encore actif).
+  const [departs, agence] = await Promise.all([
+    listDepartsOfItineraire(db, it.id),
+    getVitrineAgency(slug),
+  ]);
+  const courant = departs.find((d) => d.statut === "DEMANDE" || d.statut === "CONFIRME");
+  const anciens = departs.filter((d) => d !== courant);
+  const today = calendarDate(new Date());
+  const minDate = toIsoDate(firstBookableDate(today));
+  const devise = agence?.devise ?? "MGA";
 
   return (
     <div className="space-y-5">
@@ -93,6 +108,85 @@ export default async function ItinerairePage({
               ))}
             </ol>
           </Card>
+          {it.statut === "ACCEPTE" ? (
+            <Card title="Départ">
+              {courant ? (
+                <div className="space-y-3 text-sm text-gt-teal-900">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-semibold">
+                      {formatDateRange(courant.dateDebut, courant.dateFin)} ·{" "}
+                      {courant.nombrePersonnes} pers.
+                    </p>
+                    <Badge tone={courant.statut === "CONFIRME" ? "success" : "sand"}>
+                      {courant.statutLabel}
+                    </Badge>
+                  </div>
+                  {courant.statut === "CONFIRME" ? (
+                    <dl className="space-y-1">
+                      {courant.tarif !== null ? (
+                        <div>
+                          <dt className="inline text-gt-teal-900/75">Tarif : </dt>
+                          <dd className="inline font-medium">
+                            {formatMoney(courant.tarif, devise)} (à régler avec l&apos;agence)
+                          </dd>
+                        </div>
+                      ) : null}
+                      {courant.guide ? (
+                        <div>
+                          <dt className="inline text-gt-teal-900/75">Guide : </dt>
+                          <dd className="inline font-medium">
+                            {courant.guide.prenom} {courant.guide.nom}
+                          </dd>
+                        </div>
+                      ) : null}
+                    </dl>
+                  ) : (
+                    <p className="text-gt-teal-900/75">
+                      L&apos;agence va confirmer vos dates. Vous pouvez encore les modifier.
+                    </p>
+                  )}
+                  {courant.reponse ? <p>« {courant.reponse} »</p> : null}
+                  <DepartActions
+                    depart={{
+                      id: courant.id,
+                      statut: courant.statut,
+                      dateDebut: toIsoDate(courant.dateDebut),
+                      dateFin: toIsoDate(courant.dateFin),
+                      nombrePersonnes: courant.nombrePersonnes,
+                      remarques: courant.remarques,
+                    }}
+                    itineraireId={it.id}
+                    dureeMinutes={it.dureeMinutes}
+                    minDate={minDate}
+                    peutAnnuler={courant.dateDebut.getTime() > today.getTime()}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-gt-teal-900/75">
+                    Itinéraire accepté : choisissez vos dates et le nombre de personnes.
+                    L&apos;agence confirmera le départ.
+                  </p>
+                  <ProgramDepartForm
+                    itineraireId={it.id}
+                    dureeMinutes={it.dureeMinutes}
+                    minDate={minDate}
+                  />
+                </div>
+              )}
+              {anciens.length > 0 ? (
+                <ul className="mt-4 space-y-1 border-t border-gt-mist/60 pt-3 text-xs text-gt-teal-900/75">
+                  {anciens.map((d) => (
+                    <li key={d.id}>
+                      {formatDateRange(d.dateDebut, d.dateFin)} · {d.nombrePersonnes} pers. ·{" "}
+                      {d.statutLabel}
+                      {d.reponse ? ` : « ${d.reponse} »` : ""}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </Card>
+          ) : null}
           <Card title={it.origine === "AGENCE" ? "Votre réponse" : "Réponse de l'agence"}>
             {peutRepondre ? (
               <AnswerItineraire id={it.id} />
